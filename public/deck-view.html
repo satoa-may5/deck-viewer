@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>デッキ表示 - Deck Viewer</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" />
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <div>
+        <h1 id="deck-name">デッキ</h1>
+        <div id="deck-meta" style="color:var(--muted); font-size:0.9rem;"></div>
+      </div>
+      <div class="nav-links">
+        <a class="btn" href="index.html">← 一覧に戻る</a>
+        <a class="btn primary" id="edit-link" href="#">編集する</a>
+      </div>
+    </div>
+
+    <main class="grid" id="grid"></main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/card-render.js"></script>
+  <script src="js/deck-view.js"></script>
+  <script src="js/register-sw.js"></script>
+</body>
+</html>

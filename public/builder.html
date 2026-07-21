@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>デッキ編集 - Deck Viewer</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" />
+</head>
+<body>
+  <div class="builder-page">
+    <div class="builder-header">
+      <a class="btn" href="index.html">← 戻る</a>
+      <input type="text" id="deck-name-input" placeholder="デッキ名" />
+      <button class="btn primary" id="save-btn">保存</button>
+      <span id="save-status" class="status-message"></span>
+    </div>
+
+    <div class="pane pane-deck">
+      <p class="pane-title">デッキ(タップ/スワイプで1枚減らす)</p>
+      <div class="builder-grid" id="deck-grid"></div>
+    </div>
+
+    <div class="pane pane-collection">
+      <p class="pane-title">手持ちカード(タップ/スワイプで1枚追加)</p>
+      <div class="builder-grid" id="collection-grid"></div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/card-render.js"></script>
+  <script src="js/builder.js"></script>
+  <script src="js/register-sw.js"></script>
+</body>
+</html>
