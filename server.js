@@ -8,12 +8,16 @@ const DATA_DIR = path.join(ROOT, "data");
 const DECKS_DIR = path.join(DATA_DIR, "decks");
 const IMAGES_DIR = path.join(ROOT, "images");
 const CARDS_FILE = path.join(DATA_DIR, "cards.json");
+const POOLS_FILE = path.join(DATA_DIR, "cardpools.json");
 
 for (const dir of [DATA_DIR, DECKS_DIR, IMAGES_DIR]) {
   fs.mkdirSync(dir, { recursive: true });
 }
 if (!fs.existsSync(CARDS_FILE)) {
   fs.writeFileSync(CARDS_FILE, "[]\n");
+}
+if (!fs.existsSync(POOLS_FILE)) {
+  fs.writeFileSync(POOLS_FILE, "[]\n");
 }
 
 const ID_PATTERN = /^[A-Za-z0-9._-]+$/;
@@ -29,6 +33,14 @@ function readCards() {
 
 function writeCards(cards) {
   fs.writeFileSync(CARDS_FILE, JSON.stringify(cards, null, 2) + "\n");
+}
+
+function readPools() {
+  return JSON.parse(fs.readFileSync(POOLS_FILE, "utf8"));
+}
+
+function writePools(pools) {
+  fs.writeFileSync(POOLS_FILE, JSON.stringify(pools, null, 2) + "\n");
 }
 
 function readDeck(id) {
@@ -61,20 +73,71 @@ const upload = multer({
   limits: { fileSize: 15 * 1024 * 1024 },
 });
 
+// ---- Card pools ----
+
+app.get("/api/pools", (req, res) => {
+  const pools = readPools();
+  const cards = readCards();
+  res.json(
+    pools.map((p) => ({
+      ...p,
+      cardCount: cards.filter((c) => c.poolId === p.id).length,
+    }))
+  );
+});
+
+app.post("/api/pools", (req, res) => {
+  const name = (req.body.name || "").trim();
+  if (!name) {
+    return res.status(400).json({ error: "カードプール名は必須です" });
+  }
+
+  const pools = readPools();
+  const pool = { id: `pool-${Date.now()}`, name, createdAt: new Date().toISOString() };
+  pools.push(pool);
+  writePools(pools);
+  res.status(201).json(pool);
+});
+
+app.patch("/api/pools/:id", (req, res) => {
+  const name = (req.body.name || "").trim();
+  if (!name) {
+    return res.status(400).json({ error: "カードプール名は必須です" });
+  }
+
+  const pools = readPools();
+  const pool = pools.find((p) => p.id === req.params.id);
+  if (!pool) return res.status(404).json({ error: "カードプールが見つかりません" });
+  pool.name = name;
+  writePools(pools);
+  res.json(pool);
+});
+
 // ---- Cards ----
 
 app.get("/api/cards", (req, res) => {
-  res.json(readCards());
+  const cards = readCards();
+  if (req.query.poolId) {
+    return res.json(cards.filter((c) => c.poolId === req.query.poolId));
+  }
+  res.json(cards);
 });
 
 app.post("/api/cards", upload.single("image"), (req, res) => {
-  const { id, name, cost } = req.body;
+  const { id, name, cost, poolId } = req.body;
 
   if (!id || !ID_PATTERN.test(id)) {
     return res.status(400).json({ error: "カードIDが不正です(英数字・.・_・-のみ使用できます)" });
   }
   if (!name) {
     return res.status(400).json({ error: "カード名は必須です" });
+  }
+  if (!poolId) {
+    return res.status(400).json({ error: "カードプールを選択してください" });
+  }
+  const pools = readPools();
+  if (!pools.some((p) => p.id === poolId)) {
+    return res.status(400).json({ error: "指定されたカードプールが見つかりません" });
   }
   if (!req.file) {
     return res.status(400).json({ error: "画像が送信されていません" });
@@ -95,6 +158,7 @@ app.post("/api/cards", upload.single("image"), (req, res) => {
     id,
     name,
     cost: cost === undefined || cost === "" ? null : Number(cost),
+    poolId,
     imageExt: ext,
     createdAt: new Date().toISOString(),
   };
@@ -122,7 +186,7 @@ app.get("/api/decks/:id", (req, res) => {
 });
 
 app.post("/api/decks", (req, res) => {
-  const { id, name, cards } = req.body;
+  const { id, name, cards, poolIds } = req.body;
   if (!name) {
     return res.status(400).json({ error: "デッキ名は必須です" });
   }
@@ -131,7 +195,13 @@ app.post("/api/decks", (req, res) => {
   }
 
   const deckId = id && ID_PATTERN.test(id) ? id : `deck-${Date.now()}`;
-  const deck = { id: deckId, name, cards, updatedAt: new Date().toISOString() };
+  const deck = {
+    id: deckId,
+    name,
+    poolIds: Array.isArray(poolIds) ? poolIds : [],
+    cards,
+    updatedAt: new Date().toISOString(),
+  };
   writeDeck(deck);
   res.status(200).json(deck);
 });

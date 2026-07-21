@@ -1,7 +1,10 @@
 let allCards = [];
+let allPools = [];
 let deckId = null;
 const deckCounts = new Map(); // cardId -> count
+const selectedPoolIds = new Set();
 
+const poolCheckboxList = document.getElementById("pool-checkbox-list");
 const deckGrid = document.getElementById("deck-grid");
 const collectionGrid = document.getElementById("collection-grid");
 const nameInput = document.getElementById("deck-name-input");
@@ -38,6 +41,29 @@ function removeFromDeck(cardId) {
   renderPanes();
 }
 
+function renderPoolPicker() {
+  poolCheckboxList.innerHTML = "";
+  if (allPools.length === 0) {
+    poolCheckboxList.innerHTML = '<div class="empty-state">カードプールがありません。「カードプール管理」から作成してください。</div>';
+    return;
+  }
+  for (const pool of allPools) {
+    const label = document.createElement("label");
+    label.className = "pool-checkbox";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = selectedPoolIds.has(pool.id);
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) selectedPoolIds.add(pool.id);
+      else selectedPoolIds.delete(pool.id);
+      renderPanes();
+    });
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(`${pool.name} (${pool.cardCount}枚)`));
+    poolCheckboxList.appendChild(label);
+  }
+}
+
 function renderPanes() {
   const cardById = Object.fromEntries(allCards.map((c) => [c.id, c]));
 
@@ -53,10 +79,15 @@ function renderPanes() {
   }
 
   collectionGrid.innerHTML = "";
-  if (allCards.length === 0) {
-    collectionGrid.innerHTML = '<div class="empty-state">登録済みのカードがありません。「カードを追加」から登録してください。</div>';
+  if (selectedPoolIds.size === 0) {
+    collectionGrid.innerHTML = '<div class="empty-state">上で参照するカードプールを選択してください</div>';
+    return;
+  }
+  const visibleCards = allCards.filter((c) => selectedPoolIds.has(c.poolId));
+  if (visibleCards.length === 0) {
+    collectionGrid.innerHTML = '<div class="empty-state">選択したカードプールにカードがありません。「カードを追加」から登録してください。</div>';
   } else {
-    for (const card of allCards) {
+    for (const card of visibleCards) {
       const count = deckCounts.get(card.id) || null;
       const el = createCardElement(card, card.id, count);
       attachTapOrSwipe(el, () => addToDeck(card.id));
@@ -69,7 +100,7 @@ async function init() {
   const params = new URLSearchParams(location.search);
   deckId = params.get("id");
 
-  allCards = await Api.getCards();
+  [allCards, allPools] = await Promise.all([Api.getCards(), Api.getPools()]);
 
   if (deckId) {
     const deck = await Api.getDeck(deckId);
@@ -78,9 +109,13 @@ async function init() {
       for (const entry of deck.cards) {
         deckCounts.set(entry.cardId, entry.count);
       }
+      for (const poolId of deck.poolIds || []) {
+        selectedPoolIds.add(poolId);
+      }
     }
   }
 
+  renderPoolPicker();
   renderPanes();
 }
 
@@ -92,8 +127,9 @@ document.getElementById("save-btn").addEventListener("click", async () => {
     return;
   }
   const cards = [...deckCounts].map(([cardId, count]) => ({ cardId, count }));
+  const poolIds = [...selectedPoolIds];
   try {
-    const deck = await Api.saveDeck({ id: deckId, name, cards });
+    const deck = await Api.saveDeck({ id: deckId, name, cards, poolIds });
     deckId = deck.id;
     history.replaceState(null, "", `builder.html?id=${encodeURIComponent(deckId)}`);
     saveStatus.textContent = "保存しました";

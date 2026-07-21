@@ -27,18 +27,25 @@ Access APIはChromium限定かつfile://で不安定。ユーザーは「ブラ�
 モバイルどれでもポチポチで使いたい、時間がかかってもよい」と回答したため、
 サーバー経由の自動保存 + PWA化を選択した)。
 
+さらに同日中に「カードプール」概念を追加(下記参照)。カード登録はプール単位で行い、
+デッキは1つ以上のカードプールを「参照」して手持ち一覧を組み立てる形に変更した。
+
 ```
 deck-viewer/
-├── server.js              Express本体。静的配信 + /api/cards, /api/decks
+├── server.js              Express本体。静的配信 + /api/cards, /api/pools, /api/decks
 ├── package.json            依存: express, multer
 ├── data/
-│   ├── cards.json          登録済みカードのデータベース(id, name, cost, imageExt)
-│   └── decks/{id}.json     デッキごとの保存ファイル(name, cards:[{cardId,count}])
+│   ├── cards.json          登録済みカードのDB(id, name, cost, poolId, imageExt)
+│   ├── cardpools.json      カードプールのDB(id, name, createdAt)
+│   └── decks/{id}.json     デッキごとの保存ファイル(name, poolIds:[], cards:[{cardId,count}])
 ├── images/                 カード画像本体。.gitignoreで除外(著作権・サイズの都合)
+│   └── union_arena_cards/  ユーザーが用意したテスト用カード画像(311枚、Union Arena)。
+│                           開発中の動作確認に自由に使ってよいとユーザーから許可済み
 └── public/                 フロントエンド(静的ファイルとしてExpressが配信)
-    ├── index.html          ホーム: 保存済みデッキ一覧
-    ├── add-card.html/js     カード追加(アップロード→トリミング→メタデータ入力)
-    ├── builder.html/js      Shadowverse風デッキビルダー(上:デッキ 下:手持ち一覧)
+    ├── index.html          ホーム: 保存済みデッキ一覧(表示/編集/⋮メニュー[リネーム・複製・削除])
+    ├── pools.html/js        カードプール管理(作成・一覧・カード枚数表示・リネーム)
+    ├── add-card.html/js     カード追加(プール選択→アップロード→トリミング→メタデータ入力)
+    ├── builder.html/js      Shadowverse風デッキビルダー(参照プールの複数選択→上:デッキ 下:手持ち一覧)
     ├── deck-view.html/js    デッキの読み取り専用グリッド表示(元々の目標画面)
     ├── js/api.js            サーバーAPIへのfetchラッパー
     ├── js/card-render.js    カード1枚分のDOM生成(グリッド/ビルダー共通)
@@ -50,51 +57,89 @@ deck-viewer/
 ## データ/API仕様
 
 - カード画像ファイル名: `images/{カードID}.{jpg|png|webp}`(カードIDをそのままファイル名に使う)
-- カードの必要エナジー等の情報は `data/cards.json` に集約(画像とは別管理)
+- カードの必要エナジー等の情報は `data/cards.json` に集約(画像とは別管理)。各カードは
+  必ずいずれか1つの`poolId`(カードプールID)に属する
+- カードプールは`data/cardpools.json`で管理。カードプール自体に画像やメタデータは
+  持たず、単なる「カードのグループ分け」(例: 弾ごと、購入ロットごとなど)
+- デッキは`poolIds`(参照するカードプールIDの配列)を持つ。ビルダーの「手持ちカード」
+  一覧は、選択中のプールに属するカードだけをフィルタして表示する
 - カードのアスペクト比は縦88:横63固定(CSSで `aspect-ratio: 63 / 88`、トリミング出力も630x880)
-- API: `GET/POST /api/cards`, `GET/POST/DELETE /api/decks(/:id)`(詳細はserver.js参照)
+- API: `GET/POST/PATCH /api/pools(/:id)`, `GET/POST /api/cards`(`?poolId=`でフィルタ可),
+  `GET/POST/DELETE /api/decks(/:id)`(詳細はserver.js参照)
+- デッキのリネーム・複製は専用APIを設けず、既存の`POST /api/decks`(id指定でupsert)を
+  フロント側で使い回している(リネーム=同じid+新name+既存cardsで再POST、
+  複製=id省略+同じcards/poolIdsで新規POST)
 
 ## 決定事項・方針
 
-- git操作(init/commit/push等)は基本ユーザー自身が行う方針。ただし今回(2026-07-21)は
-  「時間がないのでadd/commit/pushだけやっておいて」と明示的に依頼されたため代行した。
-  次回以降も、明示的な依頼がない限りは手順を案内するだけにする。
+- **2026-07-22時点の最新方針**: ユーザーから「コミットプッシュはこれから勝手にしていいよ
+  (一応報告して)」と明示的な標準許可をもらった。これ以降は、キリの良い区切りで
+  都度確認を挟まずcommit/pushしてよい。ただし実行した際は必ずその旨をユーザーに
+  報告すること(何をコミットしたか一言添える)。それ以前の「基本ユーザー自身が行う」
+  という方針は本プロジェクトについては上書き済み。
 - カード画像自体はgit管理外(`.gitignore`で`images/*`除外)。`data/cards.json`と
   `data/decks/*.json`は通常のテキストなので**git管理に含める**(他PCへの引き継ぎ・
   同期はこれらのJSONについてはgit経由で行える。画像だけは各PCで別途用意が必要)
 - 命名規則: カードIDとファイル名を最初から一致させる運用(マッピング処理を作らずに済む)
 
+## はまりどころ(実装時に踏んだバグ、再発防止用)
+
+- **Service WorkerのシェルキャッシュがJS/CSSの変更を握り潰す**: `sw.js`は
+  `CACHE_NAME`(例: `deck-viewer-shell-v2`)をキーにshellファイル(html/css/js)を
+  cache-firstで返す。`public/`配下のJS/CSS/HTMLを変更したら**必ず`sw.js`の
+  `CACHE_NAME`をインクリメントし、`SHELL_FILES`に新規ファイルがあれば追加すること**。
+  やらないと、ブラウザは古いsw.jsのバイト列のままだと判定して再インストールせず、
+  変更が永久に反映されない(実際に`Api.createPool is not a function`という形で
+  発生した)。開発中に動作確認する際は、コンソールで
+  `navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister()))`
+  `caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)))` を実行してから
+  リロードすると確実に最新化できる。
+- **`hidden`属性とCSSの優先順位**: `.pool-chip { display: flex; }` のような
+  クラスセレクタは、UAスタイルシートの `[hidden] { display: none }` と同じ詳細度
+  (0-1-0)だが、author stylesheet(自分の`style.css`)の方がUAスタイルシートより
+  優先されるため、`hidden`属性を上書きしてしまい要素が消えなくなるバグがあった。
+  対策として`style.css`冒頭に `[hidden] { display: none !important; }` を追加済み。
+  今後 `hidden` 属性で出し分けする要素に無条件の `display` ルールを書くときは注意。
+
 ## 現状 (2026-07-21時点、別PCでNode.jsインストール後に動作確認済み)
 
 別PC(2台目)でNode.js未インストールだったが、ユーザーが自分でインストール・PATH設定
 を行い、`npm install` → `npm start` でサーバー起動を確認できた。さらにブラウザ自動操作
-(Claude Codeのブラウザツール)で以下を一通り実機確認済み:
+(Claude Codeのブラウザツール)で以下を一通り実機確認済み(旧・基本機能 + 新規の
+カードプール機能の両方):
 
-- ホーム画面(デッキ一覧)の表示 → 問題なし
-- 「カードを追加」画面: ファイル選択→トリミング(ドラッグでパン操作も確認)→
-  「この範囲で決定」→メタデータ入力(ID/名前/コスト)→保存 → `POST /api/cards` が
-  201を返し、`data/cards.json`と`images/{id}.jpg`に正しく保存されることを確認
-- ビルダー画面: 手持ちカードをタップしてデッキに追加→黒丸バッジで枚数表示→
-  デッキ名を入力して保存 → `POST /api/decks` で `data/decks/{id}.json` に保存されることを確認
+- ホーム画面(デッキ一覧)の表示、⋮メニューからのリネーム/複製/削除 → いずれも動作確認済み
+- カードプール管理画面(pools.html): 作成・一覧(カード枚数表示)・リネーム → 動作確認済み
+- 「カードを追加」画面: プール選択(または新規作成)→ファイル選択→トリミング
+  (ドラッグでパン操作も確認)→「この範囲で決定」→メタデータ入力(ID/名前/コスト)→
+  保存 → `POST /api/cards` が201を返し、`data/cards.json`(poolId込み)と
+  `images/{id}.jpg`に正しく保存されることを確認。実データとして
+  `images/union_arena_cards/`内の実カード画像(Union Arena)を使って検証した
+- ビルダー画面: 複数のカードプールをチェックボックスで選択→選択したプール分の
+  カードだけが手持ち一覧に表示される→タップしてデッキに追加→黒丸バッジで枚数表示→
+  デッキ名を入力して保存 → `POST /api/decks`で`poolIds`込みで`data/decks/{id}.json`
+  に保存されることを確認(2つのプールを跨いだデッキ作成も確認済み)
 - デッキ表示画面(deck-view.html): グリッド+黒丸バッジ+カード名表示で、目標としていた
   Bandai TCG+風の見た目になっていることを確認
-- コンソールエラーなし
+- レスポンシブ: モバイル幅(375x812)でも各画面が縦積みレイアウトで問題なく使えることを確認
+- コンソールエラーなし(ただし上記の「はまりどころ」を修正するまでは
+  Service Workerキャッシュ起因のエラーが発生していた)
 
-検証で作成したテストカード(TEST-001)・テストデッキ・画像は確認後に削除済み
-(`data/cards.json`は`[]`に戻し、`images/`と`data/decks/`も空の状態に戻した)。
+検証で作成したテストカード・テストプール・テストデッキ・画像は確認後に削除済み
+(`data/cards.json`と`data/cardpools.json`は`[]`に戻し、`images/`直下と
+`data/decks/`も空の状態に戻した。`images/union_arena_cards/`のテスト画像自体は
+そのまま残っている)。
 
 残っている未着手項目:
 
-1. README.mdをNode構成向けに更新する(現状まだ「実機での動作確認はまだ行っていません」
-   という記述のままなので、動作確認済みである旨を反映する必要あり)
-2. モバイルからのLANアクセス(`http://<PCのLAN IP>:3000`)は未検証。LAN上のhttpアクセスは
+1. モバイルからのLANアクセス(`http://<PCのLAN IP>:3000`)は未検証。LAN上のhttpアクセスは
    「secure context」にならないため、Service WorkerによるPWAインストールが
    モバイル側でうまく機能しない可能性がある(要検証)
-3. カードの削除・編集機能はまだ未実装(現状は登録のみ。`server.js`にも
-   `DELETE /api/cards/:id`のようなエンドポイントはまだ無い)
+2. カードプールの削除機能は未実装(作成・リネームのみ。カードが属したまま削除すると
+   孤児カードが発生するため、意図的に見送った)
+3. カード自体の削除・編集機能はまだ未実装(現状は登録のみ)
 
 ## 今後の予定
 
-- README.mdの更新(動作確認済みである旨、Node構成、npm install/start手順、LANアクセス手順)
 - モバイル実機でのLANアクセス・PWAインストールの検証
-- 必要であれば複数デッキの一覧UIの調整、カード削除/編集機能の追加
+- 必要であればカードプールの削除、カード削除/編集機能の追加

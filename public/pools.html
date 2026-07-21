@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>カードプール管理 - Deck Viewer</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" />
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <h1>カードプール管理</h1>
+      <div class="nav-links">
+        <a class="btn" href="index.html">← 一覧に戻る</a>
+        <a class="btn primary" href="add-card.html">＋ カードを追加</a>
+      </div>
+    </div>
+
+    <div class="form-card" style="max-width:520px; margin-bottom:20px;">
+      <div class="field">
+        <label for="new-pool-name">新しいカードプールを作成</label>
+        <div class="pool-create-row">
+          <input type="text" id="new-pool-name" placeholder="例: EX12BT ユニオンアリーナ" />
+          <button type="button" class="btn primary" id="create-pool-btn">＋ 作成</button>
+        </div>
+      </div>
+      <div id="status" class="status-message"></div>
+    </div>
+
+    <div class="deck-list" id="pool-list"></div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/pools.js"></script>
+  <script src="js/register-sw.js"></script>
+</body>
+</html>

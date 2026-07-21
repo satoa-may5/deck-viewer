@@ -28,6 +28,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   height: 100%;
@@ -85,12 +89,25 @@ button {
   color: var(--text);
   text-decoration: none;
   font-size: 0.9rem;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.05s ease;
+}
+
+.btn:hover {
+  border-color: var(--accent);
+}
+
+.btn:active {
+  transform: scale(0.97);
 }
 
 .btn.primary {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
+}
+
+.btn.primary:hover {
+  filter: brightness(1.08);
 }
 
 .btn:disabled {
@@ -121,6 +138,12 @@ button {
   overflow: hidden;
   background: var(--surface);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: box-shadow 0.15s ease, transform 0.1s ease;
+}
+
+.card-item:hover .card-frame {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+  transform: translateY(-2px);
 }
 
 .card-frame img {
@@ -198,6 +221,11 @@ button {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
+  transition: border-color 0.15s ease;
+}
+
+.deck-row:hover {
+  border-color: var(--accent);
 }
 
 .deck-row .deck-info {
@@ -207,6 +235,67 @@ button {
 
 .deck-row .deck-info small {
   color: var(--muted);
+}
+
+/* ---- Deck row rename (inline) ---- */
+
+.rename-input {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+/* ---- Deck row overflow menu ---- */
+
+.deck-menu {
+  position: relative;
+}
+
+.deck-menu summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.deck-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.deck-menu-body {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  z-index: 10;
+}
+
+.deck-menu-body button {
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  font-size: 0.88rem;
+}
+
+.deck-menu-body button:hover {
+  background: var(--bg);
+}
+
+.deck-menu-body button.danger {
+  color: var(--danger);
 }
 
 /* ---- Form (add-card) ---- */
@@ -251,6 +340,67 @@ button {
 
 .status-message.success {
   color: #2a9d4a;
+}
+
+/* ---- Card pools ---- */
+
+.pool-create-row {
+  display: flex;
+  gap: 8px;
+}
+
+.pool-create-row input {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+#pool-select {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  margin-bottom: 10px;
+}
+
+.pool-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 0.88rem;
+}
+
+.pool-picker {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.pool-checkbox-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.pool-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  cursor: pointer;
 }
 
 /* ---- Crop tool ---- */
@@ -309,6 +459,13 @@ button {
   font: inherit;
 }
 
+.builder-panes {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 .pane {
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -351,7 +508,7 @@ button {
 }
 
 @media (min-width: 700px) and (orientation: landscape) {
-  .builder-page {
+  .builder-panes {
     flex-direction: row;
   }
   .pane-deck {
