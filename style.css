@@ -1,0 +1,120 @@
+:root {
+  color-scheme: light dark;
+  --bg: #eef0f6;
+  --card-bg: #ffffff;
+  --text: #1a1a1a;
+  --muted: #555;
+  --badge-bg: #111;
+  --badge-text: #fff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 24px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic", sans-serif;
+}
+
+header {
+  margin-bottom: 20px;
+}
+
+header h1 {
+  font-size: 1.4rem;
+  margin: 0 0 4px;
+}
+
+#deck-meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 20px 16px;
+}
+
+.card-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.card-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 63 / 88;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--card-bg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.card-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.card-frame.missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: repeating-linear-gradient(
+    45deg,
+    #dcdfe6,
+    #dcdfe6 10px,
+    #e8eaef 10px,
+    #e8eaef 20px
+  );
+}
+
+.badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--badge-bg);
+  color: var(--badge-text);
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.card-id {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16171c;
+    --card-bg: #23252c;
+    --text: #eee;
+    --muted: #9aa0aa;
+    --badge-bg: #eee;
+    --badge-text: #111;
+  }
+}
