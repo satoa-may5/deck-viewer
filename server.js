@@ -68,6 +68,10 @@ function nextDeckOrder() {
   return decks.reduce((max, d) => Math.max(max, typeof d.order === "number" ? d.order : 0), 0) + 1;
 }
 
+function nextCardOrder(cards) {
+  return cards.reduce((max, c) => Math.max(max, typeof c.order === "number" ? c.order : 0), 0) + 1;
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(ROOT, "public")));
@@ -98,22 +102,27 @@ app.post("/api/pools", (req, res) => {
   }
 
   const pools = readPools();
-  const pool = { id: `pool-${Date.now()}`, name, createdAt: new Date().toISOString() };
+  const pool = { id: `pool-${Date.now()}`, name, favorite: false, createdAt: new Date().toISOString() };
   pools.push(pool);
   writePools(pools);
   res.status(201).json(pool);
 });
 
 app.patch("/api/pools/:id", (req, res) => {
-  const name = (req.body.name || "").trim();
-  if (!name) {
-    return res.status(400).json({ error: "カードプール名は必須です" });
-  }
-
   const pools = readPools();
   const pool = pools.find((p) => p.id === req.params.id);
   if (!pool) return res.status(404).json({ error: "カードプールが見つかりません" });
-  pool.name = name;
+
+  if (req.body.name !== undefined) {
+    const name = (req.body.name || "").trim();
+    if (!name) {
+      return res.status(400).json({ error: "カードプール名は必須です" });
+    }
+    pool.name = name;
+  }
+  if (req.body.favorite !== undefined) {
+    pool.favorite = Boolean(req.body.favorite);
+  }
   writePools(pools);
   res.json(pool);
 });
@@ -152,10 +161,13 @@ app.delete("/api/pools/:id", (req, res) => {
 // ---- Cards ----
 
 app.get("/api/cards", (req, res) => {
-  const cards = readCards();
+  let cards = readCards();
   if (req.query.poolId) {
-    return res.json(cards.filter((c) => c.poolId === req.query.poolId));
+    cards = cards.filter((c) => c.poolId === req.query.poolId);
   }
+  cards = [...cards].sort(
+    (a, b) => (typeof a.order === "number" ? a.order : 0) - (typeof b.order === "number" ? b.order : 0)
+  );
   res.json(cards);
 });
 
@@ -196,11 +208,59 @@ app.post("/api/cards", upload.single("image"), (req, res) => {
     cost: cost === undefined || cost === "" ? null : Number(cost),
     poolId,
     imageExt: ext,
+    order: nextCardOrder(cards),
     createdAt: new Date().toISOString(),
   };
   cards.push(card);
   writeCards(cards);
   res.status(201).json(card);
+});
+
+app.patch("/api/cards/:id", (req, res) => {
+  const cards = readCards();
+  const card = cards.find((c) => c.id === req.params.id);
+  if (!card) return res.status(404).json({ error: "カードが見つかりません" });
+
+  if (req.body.name !== undefined) {
+    const name = (req.body.name || "").trim();
+    if (!name) {
+      return res.status(400).json({ error: "カード名は必須です" });
+    }
+    card.name = name;
+  }
+  if (req.body.cost !== undefined) {
+    card.cost = req.body.cost === "" || req.body.cost === null ? null : Number(req.body.cost);
+  }
+  writeCards(cards);
+  res.json(card);
+});
+
+app.post("/api/cards/reorder", (req, res) => {
+  const { order } = req.body;
+  if (!Array.isArray(order)) {
+    return res.status(400).json({ error: "orderは配列である必要があります" });
+  }
+  const cards = readCards();
+  const byId = Object.fromEntries(cards.map((c) => [c.id, c]));
+  if (!order.every((id) => byId[id])) {
+    return res.status(400).json({ error: "指定されたカードが見つかりません" });
+  }
+  order.forEach((id, index) => {
+    byId[id].order = index;
+  });
+  writeCards(cards);
+  res.status(204).end();
+});
+
+app.delete("/api/cards/:id", (req, res) => {
+  const cards = readCards();
+  const card = cards.find((c) => c.id === req.params.id);
+  if (!card) return res.status(404).json({ error: "カードが見つかりません" });
+
+  const file = path.join(IMAGES_DIR, `${card.id}.${card.imageExt}`);
+  if (fs.existsSync(file)) fs.unlinkSync(file);
+  writeCards(cards.filter((c) => c.id !== req.params.id));
+  res.status(204).end();
 });
 
 // ---- Decks ----

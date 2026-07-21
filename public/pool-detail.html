@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>カードプール - Deck Viewer</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" />
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <a class="btn" href="index.html">← 一覧に戻る</a>
+    </div>
+
+    <input type="text" id="pool-name-input" class="pool-name-input" placeholder="カードプール名" />
+
+    <div class="deck-list" id="card-list"></div>
+
+    <a class="fab" id="add-card-fab" href="add-card.html">＋</a>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/sortable.js"></script>
+  <script src="js/pool-detail.js"></script>
+  <script src="js/register-sw.js"></script>
+</body>
+</html>

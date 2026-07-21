@@ -147,8 +147,20 @@ metaForm.addEventListener("submit", async (e) => {
 });
 
 async function init() {
-  await loadPools();
-  showStep("pool");
+  const params = new URLSearchParams(location.search);
+  const forcedPoolId = params.get("poolId");
+
+  await loadPools(forcedPoolId);
+
+  if (forcedPoolId && pools.some((p) => p.id === forcedPoolId)) {
+    selectedPoolId = forcedPoolId;
+    const pool = pools.find((p) => p.id === forcedPoolId);
+    poolChipName.textContent = pool.name;
+    document.getElementById("back-link").href = `pool-detail.html?id=${encodeURIComponent(forcedPoolId)}`;
+    showStep("select");
+  } else {
+    showStep("pool");
+  }
 }
 
 init();

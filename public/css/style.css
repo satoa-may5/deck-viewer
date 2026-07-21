@@ -149,6 +149,7 @@ button {
 }
 
 .tab-btn {
+  flex: 1;
   padding: 16px 22px;
   border: none;
   background: transparent;
@@ -156,17 +157,13 @@ button {
   font-size: 0.95rem;
   font-weight: 700;
   text-align: center;
-  flex: 1;
-  transition: background 0.18s var(--ease), color 0.18s ease, flex-grow 0.18s var(--ease);
+  transition: background 0.18s ease, color 0.18s ease;
 }
 
 .tab-btn:not(.active) {
-  flex: 0 0 auto;
-  padding: 12px 20px;
   background: var(--surface-2);
   color: var(--muted);
   font-weight: 600;
-  font-size: 0.88rem;
 }
 
 .tab-btn:first-child:not(.active) {
@@ -258,6 +255,181 @@ button {
 
 .icon-btn:active {
   transform: scale(0.94);
+}
+
+.icon-btn.danger {
+  color: var(--danger);
+}
+
+.icon-btn.danger:hover {
+  background: var(--danger-tint);
+  border-color: var(--danger);
+}
+
+.icon-btn.favorited {
+  color: #f5a623;
+  border-color: #f5a623;
+  background: rgba(245, 166, 35, 0.14);
+}
+
+/* ---- Drag reorder handle ---- */
+
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  color: var(--muted);
+  cursor: grab;
+  touch-action: none;
+  border-radius: 8px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.drag-handle:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.drag-handle svg {
+  width: 16px;
+  height: 16px;
+}
+
+.dragging {
+  box-shadow: var(--shadow-lg);
+  opacity: 0.95;
+  cursor: grabbing;
+  transition: none !important;
+}
+
+/* ---- Floating action button ---- */
+
+.fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  background: var(--accent-grad);
+  color: #fff;
+  font-size: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 26px rgba(91, 110, 245, 0.4);
+  text-decoration: none;
+  transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+
+.fab:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 14px 32px rgba(91, 110, 245, 0.48);
+}
+
+.fab:active {
+  transform: scale(0.95);
+}
+
+/* ---- Pool detail: name field + card rows ---- */
+
+.pool-name-input {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 800;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 18px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pool-name-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-tint);
+}
+
+.card-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s var(--ease), border-color 0.2s ease;
+}
+
+.card-row:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md);
+}
+
+.card-row-thumb {
+  width: 42px;
+  aspect-ratio: 63 / 88;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--surface-2);
+}
+
+.card-row-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.card-row-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card-row-info strong {
+  font-size: 0.95rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-row-info small {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.card-edit-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.card-edit-form input[type="text"] {
+  flex: 1;
+  min-width: 100px;
+}
+
+.card-edit-form input[type="number"] {
+  width: 80px;
 }
 
 /* ---- Card grid (deck-view / collection) ---- */
@@ -500,6 +672,14 @@ button {
   font-size: 0.82rem;
 }
 
+.deck-row .deck-info.clickable {
+  cursor: pointer;
+}
+
+.deck-row .deck-info.clickable:hover strong {
+  color: var(--accent);
+}
+
 /* ---- Deck row rename (inline) ---- */
 
 .rename-input {
@@ -614,6 +794,7 @@ button {
 
 .field input,
 .pool-create-row input,
+.card-edit-form input,
 #pool-select {
   width: 100%;
   padding: 11px 14px;
@@ -627,6 +808,7 @@ button {
 
 .field input:focus,
 .pool-create-row input:focus,
+.card-edit-form input:focus,
 #pool-select:focus {
   outline: none;
   border-color: var(--accent);

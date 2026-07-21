@@ -18,6 +18,29 @@ const Api = {
     return data;
   },
 
+  async updateCard(id, patch) {
+    const res = await fetch(`/api/cards/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "カードの更新に失敗しました");
+    return data;
+  },
+
+  async deleteCard(id) {
+    await fetch(`/api/cards/${encodeURIComponent(id)}`, { method: "DELETE" });
+  },
+
+  async reorderCards(order) {
+    await fetch("/api/cards/reorder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order }),
+    });
+  },
+
   async getPools() {
     const res = await fetch("/api/pools");
     return res.json();
@@ -34,15 +57,19 @@ const Api = {
     return data;
   },
 
-  async renamePool(id, name) {
+  async updatePool(id, patch) {
     const res = await fetch(`/api/pools/${encodeURIComponent(id)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify(patch),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "カードプールの更新に失敗しました");
     return data;
+  },
+
+  async renamePool(id, name) {
+    return Api.updatePool(id, { name });
   },
 
   async deletePool(id) {

@@ -209,83 +209,101 @@ async function moveDeck(decks, deckId, delta) {
 
 // ---- Card pools ----
 
+function dragHandle() {
+  const span = document.createElement("span");
+  span.className = "drag-handle";
+  span.innerHTML =
+    '<svg viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+  return span;
+}
+
 async function renderPools() {
   const pools = await Api.getPools();
   poolListEl.innerHTML = "";
-  for (let i = 0; i < pools.length; i++) {
-    poolListEl.appendChild(
-      createPoolRow(pools[i], { isFirst: i === 0, isLast: i === pools.length - 1 }, pools)
-    );
+  for (const pool of pools) {
+    poolListEl.appendChild(createPoolRow(pool));
   }
 }
 
-function createPoolRow(pool, position, pools) {
+function createPoolRow(pool) {
   const row = document.createElement("div");
   row.className = "deck-row";
-
-  const reorder = createReorderButtons(
-    async () => {
-      await movePool(pools, pool.id, -1);
-    },
-    async () => {
-      await movePool(pools, pool.id, 1);
-    },
-    position
-  );
+  row.dataset.id = pool.id;
 
   const info = document.createElement("div");
-  info.className = "deck-info";
+  info.className = "deck-info clickable";
   const title = document.createElement("strong");
   title.textContent = pool.name;
   const small = document.createElement("small");
   small.textContent = `${pool.cardCount}枚のカード`;
   info.appendChild(title);
   info.appendChild(small);
+  info.addEventListener("click", () => {
+    location.href = `pool-detail.html?id=${encodeURIComponent(pool.id)}`;
+  });
 
   const actions = document.createElement("div");
   actions.className = "nav-links";
 
-  const addLink = document.createElement("a");
-  addLink.className = "btn";
-  addLink.href = "add-card.html";
-  addLink.textContent = "カードを追加";
+  const addBtn = document.createElement("a");
+  addBtn.className = "icon-btn";
+  addBtn.href = `add-card.html?poolId=${encodeURIComponent(pool.id)}`;
+  addBtn.title = "カードを追加";
+  addBtn.textContent = "＋";
 
-  const menu = createMenu([
-    {
-      label: "リネーム",
-      onClick: () => {
-        startRename(
-          row,
-          pool.name,
-          async (name) => {
-            await Api.renamePool(pool.id, name);
-            await renderPools();
-          },
-          renderPools
-        );
-      },
-    },
-    {
-      label: "削除",
-      danger: true,
-      onClick: async () => {
-        const warning =
-          pool.cardCount > 0
-            ? `「${pool.name}」を削除します。プール内の${pool.cardCount}枚のカードも一緒に削除されます。よろしいですか?`
-            : `「${pool.name}」を削除します。よろしいですか?`;
-        if (!confirm(warning)) return;
-        await Api.deletePool(pool.id);
+  const favBtn = document.createElement("button");
+  favBtn.type = "button";
+  favBtn.className = "icon-btn" + (pool.favorite ? " favorited" : "");
+  favBtn.title = "お気に入り";
+  favBtn.textContent = pool.favorite ? "★" : "☆";
+  favBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    await Api.updatePool(pool.id, { favorite: !pool.favorite });
+    await renderPools();
+  });
+
+  const renameBtn = document.createElement("button");
+  renameBtn.type = "button";
+  renameBtn.className = "icon-btn";
+  renameBtn.title = "リネーム";
+  renameBtn.textContent = "✎";
+  renameBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    startRename(
+      row,
+      pool.name,
+      async (name) => {
+        await Api.renamePool(pool.id, name);
         await renderPools();
       },
-    },
-  ]);
+      renderPools
+    );
+  });
 
-  actions.appendChild(addLink);
-  actions.appendChild(menu);
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "icon-btn danger";
+  deleteBtn.title = "削除";
+  deleteBtn.textContent = "🗑";
+  deleteBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    const warning =
+      pool.cardCount > 0
+        ? `「${pool.name}」を削除します。プール内の${pool.cardCount}枚のカードも一緒に削除されます。よろしいですか?`
+        : `「${pool.name}」を削除します。よろしいですか?`;
+    if (!confirm(warning)) return;
+    await Api.deletePool(pool.id);
+    await renderPools();
+  });
+
+  actions.appendChild(addBtn);
+  actions.appendChild(favBtn);
+  actions.appendChild(renameBtn);
+  actions.appendChild(deleteBtn);
 
   const main = document.createElement("div");
   main.className = "deck-row-main";
-  main.appendChild(reorder);
+  main.appendChild(dragHandle());
   main.appendChild(info);
 
   row.appendChild(main);
@@ -293,55 +311,17 @@ function createPoolRow(pool, position, pools) {
   return row;
 }
 
-async function movePool(pools, poolId, delta) {
-  const ids = pools.map((p) => p.id);
-  const index = ids.indexOf(poolId);
-  const target = index + delta;
-  if (target < 0 || target >= ids.length) return;
-  [ids[index], ids[target]] = [ids[target], ids[index]];
-  await Api.reorderPools(ids);
-  await renderPools();
-}
-
-document.getElementById("create-pool-row").addEventListener("click", function startCreatePool() {
-  const btn = this;
-  const row = document.createElement("div");
-  row.className = "ghost-row ghost-row-active";
-
-  const input = document.createElement("input");
-  input.type = "text";
-  input.placeholder = "カードプール名";
-  input.className = "rename-input";
-
-  const confirmBtn = document.createElement("button");
-  confirmBtn.type = "button";
-  confirmBtn.className = "btn primary";
-  confirmBtn.textContent = "作成";
-  const submit = async () => {
-    const name = input.value.trim();
-    if (!name) return;
-    await Api.createPool(name);
-    row.replaceWith(btn);
+makeSortable(poolListEl, {
+  itemSelector: ".deck-row",
+  onReorder: async (order) => {
+    await Api.reorderPools(order);
     await renderPools();
-  };
-  confirmBtn.addEventListener("click", submit);
+  },
+});
 
-  const cancelBtn = document.createElement("button");
-  cancelBtn.type = "button";
-  cancelBtn.className = "btn";
-  cancelBtn.textContent = "キャンセル";
-  cancelBtn.addEventListener("click", () => row.replaceWith(btn));
-
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") submit();
-    if (e.key === "Escape") row.replaceWith(btn);
-  });
-
-  row.appendChild(input);
-  row.appendChild(confirmBtn);
-  row.appendChild(cancelBtn);
-  btn.replaceWith(row);
-  input.focus();
+document.getElementById("create-pool-row").addEventListener("click", async () => {
+  const pool = await Api.createPool("新しいカードプール");
+  location.href = `pool-detail.html?id=${encodeURIComponent(pool.id)}`;
 });
 
 setActiveTab("decks");
