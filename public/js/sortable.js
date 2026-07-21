@@ -1,5 +1,7 @@
 // Pointer-based drag reorder. Attach a `.drag-handle` inside each item; dragging
 // swaps DOM order live and reports the final id order (via item.dataset.id) on drop.
+// The dragged item is clamped so it can't be pulled above the first item or below
+// the last item in the list.
 function makeSortable(container, { itemSelector, handleSelector = ".drag-handle", onReorder }) {
   container.addEventListener("pointerdown", (e) => {
     const handle = e.target.closest(handleSelector);
@@ -11,17 +13,24 @@ function makeSortable(container, { itemSelector, handleSelector = ".drag-handle"
     let items = [...container.querySelectorAll(itemSelector)];
     let startClientY = e.clientY;
 
+    const containerRect = container.getBoundingClientRect();
+    const dragHeight = dragEl.getBoundingClientRect().height;
+    const minTop = containerRect.top;
+    const maxTop = containerRect.bottom - dragHeight;
+    let naturalTop = dragEl.getBoundingClientRect().top;
+
     dragEl.classList.add("dragging");
     dragEl.style.position = "relative";
     dragEl.style.zIndex = "50";
     handle.setPointerCapture(e.pointerId);
 
     const onMove = (ev) => {
-      const deltaY = ev.clientY - startClientY;
+      const targetTop = naturalTop + (ev.clientY - startClientY);
+      const clampedTop = Math.min(Math.max(targetTop, minTop), maxTop);
+      const deltaY = clampedTop - naturalTop;
       dragEl.style.transform = `translateY(${deltaY}px)`;
 
-      const dragRect = dragEl.getBoundingClientRect();
-      const dragMid = dragRect.top + dragRect.height / 2;
+      const dragMid = clampedTop + dragHeight / 2;
       const dragIndex = items.indexOf(dragEl);
 
       for (let i = 0; i < items.length; i++) {
@@ -30,17 +39,19 @@ function makeSortable(container, { itemSelector, handleSelector = ".drag-handle"
         const rect = sibling.getBoundingClientRect();
         const mid = rect.top + rect.height / 2;
 
-        if (i < dragIndex && dragMid < mid) {
+        if (i < dragIndex && dragMid <= mid) {
           container.insertBefore(dragEl, sibling);
           items = [...container.querySelectorAll(itemSelector)];
-          startClientY = ev.clientY;
           dragEl.style.transform = "translateY(0px)";
+          naturalTop = dragEl.getBoundingClientRect().top;
+          startClientY = ev.clientY;
           break;
-        } else if (i > dragIndex && dragMid > mid) {
+        } else if (i > dragIndex && dragMid >= mid) {
           container.insertBefore(dragEl, sibling.nextSibling);
           items = [...container.querySelectorAll(itemSelector)];
-          startClientY = ev.clientY;
           dragEl.style.transform = "translateY(0px)";
+          naturalTop = dragEl.getBoundingClientRect().top;
+          startClientY = ev.clientY;
           break;
         }
       }

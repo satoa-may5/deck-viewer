@@ -243,6 +243,7 @@ button {
   color: var(--text);
   font-size: 1.1rem;
   line-height: 1;
+  text-decoration: none;
   box-shadow: var(--shadow-sm);
   transition: background 0.15s ease, transform 0.12s var(--ease), border-color 0.15s ease;
 }

@@ -4,10 +4,12 @@ const panelPools = document.getElementById("panel-pools");
 const deckListEl = document.getElementById("deck-list");
 const poolListEl = document.getElementById("pool-list");
 
-let activeTab = "decks";
+const ACTIVE_TAB_KEY = "deck-viewer-active-tab";
+let activeTab = localStorage.getItem(ACTIVE_TAB_KEY) || "decks";
 
 function setActiveTab(tab) {
   activeTab = tab;
+  localStorage.setItem(ACTIVE_TAB_KEY, tab);
   for (const btn of tabs.querySelectorAll(".tab-btn")) {
     btn.classList.toggle("active", btn.dataset.tab === tab);
   }
@@ -324,6 +326,6 @@ document.getElementById("create-pool-row").addEventListener("click", async () =>
   location.href = `pool-detail.html?id=${encodeURIComponent(pool.id)}`;
 });
 
-setActiveTab("decks");
+setActiveTab(activeTab);
 renderDecks();
 renderPools();
