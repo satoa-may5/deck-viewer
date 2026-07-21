@@ -63,6 +63,11 @@ function listDecks() {
     .map((f) => JSON.parse(fs.readFileSync(path.join(DECKS_DIR, f), "utf8")));
 }
 
+function nextDeckOrder() {
+  const decks = listDecks();
+  return decks.reduce((max, d) => Math.max(max, typeof d.order === "number" ? d.order : 0), 0) + 1;
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(ROOT, "public")));
@@ -111,6 +116,37 @@ app.patch("/api/pools/:id", (req, res) => {
   pool.name = name;
   writePools(pools);
   res.json(pool);
+});
+
+app.post("/api/pools/reorder", (req, res) => {
+  const { order } = req.body;
+  if (!Array.isArray(order)) {
+    return res.status(400).json({ error: "orderは配列である必要があります" });
+  }
+  const pools = readPools();
+  if (order.length !== pools.length || !order.every((id) => pools.some((p) => p.id === id))) {
+    return res.status(400).json({ error: "orderには全てのカードプールIDを過不足なく含めてください" });
+  }
+  const byId = Object.fromEntries(pools.map((p) => [p.id, p]));
+  writePools(order.map((id) => byId[id]));
+  res.status(204).end();
+});
+
+app.delete("/api/pools/:id", (req, res) => {
+  const pools = readPools();
+  const pool = pools.find((p) => p.id === req.params.id);
+  if (!pool) return res.status(404).json({ error: "カードプールが見つかりません" });
+
+  const cards = readCards();
+  const remainingCards = cards.filter((c) => c.poolId !== req.params.id);
+  const removedCards = cards.filter((c) => c.poolId === req.params.id);
+  for (const card of removedCards) {
+    const file = path.join(IMAGES_DIR, `${card.id}.${card.imageExt}`);
+    if (fs.existsSync(file)) fs.unlinkSync(file);
+  }
+  writeCards(remainingCards);
+  writePools(pools.filter((p) => p.id !== req.params.id));
+  res.status(204).end();
 });
 
 // ---- Cards ----
@@ -170,12 +206,15 @@ app.post("/api/cards", upload.single("image"), (req, res) => {
 // ---- Decks ----
 
 app.get("/api/decks", (req, res) => {
-  const decks = listDecks().map((d) => ({
-    id: d.id,
-    name: d.name,
-    totalCount: d.cards.reduce((sum, c) => sum + c.count, 0),
-    updatedAt: d.updatedAt,
-  }));
+  const decks = listDecks()
+    .map((d) => ({
+      id: d.id,
+      name: d.name,
+      totalCount: d.cards.reduce((sum, c) => sum + c.count, 0),
+      updatedAt: d.updatedAt,
+      order: typeof d.order === "number" ? d.order : 0,
+    }))
+    .sort((a, b) => a.order - b.order);
   res.json(decks);
 });
 
@@ -195,15 +234,33 @@ app.post("/api/decks", (req, res) => {
   }
 
   const deckId = id && ID_PATTERN.test(id) ? id : `deck-${Date.now()}`;
+  const existing = readDeck(deckId);
   const deck = {
     id: deckId,
     name,
     poolIds: Array.isArray(poolIds) ? poolIds : [],
     cards,
+    order: existing ? existing.order ?? nextDeckOrder() : nextDeckOrder(),
     updatedAt: new Date().toISOString(),
   };
   writeDeck(deck);
   res.status(200).json(deck);
+});
+
+app.post("/api/decks/reorder", (req, res) => {
+  const { order } = req.body;
+  if (!Array.isArray(order)) {
+    return res.status(400).json({ error: "orderは配列である必要があります" });
+  }
+  const decks = listDecks();
+  if (order.length !== decks.length || !order.every((id) => decks.some((d) => d.id === id))) {
+    return res.status(400).json({ error: "orderには全てのデッキIDを過不足なく含めてください" });
+  }
+  const byId = Object.fromEntries(decks.map((d) => [d.id, d]));
+  order.forEach((id, index) => {
+    writeDeck({ ...byId[id], order: index });
+  });
+  res.status(204).end();
 });
 
 app.delete("/api/decks/:id", (req, res) => {

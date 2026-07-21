@@ -129,25 +129,43 @@ button {
   font-weight: 600;
 }
 
-.app-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: var(--accent-grad);
-  color: #fff;
-  font-weight: 800;
-  font-size: 1rem;
-  box-shadow: 0 4px 14px rgba(91, 110, 245, 0.35);
-  flex-shrink: 0;
-}
-
 .nav-links {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+/* ---- Tabs ---- */
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 18px;
+  padding: 4px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.tab-btn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tab-btn:hover {
+  color: var(--text);
+}
+
+.tab-btn.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
 }
 
 /* ---- Buttons ---- */
@@ -336,11 +354,91 @@ button {
   gap: 12px;
 }
 
+/* ---- Ghost "create new" row ---- */
+
+.ghost-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.12s var(--ease);
+}
+
+.ghost-row:hover {
+  border-color: var(--accent);
+  background: var(--accent-tint);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.ghost-row:active {
+  transform: scale(0.99);
+}
+
+.ghost-row-active {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: none;
+  padding: 0;
+  margin-bottom: 12px;
+}
+
+.ghost-row-active .rename-input {
+  flex: 1;
+}
+
+/* ---- Reorder buttons ---- */
+
+.reorder-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.reorder-btns button {
+  width: 26px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.6rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.reorder-btns button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-tint);
+}
+
+.reorder-btns button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .deck-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
   padding: 16px 18px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -355,10 +453,19 @@ button {
   transform: translateY(-2px);
 }
 
+.deck-row-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
 .deck-row .deck-info {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1;
   min-width: 0;
 }
 

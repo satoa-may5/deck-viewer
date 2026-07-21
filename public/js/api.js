@@ -45,6 +45,18 @@ const Api = {
     return data;
   },
 
+  async deletePool(id) {
+    await fetch(`/api/pools/${encodeURIComponent(id)}`, { method: "DELETE" });
+  },
+
+  async reorderPools(order) {
+    await fetch("/api/pools/reorder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order }),
+    });
+  },
+
   async getDecks() {
     const res = await fetch("/api/decks");
     return res.json();
@@ -69,6 +81,14 @@ const Api = {
 
   async deleteDeck(id) {
     await fetch(`/api/decks/${encodeURIComponent(id)}`, { method: "DELETE" });
+  },
+
+  async reorderDecks(order) {
+    await fetch("/api/decks/reorder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order }),
+    });
   },
 
   cardImageUrl(card) {
