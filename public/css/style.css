@@ -135,37 +135,55 @@ button {
   flex-wrap: wrap;
 }
 
-/* ---- Tabs ---- */
+/* ---- Tabs (fused with content, like a folder tab) ---- */
 
-.tabs {
+.tab-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.tab-header {
   display: flex;
-  gap: 6px;
-  margin-bottom: 18px;
-  padding: 4px;
-  background: var(--surface-2);
-  border-radius: 999px;
-  width: fit-content;
 }
 
 .tab-btn {
-  padding: 8px 20px;
+  padding: 16px 22px;
   border: none;
-  border-radius: 999px;
   background: transparent;
-  color: var(--muted);
-  font-size: 0.9rem;
+  color: var(--text);
+  font-size: 0.95rem;
   font-weight: 700;
-  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  text-align: center;
+  flex: 1;
+  transition: background 0.18s var(--ease), color 0.18s ease, flex-grow 0.18s var(--ease);
 }
 
-.tab-btn:hover {
-  color: var(--text);
+.tab-btn:not(.active) {
+  flex: 0 0 auto;
+  padding: 12px 20px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.88rem;
 }
 
-.tab-btn.active {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--shadow-sm);
+.tab-btn:first-child:not(.active) {
+  border-radius: 0 0 var(--radius-md) 0;
+}
+
+.tab-btn:last-child:not(.active) {
+  border-radius: 0 0 0 var(--radius-md);
+}
+
+.tab-btn:not(.active):hover {
+  color: var(--accent);
+  background: var(--accent-tint);
+}
+
+.tab-body {
+  padding: 18px;
 }
 
 /* ---- Buttons ---- */

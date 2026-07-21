@@ -14,19 +14,23 @@
       <h1>デッキメーカー</h1>
     </div>
 
-    <div class="tabs" id="tabs">
-      <button type="button" class="tab-btn" data-tab="decks">デッキ</button>
-      <button type="button" class="tab-btn" data-tab="pools">カードプール</button>
-    </div>
+    <div class="tab-card">
+      <div class="tab-header" id="tabs">
+        <button type="button" class="tab-btn" data-tab="pools">カードプール</button>
+        <button type="button" class="tab-btn" data-tab="decks">デッキ</button>
+      </div>
 
-    <div class="tab-panel" id="panel-decks">
-      <a class="ghost-row" href="builder.html">＋ デッキを作る</a>
-      <div class="deck-list" id="deck-list"></div>
-    </div>
+      <div class="tab-body">
+        <div class="tab-panel" id="panel-pools">
+          <button type="button" class="ghost-row" id="create-pool-row">＋ カードプールを作る</button>
+          <div class="deck-list" id="pool-list"></div>
+        </div>
 
-    <div class="tab-panel" id="panel-pools" hidden>
-      <button type="button" class="ghost-row" id="create-pool-row">＋ カードプールを作る</button>
-      <div class="deck-list" id="pool-list"></div>
+        <div class="tab-panel" id="panel-decks">
+          <a class="ghost-row" href="builder.html">＋ デッキを作る</a>
+          <div class="deck-list" id="deck-list"></div>
+        </div>
+      </div>
     </div>
   </div>
 
