@@ -233,23 +233,20 @@ function createPoolRow(pool) {
   row.dataset.id = pool.id;
 
   const info = document.createElement("div");
-  info.className = "deck-info clickable";
+  info.className = "deck-info";
   const title = document.createElement("strong");
   title.textContent = pool.name;
   const small = document.createElement("small");
   small.textContent = `${pool.cardCount}枚のカード`;
   info.appendChild(title);
   info.appendChild(small);
-  info.addEventListener("click", () => {
-    location.href = `pool-detail.html?id=${encodeURIComponent(pool.id)}`;
-  });
 
   const actions = document.createElement("div");
   actions.className = "nav-links";
 
   const addBtn = document.createElement("a");
   addBtn.className = "icon-btn";
-  addBtn.href = `add-card.html?poolId=${encodeURIComponent(pool.id)}`;
+  addBtn.href = `pool-detail.html?id=${encodeURIComponent(pool.id)}`;
   addBtn.title = "カードを追加";
   addBtn.textContent = "＋";
 
