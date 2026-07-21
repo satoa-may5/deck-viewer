@@ -48,19 +48,19 @@ function renderPoolPicker() {
     return;
   }
   for (const pool of allPools) {
-    const label = document.createElement("label");
-    label.className = "pool-checkbox";
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.checked = selectedPoolIds.has(pool.id);
-    checkbox.addEventListener("change", () => {
-      if (checkbox.checked) selectedPoolIds.add(pool.id);
-      else selectedPoolIds.delete(pool.id);
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "pool-toggle";
+    const isSelected = selectedPoolIds.has(pool.id);
+    toggle.setAttribute("aria-pressed", String(isSelected));
+    toggle.textContent = `${pool.name} (${pool.cardCount}枚)`;
+    toggle.addEventListener("click", () => {
+      if (selectedPoolIds.has(pool.id)) selectedPoolIds.delete(pool.id);
+      else selectedPoolIds.add(pool.id);
+      toggle.setAttribute("aria-pressed", String(selectedPoolIds.has(pool.id)));
       renderPanes();
     });
-    label.appendChild(checkbox);
-    label.appendChild(document.createTextNode(`${pool.name} (${pool.cardCount}枚)`));
-    poolCheckboxList.appendChild(label);
+    poolCheckboxList.appendChild(toggle);
   }
 }
 

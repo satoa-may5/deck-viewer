@@ -21,12 +21,21 @@ function setStatus(message, kind) {
   statusEl.className = `status-message ${kind || ""}`;
 }
 
+const STEP_ORDER = ["pool", "select", "crop", "meta"];
+
 function showStep(step) {
   stepPool.hidden = step !== "pool";
   poolChip.hidden = step === "pool";
   stepSelect.hidden = step !== "select";
   stepCrop.hidden = step !== "crop";
   metaForm.hidden = step !== "meta";
+
+  const currentIndex = STEP_ORDER.indexOf(step);
+  for (const item of document.querySelectorAll(".stepper-item")) {
+    const index = STEP_ORDER.indexOf(item.dataset.step);
+    item.classList.toggle("active", index === currentIndex);
+    item.classList.toggle("done", index < currentIndex);
+  }
 }
 
 function renderPoolOptions() {

@@ -44,7 +44,7 @@ function createDeckRow(deck) {
   const menu = document.createElement("details");
   menu.className = "deck-menu";
   const summary = document.createElement("summary");
-  summary.className = "btn";
+  summary.className = "icon-btn";
   summary.textContent = "⋮";
   menu.appendChild(summary);
 

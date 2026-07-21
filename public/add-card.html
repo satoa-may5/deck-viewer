@@ -18,6 +18,28 @@
     </div>
 
     <div class="form-card">
+      <div class="stepper" id="stepper">
+        <div class="stepper-item" data-step="pool">
+          <div class="stepper-dot">1</div>
+          <span class="stepper-label">プール</span>
+        </div>
+        <div class="stepper-line"></div>
+        <div class="stepper-item" data-step="select">
+          <div class="stepper-dot">2</div>
+          <span class="stepper-label">画像</span>
+        </div>
+        <div class="stepper-line"></div>
+        <div class="stepper-item" data-step="crop">
+          <div class="stepper-dot">3</div>
+          <span class="stepper-label">トリミング</span>
+        </div>
+        <div class="stepper-line"></div>
+        <div class="stepper-item" data-step="meta">
+          <div class="stepper-dot">4</div>
+          <span class="stepper-label">詳細</span>
+        </div>
+      </div>
+
       <div id="step-pool" class="field">
         <label for="pool-select">カードプール *</label>
         <select id="pool-select">
