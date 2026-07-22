@@ -135,6 +135,40 @@ button {
   flex-wrap: wrap;
 }
 
+/* ---- View mode toggle (list / grid) ---- */
+
+.view-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface-2);
+  border-radius: 999px;
+}
+
+.view-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.95rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.view-toggle-btn:hover {
+  color: var(--text);
+}
+
+.view-toggle-btn.active {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+
 /* ---- Tabs (fused with content, like a folder tab) ---- */
 
 .tab-card {
@@ -400,9 +434,19 @@ button {
   min-width: 0;
 }
 
-.modal-image-area .crop-stage {
-  max-width: none;
-  margin-bottom: 10px;
+/* ---- Nested crop popup (layered on top of the add-card modal) ---- */
+
+.crop-popup-overlay {
+  z-index: 250;
+}
+
+.crop-popup-overlay .crop-stage {
+  max-width: 360px;
+  margin: 0 auto 14px;
+}
+
+.crop-popup-actions {
+  justify-content: flex-end;
 }
 
 @media (max-width: 560px) {
@@ -633,6 +677,36 @@ button {
   color: var(--muted);
   font-weight: 500;
   font-size: 0.78rem;
+}
+
+.grid-rename-input {
+  width: 100%;
+  padding: 3px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.grid-rename-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-tint);
+}
+
+.card-grid-actions {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.card-grid-actions .icon-btn {
+  width: 28px;
+  height: 28px;
+  font-size: 0.8rem;
 }
 
 .empty-state {

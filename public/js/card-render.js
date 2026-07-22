@@ -32,7 +32,7 @@ function createCardElement(card, id, count) {
 
   const caption = document.createElement("div");
   caption.className = "card-caption";
-  const label = card ? card.name : id;
+  const label = card ? card.name || "(名称未設定)" : id;
   const cost = card && card.cost !== null && card.cost !== undefined ? ` (${card.cost})` : "";
   caption.textContent = label + cost;
 

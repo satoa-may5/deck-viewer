@@ -172,14 +172,8 @@ app.get("/api/cards", (req, res) => {
 });
 
 app.post("/api/cards", upload.single("image"), (req, res) => {
-  const { id, name, cost, poolId } = req.body;
+  const { name, cost, poolId } = req.body;
 
-  if (!id || !ID_PATTERN.test(id)) {
-    return res.status(400).json({ error: "カードIDが不正です(英数字・.・_・-のみ使用できます)" });
-  }
-  if (!name) {
-    return res.status(400).json({ error: "カード名は必須です" });
-  }
   if (!poolId) {
     return res.status(400).json({ error: "カードプールを選択してください" });
   }
@@ -196,15 +190,12 @@ app.post("/api/cards", upload.single("image"), (req, res) => {
   }
 
   const cards = readCards();
-  if (cards.some((c) => c.id === id)) {
-    return res.status(409).json({ error: `カードID "${id}" は既に登録されています` });
-  }
-
+  const id = `card-${Date.now()}`;
   fs.writeFileSync(path.join(IMAGES_DIR, `${id}.${ext}`), req.file.buffer);
 
   const card = {
     id,
-    name,
+    name: (name || "").trim(),
     cost: cost === undefined || cost === "" ? null : Number(cost),
     poolId,
     imageExt: ext,
@@ -222,11 +213,7 @@ app.patch("/api/cards/:id", (req, res) => {
   if (!card) return res.status(404).json({ error: "カードが見つかりません" });
 
   if (req.body.name !== undefined) {
-    const name = (req.body.name || "").trim();
-    if (!name) {
-      return res.status(400).json({ error: "カード名は必須です" });
-    }
-    card.name = name;
+    card.name = (req.body.name || "").trim();
   }
   if (req.body.cost !== undefined) {
     card.cost = req.body.cost === "" || req.body.cost === null ? null : Number(req.body.cost);

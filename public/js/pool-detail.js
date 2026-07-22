@@ -3,6 +3,29 @@ const poolId = params.get("id");
 
 const nameInput = document.getElementById("pool-name-input");
 const cardListEl = document.getElementById("card-list");
+const viewToggle = document.getElementById("view-toggle");
+
+const VIEW_MODE_KEY = "deck-viewer-pool-view-mode";
+let viewMode = localStorage.getItem(VIEW_MODE_KEY) || "list";
+
+function updateViewToggleUI() {
+  for (const btn of viewToggle.querySelectorAll(".view-toggle-btn")) {
+    btn.classList.toggle("active", btn.dataset.view === viewMode);
+  }
+}
+
+function setViewMode(mode) {
+  viewMode = mode;
+  localStorage.setItem(VIEW_MODE_KEY, mode);
+  updateViewToggleUI();
+  renderCards();
+}
+
+viewToggle.addEventListener("click", (e) => {
+  const btn = e.target.closest(".view-toggle-btn");
+  if (!btn) return;
+  setViewMode(btn.dataset.view);
+});
 
 function dragHandle() {
   const span = document.createElement("span");
@@ -12,21 +35,37 @@ function dragHandle() {
   return span;
 }
 
+function displayName(card) {
+  return card.name || "(名称未設定)";
+}
+
 async function renderCards() {
   const cards = await Api.getCards(poolId);
-  cardListEl.innerHTML = "";
   if (cards.length === 0) {
+    cardListEl.className = "";
     cardListEl.innerHTML =
       '<div class="empty-state">まだカードがありません。右下の＋ボタンから追加してください。</div>';
     return;
   }
-  for (const card of cards) {
-    cardListEl.appendChild(createCardRow(card));
+  if (viewMode === "grid") {
+    renderGridView(cards);
+  } else {
+    renderListView(cards);
   }
 }
 
+// ---- List view ----
+
 function cardCaption(card) {
-  return card.cost !== null && card.cost !== undefined ? `${card.id} / エナジー${card.cost}` : card.id;
+  return card.cost !== null && card.cost !== undefined ? `必要エナジー ${card.cost}` : "";
+}
+
+function renderListView(cards) {
+  cardListEl.className = "deck-list";
+  cardListEl.innerHTML = "";
+  for (const card of cards) {
+    cardListEl.appendChild(createCardRow(card));
+  }
 }
 
 function createCardRow(card) {
@@ -38,13 +77,13 @@ function createCardRow(card) {
   thumb.className = "card-row-thumb";
   const img = document.createElement("img");
   img.src = Api.cardImageUrl(card);
-  img.alt = card.name;
+  img.alt = displayName(card);
   thumb.appendChild(img);
 
   const info = document.createElement("div");
   info.className = "card-row-info";
   const title = document.createElement("strong");
-  title.textContent = card.name;
+  title.textContent = displayName(card);
   const small = document.createElement("small");
   small.textContent = cardCaption(card);
   info.appendChild(title);
@@ -66,7 +105,7 @@ function createCardRow(card) {
   deleteBtn.title = "削除";
   deleteBtn.textContent = "🗑";
   deleteBtn.addEventListener("click", async () => {
-    if (!confirm(`「${card.name}」を削除します。よろしいですか?`)) return;
+    if (!confirm(`「${displayName(card)}」を削除します。よろしいですか?`)) return;
     await Api.deleteCard(card.id);
     await renderCards();
   });
@@ -97,7 +136,8 @@ function startEditCard(row, card) {
 
   const nameField = document.createElement("input");
   nameField.type = "text";
-  nameField.value = card.name;
+  nameField.placeholder = "(空欄可)";
+  nameField.value = card.name || "";
 
   const costField = document.createElement("input");
   costField.type = "number";
@@ -111,9 +151,7 @@ function startEditCard(row, card) {
   saveBtn.className = "btn primary";
   saveBtn.textContent = "保存";
   saveBtn.addEventListener("click", async () => {
-    const name = nameField.value.trim();
-    if (!name) return;
-    await Api.updateCard(card.id, { name, cost: costField.value });
+    await Api.updateCard(card.id, { name: nameField.value.trim(), cost: costField.value });
     await renderCards();
   });
 
@@ -128,6 +166,92 @@ function startEditCard(row, card) {
   form.appendChild(saveBtn);
   form.appendChild(cancelBtn);
   row.appendChild(form);
+}
+
+// ---- Grid view ----
+
+function renderGridView(cards) {
+  cardListEl.className = "grid";
+  cardListEl.innerHTML = "";
+  for (const card of cards) {
+    cardListEl.appendChild(createCardGridItem(card));
+  }
+}
+
+function createCardGridItem(card) {
+  const item = document.createElement("div");
+  item.className = "card-item";
+  item.dataset.id = card.id;
+
+  const frame = document.createElement("div");
+  frame.className = "card-frame";
+  const img = document.createElement("img");
+  img.src = Api.cardImageUrl(card);
+  img.alt = displayName(card);
+  frame.appendChild(img);
+  item.appendChild(frame);
+
+  const caption = document.createElement("div");
+  caption.className = "card-caption";
+  caption.textContent = displayName(card);
+  item.appendChild(caption);
+
+  const actions = document.createElement("div");
+  actions.className = "card-grid-actions";
+
+  const editBtn = document.createElement("button");
+  editBtn.type = "button";
+  editBtn.className = "icon-btn";
+  editBtn.title = "編集";
+  editBtn.textContent = "✎";
+  editBtn.addEventListener("click", () => startGridRename(caption, card));
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "icon-btn danger";
+  deleteBtn.title = "削除";
+  deleteBtn.textContent = "🗑";
+  deleteBtn.addEventListener("click", async () => {
+    if (!confirm(`「${displayName(card)}」を削除します。よろしいですか?`)) return;
+    await Api.deleteCard(card.id);
+    await renderCards();
+  });
+
+  actions.appendChild(editBtn);
+  actions.appendChild(deleteBtn);
+  item.appendChild(actions);
+
+  return item;
+}
+
+function startGridRename(caption, card) {
+  caption.innerHTML = "";
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "grid-rename-input";
+  input.placeholder = "(空欄可)";
+  input.value = card.name || "";
+
+  let done = false;
+  const save = async () => {
+    if (done) return;
+    done = true;
+    await Api.updateCard(card.id, { name: input.value.trim() });
+    await renderCards();
+  };
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") input.blur();
+    if (e.key === "Escape") {
+      done = true;
+      renderCards();
+    }
+  });
+  input.addEventListener("blur", save);
+
+  caption.appendChild(input);
+  input.focus();
+  input.select();
 }
 
 makeSortable(cardListEl, {
@@ -156,10 +280,11 @@ const OUTPUT_H = 880;
 const modal = document.getElementById("add-card-modal");
 const modalImageArea = document.getElementById("modal-image-area");
 const modalFileInput = document.getElementById("modal-file-input");
-const modalIdInput = document.getElementById("modal-card-id");
 const modalNameInput = document.getElementById("modal-card-name");
-const modalCostInput = document.getElementById("modal-card-cost");
 const modalStatus = document.getElementById("modal-status");
+
+const cropPopup = document.getElementById("crop-popup");
+const cropPopupStage = document.getElementById("crop-popup-stage");
 
 let cropTool = null;
 let croppedBlob = null;
@@ -178,26 +303,6 @@ function showImagePlaceholder() {
   modalImageArea.appendChild(placeholder);
 }
 
-function showCropStage() {
-  modalImageArea.innerHTML = "";
-  const stage = document.createElement("div");
-  stage.className = "crop-stage";
-  modalImageArea.appendChild(stage);
-
-  const confirmBtn = document.createElement("button");
-  confirmBtn.type = "button";
-  confirmBtn.className = "btn primary";
-  confirmBtn.style.width = "100%";
-  confirmBtn.textContent = "この範囲で決定";
-  confirmBtn.addEventListener("click", async () => {
-    croppedBlob = await cropTool.toBlob(OUTPUT_W, OUTPUT_H);
-    showImagePreview();
-  });
-  modalImageArea.appendChild(confirmBtn);
-
-  return stage;
-}
-
 function showImagePreview() {
   modalImageArea.innerHTML = "";
   const preview = document.createElement("div");
@@ -209,20 +314,41 @@ function showImagePreview() {
   modalImageArea.appendChild(preview);
 }
 
-modalFileInput.addEventListener("change", async () => {
+function refreshImageArea() {
+  if (croppedBlob) showImagePreview();
+  else showImagePlaceholder();
+}
+
+function openCropPopup(file) {
+  cropPopupStage.innerHTML = "";
+  cropPopup.hidden = false;
+  cropTool = new CropTool(cropPopupStage);
+  cropTool.loadFile(file);
+}
+
+function closeCropPopup() {
+  cropPopup.hidden = true;
+}
+
+document.getElementById("crop-popup-ok").addEventListener("click", async () => {
+  croppedBlob = await cropTool.toBlob(OUTPUT_W, OUTPUT_H);
+  closeCropPopup();
+  refreshImageArea();
+});
+
+document.getElementById("crop-popup-cancel").addEventListener("click", closeCropPopup);
+document.getElementById("crop-popup-close").addEventListener("click", closeCropPopup);
+
+modalFileInput.addEventListener("change", () => {
   const file = modalFileInput.files[0];
   if (!file) return;
-  const stage = showCropStage();
-  cropTool = new CropTool(stage);
-  await cropTool.loadFile(file);
+  openCropPopup(file);
 });
 
 function openAddCardModal() {
   croppedBlob = null;
   cropTool = null;
-  modalIdInput.value = "";
   modalNameInput.value = "";
-  modalCostInput.value = "";
   setModalStatus("", "");
   showImagePlaceholder();
   modal.hidden = false;
@@ -238,32 +364,26 @@ modal.addEventListener("click", (e) => {
   if (e.target === modal) closeAddCardModal();
 });
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !modal.hidden) closeAddCardModal();
+  if (e.key !== "Escape") return;
+  if (!cropPopup.hidden) closeCropPopup();
+  else if (!modal.hidden) closeAddCardModal();
 });
 
 document.getElementById("modal-save-btn").addEventListener("click", async () => {
-  const id = modalIdInput.value.trim();
   const name = modalNameInput.value.trim();
-  const cost = modalCostInput.value;
 
   if (!croppedBlob) {
     setModalStatus("画像を選択してください", "error");
     return;
   }
-  if (!id || !name) {
-    setModalStatus("カード番号とカード名は必須です", "error");
-    return;
-  }
 
   setModalStatus("保存中...", "");
   try {
-    await Api.addCard({ id, name, cost, poolId, imageBlob: croppedBlob });
-    setModalStatus(`「${name}」を登録しました。続けて追加できます。`, "success");
+    const card = await Api.addCard({ name, cost: "", poolId, imageBlob: croppedBlob });
+    setModalStatus(`「${displayName(card)}」を登録しました。続けて追加できます。`, "success");
     croppedBlob = null;
     cropTool = null;
-    modalIdInput.value = "";
     modalNameInput.value = "";
-    modalCostInput.value = "";
     modalFileInput.value = "";
     showImagePlaceholder();
     await renderCards();
@@ -273,6 +393,8 @@ document.getElementById("modal-save-btn").addEventListener("click", async () => 
 });
 
 async function init() {
+  updateViewToggleUI();
+
   if (!poolId) {
     nameInput.disabled = true;
     cardListEl.innerHTML = '<div class="empty-state">カードプールが指定されていません</div>';

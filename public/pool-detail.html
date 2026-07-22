@@ -18,11 +18,15 @@
         </svg>
         一覧に戻る
       </a>
+      <div class="view-toggle" id="view-toggle">
+        <button type="button" class="view-toggle-btn" data-view="list" title="一覧表示">☰</button>
+        <button type="button" class="view-toggle-btn" data-view="grid" title="グリッド表示">▦</button>
+      </div>
     </div>
 
     <input type="text" id="pool-name-input" class="pool-name-input" placeholder="カードプール名" />
 
-    <div class="deck-list" id="card-list"></div>
+    <div id="card-list"></div>
 
     <button type="button" class="fab" id="open-add-card-btn">＋</button>
 
@@ -36,16 +40,8 @@
           <div class="modal-image-area" id="modal-image-area"></div>
           <div class="modal-info-area">
             <div class="field">
-              <label for="modal-card-id">カード番号(ID) *</label>
-              <input type="text" id="modal-card-id" placeholder="例: KMR-1-012" pattern="[A-Za-z0-9._-]+" />
-            </div>
-            <div class="field">
-              <label for="modal-card-name">カード名 *</label>
-              <input type="text" id="modal-card-name" />
-            </div>
-            <div class="field">
-              <label for="modal-card-cost">必要エナジー</label>
-              <input type="number" id="modal-card-cost" min="0" step="1" />
+              <label for="modal-card-name">カード名</label>
+              <input type="text" id="modal-card-name" placeholder="(空欄可)" />
             </div>
             <button type="button" class="btn primary" id="modal-save-btn">保存する</button>
             <div id="modal-status" class="status-message"></div>
@@ -53,6 +49,22 @@
         </div>
       </div>
     </div>
+
+    <div class="modal-overlay crop-popup-overlay" id="crop-popup" hidden>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2>トリミング</h2>
+          <button type="button" class="icon-btn" id="crop-popup-close">✕</button>
+        </div>
+        <p class="crop-hint">ドラッグで移動、ホイール/ピンチで拡大縮小してトリミング範囲を調整してください(縦88:横63)</p>
+        <div class="crop-stage" id="crop-popup-stage"></div>
+        <div class="nav-links crop-popup-actions">
+          <button type="button" class="btn" id="crop-popup-cancel">キャンセル</button>
+          <button type="button" class="btn primary" id="crop-popup-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
     <input type="file" id="modal-file-input" accept="image/*" capture="environment" hidden />
   </div>
 

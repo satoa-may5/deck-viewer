@@ -5,13 +5,12 @@ const Api = {
     return res.json();
   },
 
-  async addCard({ id, name, cost, poolId, imageBlob }) {
+  async addCard({ name, cost, poolId, imageBlob }) {
     const form = new FormData();
-    form.append("id", id);
-    form.append("name", name);
+    if (name) form.append("name", name);
     if (cost !== null && cost !== undefined && cost !== "") form.append("cost", cost);
     form.append("poolId", poolId);
-    form.append("image", imageBlob, `${id}.jpg`);
+    form.append("image", imageBlob, "card.jpg");
     const res = await fetch("/api/cards", { method: "POST", body: form });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "登録に失敗しました");
