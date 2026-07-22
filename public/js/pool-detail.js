@@ -245,6 +245,16 @@ makeSortable(cardListEl, {
   },
 });
 
+makeSortable(cardListEl, {
+  itemSelector: ".card-item",
+  handleSelector: ".card-frame",
+  axis: "grid",
+  onReorder: async (order) => {
+    await Api.reorderCards(order);
+    await renderCards();
+  },
+});
+
 nameInput.addEventListener("change", async () => {
   const name = nameInput.value.trim();
   if (!name || !poolId) return;
