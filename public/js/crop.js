@@ -4,6 +4,7 @@ class CropTool {
   constructor(stageEl) {
     this.stage = stageEl;
     this.img = document.createElement("img");
+    this.img.draggable = false;
     this.stage.innerHTML = "";
     this.stage.appendChild(this.img);
 

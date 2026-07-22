@@ -513,25 +513,54 @@ button {
 
 /* ---- Pool detail: name field + card rows ---- */
 
-.pool-name-input {
-  width: 100%;
+.pool-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 14px 18px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  font-size: 1.15rem;
-  font-weight: 800;
   box-shadow: var(--shadow-sm);
   margin-bottom: 18px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.pool-name-input:focus {
-  outline: none;
+.pool-header:focus-within {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-tint);
+}
+
+.pool-header-label {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  opacity: 0.65;
+}
+
+.pool-name-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.pool-name-input:focus {
+  outline: none;
+}
+
+.pool-card-count {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
 }
 
 .card-row {
@@ -569,8 +598,8 @@ button {
   user-select: none;
 }
 
-.card-row-thumb.editable-thumb,
-.card-row-thumb.selectable-thumb {
+.card-row.editable-row,
+.card-row.selectable-row {
   cursor: pointer;
 }
 
@@ -1114,6 +1143,8 @@ button {
   max-height: none;
   transform-origin: 0 0;
   will-change: transform;
+  -webkit-user-drag: none;
+  user-select: none;
 }
 
 .crop-hint {

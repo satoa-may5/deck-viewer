@@ -2,6 +2,7 @@ const params = new URLSearchParams(location.search);
 const poolId = params.get("id");
 
 const nameInput = document.getElementById("pool-name-input");
+const cardCountEl = document.getElementById("pool-card-count");
 const cardListEl = document.getElementById("card-list");
 const viewToggle = document.getElementById("view-toggle");
 
@@ -112,6 +113,7 @@ selectionDeleteBtn.addEventListener("click", async () => {
 
 async function renderCards() {
   latestCards = await Api.getCards(poolId);
+  cardCountEl.textContent = `${latestCards.length}枚`;
   if (latestCards.length === 0) {
     cardListEl.className = "";
     cardListEl.innerHTML =
@@ -154,14 +156,18 @@ function createCardRow(card) {
   thumb.appendChild(img);
 
   if (selectMode) {
-    thumb.classList.add("selectable-thumb");
-    thumb.addEventListener("click", () => {
+    row.classList.add("selectable-row");
+    row.addEventListener("click", (e) => {
+      if (e.target.closest(".drag-handle")) return;
       toggleSelect(card.id);
       row.classList.toggle("selected", selectedIds.has(card.id));
     });
   } else {
-    thumb.classList.add("editable-thumb");
-    thumb.addEventListener("click", () => openEditCardModal(card));
+    row.classList.add("editable-row");
+    row.addEventListener("click", (e) => {
+      if (e.target.closest(".drag-handle")) return;
+      openEditCardModal(card);
+    });
   }
 
   const info = document.createElement("div");
