@@ -7,6 +7,7 @@ const viewToggle = document.getElementById("view-toggle");
 
 const VIEW_MODE_KEY = "deck-viewer-pool-view-mode";
 let viewMode = localStorage.getItem(VIEW_MODE_KEY) || "list";
+let latestCards = [];
 
 function updateViewToggleUI() {
   for (const btn of viewToggle.querySelectorAll(".view-toggle-btn")) {
@@ -39,18 +40,88 @@ function displayName(card) {
   return card.name || "(名称未設定)";
 }
 
+// ---- Auto card naming (CARD-001, CARD-002, ...) ----
+
+function computeNextCardNumber(cards) {
+  let max = 0;
+  for (const c of cards) {
+    const m = /^CARD-(\d+)$/.exec(c.name || "");
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  }
+  return max + 1;
+}
+
+function formatCardName(n) {
+  return `CARD-${String(n).padStart(3, "0")}`;
+}
+
+// ---- Bulk selection ----
+
+const selectModeBtn = document.getElementById("select-mode-btn");
+const selectionBar = document.getElementById("selection-bar");
+const selectionCountEl = document.getElementById("selection-count");
+const selectionDeleteBtn = document.getElementById("selection-delete-btn");
+const selectionCancelBtn = document.getElementById("selection-cancel-btn");
+
+let selectMode = false;
+let selectedIds = new Set();
+
+function updateSelectionUI() {
+  selectionCountEl.textContent = selectedIds.size > 0 ? `${selectedIds.size}件選択中` : "選択してください";
+  selectionDeleteBtn.disabled = selectedIds.size === 0;
+}
+
+function toggleSelect(id) {
+  if (selectedIds.has(id)) selectedIds.delete(id);
+  else selectedIds.add(id);
+  updateSelectionUI();
+}
+
+function enterSelectMode() {
+  selectMode = true;
+  selectedIds.clear();
+  selectModeBtn.hidden = true;
+  selectionBar.hidden = false;
+  updateSelectionUI();
+  renderCards();
+}
+
+function exitSelectMode() {
+  selectMode = false;
+  selectedIds.clear();
+  selectModeBtn.hidden = false;
+  selectionBar.hidden = true;
+  renderCards();
+}
+
+selectModeBtn.addEventListener("click", enterSelectMode);
+selectionCancelBtn.addEventListener("click", exitSelectMode);
+
+selectionDeleteBtn.addEventListener("click", async () => {
+  if (selectedIds.size === 0) return;
+  if (!confirm(`選択した${selectedIds.size}件のカードを削除します。よろしいですか?`)) return;
+  for (const id of selectedIds) {
+    await Api.deleteCard(id);
+  }
+  selectMode = false;
+  selectedIds.clear();
+  selectModeBtn.hidden = false;
+  selectionBar.hidden = true;
+  await renderCards();
+});
+
 async function renderCards() {
-  const cards = await Api.getCards(poolId);
-  if (cards.length === 0) {
+  latestCards = await Api.getCards(poolId);
+  if (latestCards.length === 0) {
     cardListEl.className = "";
     cardListEl.innerHTML =
       '<div class="empty-state">まだカードがありません。右下の＋ボタンから追加してください。</div>';
     return;
   }
   if (viewMode === "grid") {
-    renderGridView(cards);
+    renderGridView(latestCards);
   } else {
-    renderListView(cards);
+    renderListView(latestCards);
   }
 }
 
@@ -72,13 +143,26 @@ function createCardRow(card) {
   const row = document.createElement("div");
   row.className = "card-row";
   row.dataset.id = card.id;
+  if (selectMode && selectedIds.has(card.id)) row.classList.add("selected");
 
   const thumb = document.createElement("div");
   thumb.className = "card-row-thumb";
   const img = document.createElement("img");
   img.src = Api.cardImageUrl(card);
   img.alt = displayName(card);
+  img.draggable = false;
   thumb.appendChild(img);
+
+  if (selectMode) {
+    thumb.classList.add("selectable-thumb");
+    thumb.addEventListener("click", () => {
+      toggleSelect(card.id);
+      row.classList.toggle("selected", selectedIds.has(card.id));
+    });
+  } else {
+    thumb.classList.add("editable-thumb");
+    thumb.addEventListener("click", () => openEditCardModal(card));
+  }
 
   const info = document.createElement("div");
   info.className = "card-row-info";
@@ -89,83 +173,10 @@ function createCardRow(card) {
   info.appendChild(title);
   info.appendChild(small);
 
-  const actions = document.createElement("div");
-  actions.className = "nav-links";
-
-  const editBtn = document.createElement("button");
-  editBtn.type = "button";
-  editBtn.className = "icon-btn";
-  editBtn.title = "編集";
-  editBtn.textContent = "✎";
-  editBtn.addEventListener("click", () => startEditCard(row, card));
-
-  const deleteBtn = document.createElement("button");
-  deleteBtn.type = "button";
-  deleteBtn.className = "icon-btn danger";
-  deleteBtn.title = "削除";
-  deleteBtn.textContent = "🗑";
-  deleteBtn.addEventListener("click", async () => {
-    if (!confirm(`「${displayName(card)}」を削除します。よろしいですか?`)) return;
-    await Api.deleteCard(card.id);
-    await renderCards();
-  });
-
-  actions.appendChild(editBtn);
-  actions.appendChild(deleteBtn);
-
   row.appendChild(dragHandle());
   row.appendChild(thumb);
   row.appendChild(info);
-  row.appendChild(actions);
   return row;
-}
-
-function startEditCard(row, card) {
-  row.innerHTML = "";
-  row.appendChild(dragHandle());
-
-  const thumb = document.createElement("div");
-  thumb.className = "card-row-thumb";
-  const img = document.createElement("img");
-  img.src = Api.cardImageUrl(card);
-  thumb.appendChild(img);
-  row.appendChild(thumb);
-
-  const form = document.createElement("div");
-  form.className = "card-edit-form";
-
-  const nameField = document.createElement("input");
-  nameField.type = "text";
-  nameField.placeholder = "(空欄可)";
-  nameField.value = card.name || "";
-
-  const costField = document.createElement("input");
-  costField.type = "number";
-  costField.min = "0";
-  costField.step = "1";
-  costField.placeholder = "エナジー";
-  costField.value = card.cost !== null && card.cost !== undefined ? card.cost : "";
-
-  const saveBtn = document.createElement("button");
-  saveBtn.type = "button";
-  saveBtn.className = "btn primary";
-  saveBtn.textContent = "保存";
-  saveBtn.addEventListener("click", async () => {
-    await Api.updateCard(card.id, { name: nameField.value.trim(), cost: costField.value });
-    await renderCards();
-  });
-
-  const cancelBtn = document.createElement("button");
-  cancelBtn.type = "button";
-  cancelBtn.className = "btn";
-  cancelBtn.textContent = "キャンセル";
-  cancelBtn.addEventListener("click", renderCards);
-
-  form.appendChild(nameField);
-  form.appendChild(costField);
-  form.appendChild(saveBtn);
-  form.appendChild(cancelBtn);
-  row.appendChild(form);
 }
 
 // ---- Grid view ----
@@ -188,7 +199,28 @@ function createCardGridItem(card) {
   const img = document.createElement("img");
   img.src = Api.cardImageUrl(card);
   img.alt = displayName(card);
+  img.draggable = false;
   frame.appendChild(img);
+
+  if (selectMode) {
+    frame.classList.add("selectable-frame");
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "grid-select-checkbox";
+    checkbox.checked = selectedIds.has(card.id);
+    checkbox.addEventListener("click", (e) => e.stopPropagation());
+    checkbox.addEventListener("change", () => toggleSelect(card.id));
+    frame.appendChild(checkbox);
+    frame.addEventListener("click", (e) => {
+      if (e.target === checkbox) return;
+      checkbox.checked = !checkbox.checked;
+      toggleSelect(card.id);
+    });
+  } else {
+    frame.classList.add("editable-frame");
+    frame.addEventListener("click", () => openEditCardModal(card));
+  }
+
   item.appendChild(frame);
 
   const caption = document.createElement("div");
@@ -196,62 +228,7 @@ function createCardGridItem(card) {
   caption.textContent = displayName(card);
   item.appendChild(caption);
 
-  const actions = document.createElement("div");
-  actions.className = "card-grid-actions";
-
-  const editBtn = document.createElement("button");
-  editBtn.type = "button";
-  editBtn.className = "icon-btn";
-  editBtn.title = "編集";
-  editBtn.textContent = "✎";
-  editBtn.addEventListener("click", () => startGridRename(caption, card));
-
-  const deleteBtn = document.createElement("button");
-  deleteBtn.type = "button";
-  deleteBtn.className = "icon-btn danger";
-  deleteBtn.title = "削除";
-  deleteBtn.textContent = "🗑";
-  deleteBtn.addEventListener("click", async () => {
-    if (!confirm(`「${displayName(card)}」を削除します。よろしいですか?`)) return;
-    await Api.deleteCard(card.id);
-    await renderCards();
-  });
-
-  actions.appendChild(editBtn);
-  actions.appendChild(deleteBtn);
-  item.appendChild(actions);
-
   return item;
-}
-
-function startGridRename(caption, card) {
-  caption.innerHTML = "";
-  const input = document.createElement("input");
-  input.type = "text";
-  input.className = "grid-rename-input";
-  input.placeholder = "(空欄可)";
-  input.value = card.name || "";
-
-  let done = false;
-  const save = async () => {
-    if (done) return;
-    done = true;
-    await Api.updateCard(card.id, { name: input.value.trim() });
-    await renderCards();
-  };
-
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") input.blur();
-    if (e.key === "Escape") {
-      done = true;
-      renderCards();
-    }
-  });
-  input.addEventListener("blur", save);
-
-  caption.appendChild(input);
-  input.focus();
-  input.select();
 }
 
 makeSortable(cardListEl, {
@@ -272,15 +249,17 @@ nameInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") nameInput.blur();
 });
 
-// ---- Add-card modal ----
+// ---- Add/edit-card modal ----
 
 const OUTPUT_W = 630;
 const OUTPUT_H = 880;
 
 const modal = document.getElementById("add-card-modal");
+const modalTitle = document.getElementById("modal-title");
 const modalImageArea = document.getElementById("modal-image-area");
 const modalFileInput = document.getElementById("modal-file-input");
 const modalNameInput = document.getElementById("modal-card-name");
+const modalSaveBtn = document.getElementById("modal-save-btn");
 const modalStatus = document.getElementById("modal-status");
 
 const cropPopup = document.getElementById("crop-popup");
@@ -288,6 +267,7 @@ const cropPopupStage = document.getElementById("crop-popup-stage");
 
 let cropTool = null;
 let croppedBlob = null;
+let editingCard = null; // null = adding a new card, otherwise the card being edited
 
 function setModalStatus(message, kind) {
   modalStatus.textContent = message;
@@ -303,19 +283,21 @@ function showImagePlaceholder() {
   modalImageArea.appendChild(placeholder);
 }
 
-function showImagePreview() {
+function showImagePreview(src) {
   modalImageArea.innerHTML = "";
   const preview = document.createElement("div");
   preview.className = "image-preview";
   const img = document.createElement("img");
-  img.src = URL.createObjectURL(croppedBlob);
+  img.src = src;
+  img.draggable = false;
   preview.appendChild(img);
   preview.addEventListener("click", () => modalFileInput.click());
   modalImageArea.appendChild(preview);
 }
 
 function refreshImageArea() {
-  if (croppedBlob) showImagePreview();
+  if (croppedBlob) showImagePreview(URL.createObjectURL(croppedBlob));
+  else if (editingCard) showImagePreview(Api.cardImageUrl(editingCard));
   else showImagePlaceholder();
 }
 
@@ -328,6 +310,7 @@ function openCropPopup(file) {
 
 function closeCropPopup() {
   cropPopup.hidden = true;
+  modalFileInput.value = "";
 }
 
 document.getElementById("crop-popup-ok").addEventListener("click", async () => {
@@ -346,16 +329,34 @@ modalFileInput.addEventListener("change", () => {
 });
 
 function openAddCardModal() {
+  editingCard = null;
   croppedBlob = null;
   cropTool = null;
   modalNameInput.value = "";
+  modalNameInput.placeholder = formatCardName(computeNextCardNumber(latestCards));
   setModalStatus("", "");
+  modalTitle.textContent = "カードを追加";
+  modalSaveBtn.textContent = "保存する";
   showImagePlaceholder();
+  modal.hidden = false;
+}
+
+function openEditCardModal(card) {
+  editingCard = card;
+  croppedBlob = null;
+  cropTool = null;
+  modalNameInput.value = card.name || "";
+  modalNameInput.placeholder = formatCardName(computeNextCardNumber(latestCards));
+  setModalStatus("", "");
+  modalTitle.textContent = "カードを編集";
+  modalSaveBtn.textContent = "保存する";
+  showImagePreview(Api.cardImageUrl(card));
   modal.hidden = false;
 }
 
 function closeAddCardModal() {
   modal.hidden = true;
+  modalFileInput.value = "";
 }
 
 document.getElementById("open-add-card-btn").addEventListener("click", openAddCardModal);
@@ -369,8 +370,23 @@ document.addEventListener("keydown", (e) => {
   else if (!modal.hidden) closeAddCardModal();
 });
 
-document.getElementById("modal-save-btn").addEventListener("click", async () => {
-  const name = modalNameInput.value.trim();
+modalSaveBtn.addEventListener("click", async () => {
+  const name = modalNameInput.value.trim() || modalNameInput.placeholder;
+
+  if (editingCard) {
+    setModalStatus("保存中...", "");
+    try {
+      if (croppedBlob) {
+        await Api.replaceCardImage(editingCard.id, croppedBlob);
+      }
+      await Api.updateCard(editingCard.id, { name });
+      closeAddCardModal();
+      await renderCards();
+    } catch (err) {
+      setModalStatus(err.message, "error");
+    }
+    return;
+  }
 
   if (!croppedBlob) {
     setModalStatus("画像を選択してください", "error");
@@ -387,6 +403,7 @@ document.getElementById("modal-save-btn").addEventListener("click", async () => 
     modalFileInput.value = "";
     showImagePlaceholder();
     await renderCards();
+    modalNameInput.placeholder = formatCardName(computeNextCardNumber(latestCards));
   } catch (err) {
     setModalStatus(err.message, "error");
   }

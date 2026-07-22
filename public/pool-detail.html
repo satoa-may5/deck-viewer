@@ -26,6 +26,16 @@
 
     <input type="text" id="pool-name-input" class="pool-name-input" placeholder="カードプール名" />
 
+    <div class="list-toolbar">
+      <button type="button" class="btn" id="select-mode-btn">選択して削除</button>
+    </div>
+
+    <div class="selection-bar" id="selection-bar" hidden>
+      <span id="selection-count"></span>
+      <button type="button" class="btn danger" id="selection-delete-btn" disabled>削除する</button>
+      <button type="button" class="btn" id="selection-cancel-btn">キャンセル</button>
+    </div>
+
     <div id="card-list"></div>
 
     <button type="button" class="fab" id="open-add-card-btn">＋</button>
@@ -33,15 +43,15 @@
     <div class="modal-overlay" id="add-card-modal" hidden>
       <div class="modal-card">
         <div class="modal-header">
-          <h2>カードを追加</h2>
+          <h2 id="modal-title">カードを追加</h2>
           <button type="button" class="icon-btn" id="close-modal-btn">✕</button>
         </div>
         <div class="modal-body">
           <div class="modal-image-area" id="modal-image-area"></div>
           <div class="modal-info-area">
             <div class="field">
-              <label for="modal-card-name">カード名</label>
-              <input type="text" id="modal-card-name" placeholder="(空欄可)" />
+              <label for="modal-card-name">カード名(任意)</label>
+              <input type="text" id="modal-card-name" placeholder="" />
             </div>
             <button type="button" class="btn primary" id="modal-save-btn">保存する</button>
             <div id="modal-status" class="status-message"></div>
@@ -56,7 +66,7 @@
           <h2>トリミング</h2>
           <button type="button" class="icon-btn" id="crop-popup-close">✕</button>
         </div>
-        <p class="crop-hint">ドラッグで移動、ホイール/ピンチで拡大縮小してトリミング範囲を調整してください(縦88:横63)</p>
+        <p class="crop-hint">ドラッグで移動、ホイール/ピンチで拡大縮小してトリミング範囲を調整してください</p>
         <div class="crop-stage" id="crop-popup-stage"></div>
         <div class="nav-links crop-popup-actions">
           <button type="button" class="btn" id="crop-popup-cancel">キャンセル</button>
@@ -65,7 +75,7 @@
       </div>
     </div>
 
-    <input type="file" id="modal-file-input" accept="image/*" capture="environment" hidden />
+    <input type="file" id="modal-file-input" accept="image/png,image/jpeg" capture="environment" hidden />
   </div>
 
   <script src="js/api.js"></script>

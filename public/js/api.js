@@ -17,6 +17,18 @@ const Api = {
     return data;
   },
 
+  async replaceCardImage(id, imageBlob) {
+    const form = new FormData();
+    form.append("image", imageBlob, "card.jpg");
+    const res = await fetch(`/api/cards/${encodeURIComponent(id)}/image`, {
+      method: "POST",
+      body: form,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "画像の更新に失敗しました");
+    return data;
+  },
+
   async updateCard(id, patch) {
     const res = await fetch(`/api/cards/${encodeURIComponent(id)}`, {
       method: "PATCH",

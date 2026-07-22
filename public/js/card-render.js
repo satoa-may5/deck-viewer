@@ -12,6 +12,7 @@ function createCardElement(card, id, count) {
     const img = document.createElement("img");
     img.src = Api.cardImageUrl(card);
     img.alt = card.name;
+    img.draggable = false;
     img.addEventListener("error", () => {
       img.remove();
       frame.classList.add("missing");

@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "id": "card-1784738395386",
+    "name": "CARD-001",
+    "cost": null,
+    "poolId": "pool-1784657700101",
+    "imageExt": "jpg",
+    "order": 0,
+    "createdAt": "2026-07-22T16:39:55.387Z"
+  },
+  {
+    "id": "card-1784738451324",
+    "name": "CARD-002",
+    "cost": null,
+    "poolId": "pool-1784657700101",
+    "imageExt": "jpg",
+    "order": 1,
+    "createdAt": "2026-07-22T16:40:51.325Z"
+  }
+]

@@ -307,6 +307,16 @@ button {
   background: rgba(245, 166, 35, 0.14);
 }
 
+.btn.danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.btn.danger:hover {
+  background: var(--danger-tint);
+  border-color: var(--danger);
+}
+
 /* ---- Drag reorder handle ---- */
 
 .drag-handle {
@@ -497,6 +507,8 @@ button {
   height: 100%;
   object-fit: cover;
   display: block;
+  -webkit-user-drag: none;
+  user-select: none;
 }
 
 /* ---- Pool detail: name field + card rows ---- */
@@ -553,6 +565,45 @@ button {
   height: 100%;
   object-fit: cover;
   display: block;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.card-row-thumb.editable-thumb,
+.card-row-thumb.selectable-thumb {
+  cursor: pointer;
+}
+
+.card-row.selected {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 2px var(--danger-tint);
+}
+
+/* ---- Bulk-select toolbar ---- */
+
+.list-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.selection-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.selection-bar span {
+  flex: 1;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--muted);
 }
 
 .card-row-info {
@@ -574,23 +625,6 @@ button {
 .card-row-info small {
   color: var(--muted);
   font-size: 0.8rem;
-}
-
-.card-edit-form {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  flex: 1;
-}
-
-.card-edit-form input[type="text"] {
-  flex: 1;
-  min-width: 100px;
-}
-
-.card-edit-form input[type="number"] {
-  width: 80px;
 }
 
 /* ---- Card grid (deck-view / collection) ---- */
@@ -630,6 +664,24 @@ button {
   object-fit: cover;
   display: block;
   pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.card-frame.editable-frame,
+.card-frame.selectable-frame {
+  cursor: pointer;
+}
+
+.grid-select-checkbox {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  z-index: 2;
+  cursor: pointer;
+  accent-color: var(--accent);
 }
 
 .card-frame.missing {
@@ -677,36 +729,6 @@ button {
   color: var(--muted);
   font-weight: 500;
   font-size: 0.78rem;
-}
-
-.grid-rename-input {
-  width: 100%;
-  padding: 3px 6px;
-  border-radius: 6px;
-  border: 1px solid var(--accent);
-  background: var(--surface-2);
-  color: var(--text);
-  font: inherit;
-  font-size: 0.82rem;
-  text-align: center;
-}
-
-.grid-rename-input:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--accent-tint);
-}
-
-.card-grid-actions {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.card-grid-actions .icon-btn {
-  width: 28px;
-  height: 28px;
-  font-size: 0.8rem;
 }
 
 .empty-state {
@@ -983,8 +1005,7 @@ button {
   margin-bottom: 6px;
 }
 
-.field input,
-.card-edit-form input {
+.field input {
   width: 100%;
   padding: 11px 14px;
   border-radius: var(--radius-md);
@@ -995,11 +1016,15 @@ button {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.field input:focus,
-.card-edit-form input:focus {
+.field input:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-tint);
+}
+
+.field input::placeholder {
+  color: var(--muted);
+  opacity: 0.65;
 }
 
 .status-message {

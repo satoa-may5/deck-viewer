@@ -24,7 +24,6 @@ const ID_PATTERN = /^[A-Za-z0-9._-]+$/;
 const MIME_TO_EXT = {
   "image/jpeg": "jpg",
   "image/png": "png",
-  "image/webp": "webp",
 };
 
 function readCards() {
@@ -218,6 +217,26 @@ app.patch("/api/cards/:id", (req, res) => {
   if (req.body.cost !== undefined) {
     card.cost = req.body.cost === "" || req.body.cost === null ? null : Number(req.body.cost);
   }
+  writeCards(cards);
+  res.json(card);
+});
+
+app.post("/api/cards/:id/image", upload.single("image"), (req, res) => {
+  const cards = readCards();
+  const card = cards.find((c) => c.id === req.params.id);
+  if (!card) return res.status(404).json({ error: "カードが見つかりません" });
+  if (!req.file) {
+    return res.status(400).json({ error: "画像が送信されていません" });
+  }
+  const ext = MIME_TO_EXT[req.file.mimetype];
+  if (!ext) {
+    return res.status(400).json({ error: `対応していない画像形式です: ${req.file.mimetype}` });
+  }
+
+  const oldFile = path.join(IMAGES_DIR, `${card.id}.${card.imageExt}`);
+  if (fs.existsSync(oldFile)) fs.unlinkSync(oldFile);
+  fs.writeFileSync(path.join(IMAGES_DIR, `${card.id}.${ext}`), req.file.buffer);
+  card.imageExt = ext;
   writeCards(cards);
   res.json(card);
 });
