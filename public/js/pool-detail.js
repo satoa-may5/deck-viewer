@@ -3,11 +3,6 @@ const poolId = params.get("id");
 
 const nameInput = document.getElementById("pool-name-input");
 const cardListEl = document.getElementById("card-list");
-const fab = document.getElementById("add-card-fab");
-
-if (poolId) {
-  fab.href = `add-card.html?poolId=${encodeURIComponent(poolId)}`;
-}
 
 function dragHandle() {
   const span = document.createElement("span");
@@ -151,6 +146,130 @@ nameInput.addEventListener("change", async () => {
 
 nameInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") nameInput.blur();
+});
+
+// ---- Add-card modal ----
+
+const OUTPUT_W = 630;
+const OUTPUT_H = 880;
+
+const modal = document.getElementById("add-card-modal");
+const modalImageArea = document.getElementById("modal-image-area");
+const modalFileInput = document.getElementById("modal-file-input");
+const modalIdInput = document.getElementById("modal-card-id");
+const modalNameInput = document.getElementById("modal-card-name");
+const modalCostInput = document.getElementById("modal-card-cost");
+const modalStatus = document.getElementById("modal-status");
+
+let cropTool = null;
+let croppedBlob = null;
+
+function setModalStatus(message, kind) {
+  modalStatus.textContent = message;
+  modalStatus.className = `status-message ${kind || ""}`;
+}
+
+function showImagePlaceholder() {
+  modalImageArea.innerHTML = "";
+  const placeholder = document.createElement("div");
+  placeholder.className = "image-placeholder";
+  placeholder.textContent = "＋ 画像を選択";
+  placeholder.addEventListener("click", () => modalFileInput.click());
+  modalImageArea.appendChild(placeholder);
+}
+
+function showCropStage() {
+  modalImageArea.innerHTML = "";
+  const stage = document.createElement("div");
+  stage.className = "crop-stage";
+  modalImageArea.appendChild(stage);
+
+  const confirmBtn = document.createElement("button");
+  confirmBtn.type = "button";
+  confirmBtn.className = "btn primary";
+  confirmBtn.style.width = "100%";
+  confirmBtn.textContent = "この範囲で決定";
+  confirmBtn.addEventListener("click", async () => {
+    croppedBlob = await cropTool.toBlob(OUTPUT_W, OUTPUT_H);
+    showImagePreview();
+  });
+  modalImageArea.appendChild(confirmBtn);
+
+  return stage;
+}
+
+function showImagePreview() {
+  modalImageArea.innerHTML = "";
+  const preview = document.createElement("div");
+  preview.className = "image-preview";
+  const img = document.createElement("img");
+  img.src = URL.createObjectURL(croppedBlob);
+  preview.appendChild(img);
+  preview.addEventListener("click", () => modalFileInput.click());
+  modalImageArea.appendChild(preview);
+}
+
+modalFileInput.addEventListener("change", async () => {
+  const file = modalFileInput.files[0];
+  if (!file) return;
+  const stage = showCropStage();
+  cropTool = new CropTool(stage);
+  await cropTool.loadFile(file);
+});
+
+function openAddCardModal() {
+  croppedBlob = null;
+  cropTool = null;
+  modalIdInput.value = "";
+  modalNameInput.value = "";
+  modalCostInput.value = "";
+  setModalStatus("", "");
+  showImagePlaceholder();
+  modal.hidden = false;
+}
+
+function closeAddCardModal() {
+  modal.hidden = true;
+}
+
+document.getElementById("open-add-card-btn").addEventListener("click", openAddCardModal);
+document.getElementById("close-modal-btn").addEventListener("click", closeAddCardModal);
+modal.addEventListener("click", (e) => {
+  if (e.target === modal) closeAddCardModal();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !modal.hidden) closeAddCardModal();
+});
+
+document.getElementById("modal-save-btn").addEventListener("click", async () => {
+  const id = modalIdInput.value.trim();
+  const name = modalNameInput.value.trim();
+  const cost = modalCostInput.value;
+
+  if (!croppedBlob) {
+    setModalStatus("画像を選択してください", "error");
+    return;
+  }
+  if (!id || !name) {
+    setModalStatus("カード番号とカード名は必須です", "error");
+    return;
+  }
+
+  setModalStatus("保存中...", "");
+  try {
+    await Api.addCard({ id, name, cost, poolId, imageBlob: croppedBlob });
+    setModalStatus(`「${name}」を登録しました。続けて追加できます。`, "success");
+    croppedBlob = null;
+    cropTool = null;
+    modalIdInput.value = "";
+    modalNameInput.value = "";
+    modalCostInput.value = "";
+    modalFileInput.value = "";
+    showImagePlaceholder();
+    await renderCards();
+  } catch (err) {
+    setModalStatus(err.message, "error");
+  }
 });
 
 async function init() {

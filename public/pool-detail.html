@@ -11,18 +11,54 @@
 <body>
   <div class="page">
     <div class="topbar">
-      <a class="btn" href="index.html">一覧に戻る</a>
+      <a class="btn btn-back" href="index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+          <path d="M4 17h11a4 4 0 0 0 0-8H8" />
+          <path d="M11 6l-3 3 3 3" />
+        </svg>
+        一覧に戻る
+      </a>
     </div>
 
     <input type="text" id="pool-name-input" class="pool-name-input" placeholder="カードプール名" />
 
     <div class="deck-list" id="card-list"></div>
 
-    <a class="fab" id="add-card-fab" href="add-card.html">＋</a>
+    <button type="button" class="fab" id="open-add-card-btn">＋</button>
+
+    <div class="modal-overlay" id="add-card-modal" hidden>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2>カードを追加</h2>
+          <button type="button" class="icon-btn" id="close-modal-btn">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-image-area" id="modal-image-area"></div>
+          <div class="modal-info-area">
+            <div class="field">
+              <label for="modal-card-id">カード番号(ID) *</label>
+              <input type="text" id="modal-card-id" placeholder="例: KMR-1-012" pattern="[A-Za-z0-9._-]+" />
+            </div>
+            <div class="field">
+              <label for="modal-card-name">カード名 *</label>
+              <input type="text" id="modal-card-name" />
+            </div>
+            <div class="field">
+              <label for="modal-card-cost">必要エナジー</label>
+              <input type="number" id="modal-card-cost" min="0" step="1" />
+            </div>
+            <button type="button" class="btn primary" id="modal-save-btn">保存する</button>
+            <div id="modal-status" class="status-message"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <input type="file" id="modal-file-input" accept="image/*" capture="environment" hidden />
   </div>
 
   <script src="js/api.js"></script>
   <script src="js/sortable.js"></script>
+  <script src="js/crop.js"></script>
   <script src="js/pool-detail.js"></script>
   <script src="js/register-sw.js"></script>
 </body>
