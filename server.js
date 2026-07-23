@@ -202,8 +202,9 @@ function readManifest(folder) {
   }
 }
 
-// Explicit manifest.cards wins (lets you pick names/order by hand); otherwise
-// every image file found in images/ is used, sorted by filename.
+// Explicit manifest.cards wins (lets you pick names/order/cost/color/parallel by
+// hand); otherwise every image file found in images/ is used, sorted by filename,
+// with cost/color/parallel left at their defaults (unknown from a filename alone).
 function resolveManifestCards(folder, manifest) {
   if (Array.isArray(manifest.cards)) {
     return manifest.cards
@@ -212,6 +213,8 @@ function resolveManifestCards(folder, manifest) {
         image: item.image,
         name: (item.name && String(item.name).trim()) || defaultNameFromImage(item.image),
         cost: item.cost ?? null,
+        color: (item.color && String(item.color).trim()) || "",
+        parallel: Boolean(item.parallel),
       }));
   }
   const imagesFolder = path.join(folder, "images");
@@ -220,7 +223,7 @@ function resolveManifestCards(folder, manifest) {
     .readdirSync(imagesFolder)
     .filter((f) => /\.(png|jpe?g)$/i.test(f))
     .sort()
-    .map((image) => ({ image, name: defaultNameFromImage(image), cost: null }));
+    .map((image) => ({ image, name: defaultNameFromImage(image), cost: null, color: "", parallel: false }));
 }
 
 app.get("/api/pool-exports", (req, res) => {
@@ -264,7 +267,13 @@ app.post("/api/pools/:id/export", (req, res) => {
     if (!fs.existsSync(srcImage)) continue;
     const imageName = `${card.id}.${card.imageExt}`;
     fs.writeFileSync(path.join(imagesFolder, imageName), fs.readFileSync(srcImage));
-    manifestCards.push({ name: card.name, cost: card.cost, image: imageName });
+    manifestCards.push({
+      name: card.name,
+      cost: card.cost,
+      color: card.color || "",
+      parallel: Boolean(card.parallel),
+      image: imageName,
+    });
   }
 
   const manifest = {
@@ -316,6 +325,8 @@ app.post("/api/pool-exports/:folderId/import", (req, res) => {
       id,
       name: item.name,
       cost: item.cost,
+      color: item.color,
+      parallel: item.parallel,
       poolId: newPool.id,
       imageExt: ext,
       order: order++,
@@ -342,7 +353,7 @@ app.get("/api/cards", (req, res) => {
 });
 
 app.post("/api/cards", upload.single("image"), (req, res) => {
-  const { name, cost, poolId } = req.body;
+  const { name, cost, poolId, color, parallel } = req.body;
 
   if (!poolId) {
     return res.status(400).json({ error: "カードプールを選択してください" });
@@ -367,6 +378,8 @@ app.post("/api/cards", upload.single("image"), (req, res) => {
     id,
     name: (name || "").trim(),
     cost: cost === undefined || cost === "" ? null : Number(cost),
+    color: (color || "").trim(),
+    parallel: parallel === true || parallel === "true",
     poolId,
     imageExt: ext,
     order: nextCardOrder(cards),
@@ -387,6 +400,12 @@ app.patch("/api/cards/:id", (req, res) => {
   }
   if (req.body.cost !== undefined) {
     card.cost = req.body.cost === "" || req.body.cost === null ? null : Number(req.body.cost);
+  }
+  if (req.body.color !== undefined) {
+    card.color = (req.body.color || "").trim();
+  }
+  if (req.body.parallel !== undefined) {
+    card.parallel = Boolean(req.body.parallel);
   }
   writeCards(cards);
   res.json(card);
