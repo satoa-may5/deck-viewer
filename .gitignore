@@ -2,6 +2,7 @@
 Thumbs.db
 node_modules/
 *.log
+dist/
 
 # カード画像は著作権/サイズの都合でgit管理外にする(README参照)
 images/*

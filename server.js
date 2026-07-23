@@ -3,10 +3,16 @@ const path = require("path");
 const express = require("express");
 const multer = require("multer");
 
-const ROOT = __dirname;
-const DATA_DIR = path.join(ROOT, "data");
+// Static assets (public/) are read-only and safe to bundle inside a pkg snapshot,
+// so they're resolved relative to the script itself (__dirname), which pkg
+// transparently redirects into the snapshot filesystem. Data/images are written
+// at runtime, so as a packaged exe they must live in a real, writable directory
+// next to the exe rather than inside the read-only snapshot.
+const ASSETS_ROOT = __dirname;
+const APP_ROOT = process.pkg ? path.dirname(process.execPath) : __dirname;
+const DATA_DIR = path.join(APP_ROOT, "data");
 const DECKS_DIR = path.join(DATA_DIR, "decks");
-const IMAGES_DIR = path.join(ROOT, "images");
+const IMAGES_DIR = path.join(APP_ROOT, "images");
 const CARDS_FILE = path.join(DATA_DIR, "cards.json");
 const POOLS_FILE = path.join(DATA_DIR, "cardpools.json");
 
@@ -73,7 +79,7 @@ function nextCardOrder(cards) {
 
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(ROOT, "public")));
+app.use(express.static(path.join(ASSETS_ROOT, "public")));
 app.use("/images", express.static(IMAGES_DIR));
 
 const upload = multer({
@@ -336,7 +342,24 @@ app.delete("/api/decks/:id", (req, res) => {
   res.status(204).end();
 });
 
+function openBrowser(url) {
+  const { exec } = require("child_process");
+  if (process.platform === "win32") {
+    exec(`start "" "${url}"`);
+  } else if (process.platform === "darwin") {
+    exec(`open "${url}"`);
+  } else {
+    exec(`xdg-open "${url}"`);
+  }
+}
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`deck-viewer server running: http://localhost:${PORT}`);
+  const url = `http://localhost:${PORT}`;
+  console.log(`deck-viewer server running: ${url}`);
+  // Only auto-open when running as a packaged exe — during `npm start`/`npm run dev`
+  // this would pop a new browser tab on every restart, which is just noise for development.
+  if (process.pkg) {
+    openBrowser(url);
+  }
 });

@@ -201,14 +201,46 @@ deck-viewer/
 
 ## 公開状況(2026-07-24)
 
-友人に試してもらうため、GitHubリポジトリ(`satoa-may5/deck-viewer`)を**private→public**に
-変更した。それに伴い、`data/cards.json`・`data/cardpools.json`をユーザー自身のテスト用
-プール/カードから**空配列にリセット**してコミット・プッシュ済み(`git clone`直後は
-カードプールもカードも0件から始まる)。画像は元々`.gitignore`で除外済みなので、この
-変更で公開リポジトリに個人のカードデータが載ることはない。README.mdにNode.js
-(LTS版)だけが必要という前提と、`npm run dev`(nodemon使用)の案内を追記した。
-公開前にコミット履歴全体を`grep`でAPIキー/パスワード等のパターン検索し、該当なし
-であることを確認済み。
+友人に試してもらう目的で一度GitHubリポジトリを**private→public**に変更したが、
+「gitコマンドを打たせるのではなく、DLしてダブルクリックするだけで動くフリーソフト
+のような形にしたい」という要望を受け、**リポジトリは再びprivateに戻した**(公開は
+していない)。それに伴い、`data/cards.json`・`data/cardpools.json`をユーザー自身の
+テスト用プール/カードから空配列にリセットしたコミットは残っている(`git clone`直後
+はカードプールもカードも0件から始まる。今後ユーザー自身が使う際は改めてカードプール
+を作り直す必要がある点に注意)。
+
+**配布形式は`pkg`(`@yao-pkg/pkg`、Vercel版`pkg`の保守フォーク)による単一exe化を
+採用**(Electronは今回のような「軽く試してもらう」用途にはオーバースペックと判断し
+見送った。モバイル対応は別途PWA経路があるため、デスクトップの配布形式の選択とは
+無関係)。実装のポイント:
+
+- `server.js`の`ROOT`を`ASSETS_ROOT`(静的アセット=`public/`用。読み取り専用でpkgの
+  スナップショット内からでも問題なく配信できるので`__dirname`のまま)と
+  `APP_ROOT`(書き込みが発生する`data/`・`images/`用。`process.pkg`が真ならexe自体の
+  場所(`path.dirname(process.execPath)`)、それ以外(通常の`node server.js`実行時)は
+  従来通り`__dirname`)の2つに分離した。pkgのスナップショットは基本読み取り専用の
+  仮想ファイルシステムなので、実行時に書き込みが必要なデータ/画像はexeの隣の実フォルダ
+  に置く必要がある。
+- `package.json`に`"bin": "server.js"`、`pkg.assets: ["public/**/*"]`(静的アセットを
+  スナップショットに同梱する指定)、`"build:exe": "pkg . --targets node22-win-x64
+  --output dist/deck-viewer.exe"`を追加。`dist/`は`.gitignore`に追加済み(ビルド成果物
+  なのでgit管理外)。
+- `app.listen`のコールバックで`process.pkg`が真の場合のみ既定ブラウザを自動オープン
+  する処理を追加(`start "" "url"` on Windows / `open` on macOS / `xdg-open` on Linux)。
+  開発時(`npm start`/`npm run dev`)は`process.pkg`が存在しないため発火せず、再起動の
+  たびに新しいタブが開くような邪魔は起きない。
+- ビルド時の`--targets`指定でハマった点: `@yao-pkg/pkg` 6.21.0時点で、Windows向けの
+  プリビルド済みNode本体バイナリはGitHubリリース(`yao-pkg/pkg-fetch`のv3.6タグ)に
+  **node18/node20は存在せず、node22/node24/node26のみ**が置かれていた。node18/20を
+  指定するとプリビルドが404になり、ソースからのフルビルドにフォールバックしようと
+  して(Visual Studio Build Toolsが必要な`vcbuild.bat`が呼ばれ)失敗する。今後
+  `--targets`を変える場合は、事前にGitHub リリースページ
+  (`https://api.github.com/repos/yao-pkg/pkg-fetch/releases/tags/<タグ>`)で対象の
+  `node-vX.Y.Z-win-x64`アセットが実在するか確認してから指定すること。
+- ビルドしたexeは実機で動作確認済み(`dist/deck-viewer.exe`を単体で実行→
+  ブラウザが自動的に開く→カードプール作成→カード追加(画像アップロード)まで一通り
+  確認し、exeの隣に`data/`・`images/`フォルダが実際に生成され書き込まれることを確認)。
+  検証用に作成したテストデータは確認後に削除済み。
 
 ## 決定事項・方針
 
