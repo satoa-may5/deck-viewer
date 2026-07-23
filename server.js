@@ -15,14 +15,23 @@ const DECKS_DIR = path.join(DATA_DIR, "decks");
 const IMAGES_DIR = path.join(APP_ROOT, "images");
 const CARDS_FILE = path.join(DATA_DIR, "cards.json");
 const POOLS_FILE = path.join(DATA_DIR, "cardpools.json");
-// Unlike images/ (gitignored — real card scans shouldn't be committed), pool-exports/
-// is meant to be tracked in git: it's how a card pool (your own artwork) travels
-// between your own checkouts via a normal commit/pull, without needing any external
-// hosting or a server-side download endpoint.
-const EXPORTS_DIR = path.join(APP_ROOT, "pool-exports");
+// pool-exports/ ships pre-made card pools: read-only content the developer prepares
+// ahead of time (via the export endpoint, run locally — there's no export UI) and
+// bundles into the exe snapshot at build time via pkg's assets config, the same way
+// public/ is bundled. That's why it's resolved from ASSETS_ROOT rather than
+// APP_ROOT — a packaged exe's snapshot is read-only, so this can only ever be a
+// read source at runtime for whoever downloads and runs the exe; there is no
+// network fetch or git operation involved on their end at all.
+const EXPORTS_DIR = path.join(ASSETS_ROOT, "pool-exports");
 
-for (const dir of [DATA_DIR, DECKS_DIR, IMAGES_DIR, EXPORTS_DIR]) {
+for (const dir of [DATA_DIR, DECKS_DIR, IMAGES_DIR]) {
   fs.mkdirSync(dir, { recursive: true });
+}
+if (!process.pkg) {
+  // Only creatable on a real filesystem — a packaged exe's snapshot is read-only,
+  // and by the time it's packaged this either already has bundled content or is
+  // legitimately absent (handled gracefully by the read side below).
+  fs.mkdirSync(EXPORTS_DIR, { recursive: true });
 }
 if (!fs.existsSync(CARDS_FILE)) {
   fs.writeFileSync(CARDS_FILE, "[]\n");
@@ -168,16 +177,16 @@ app.delete("/api/pools/:id", (req, res) => {
   res.status(204).end();
 });
 
-// ---- Card pool export/import (git-based sharing) ----
+// ---- Card pool import (pre-bundled, read-only) ----
 //
-// Export writes a pool's cards + images into pool-exports/<poolId>/, a directory
-// meant to be committed to git. Import reads one of those directories (e.g. after
-// a `git pull` brought in someone else's export) and creates a brand new local
-// pool + cards + images from it. There is no network fetch involved on either
-// side — the transport is whatever gets the pool-exports/ directory onto disk
-// (a git commit/pull, a copied folder, etc.).
+// There is no export UI — pools are prepared ahead of time by calling the export
+// endpoint directly (e.g. with curl) while running normally, then bundled into the
+// exe at build time via pkg's assets config. Whoever downloads and runs the exe
+// only ever sees the import side: picking a bundled pool and clicking a button.
+// No network fetch, no git, no commands on their end.
 
 app.get("/api/pool-exports", (req, res) => {
+  if (!fs.existsSync(EXPORTS_DIR)) return res.json([]);
   const entries = fs.readdirSync(EXPORTS_DIR, { withFileTypes: true }).filter((e) => e.isDirectory());
   const exportList = [];
   for (const entry of entries) {
@@ -198,6 +207,8 @@ app.get("/api/pool-exports", (req, res) => {
   res.json(exportList);
 });
 
+// Dev-only: no button calls this. Run it locally (e.g. via curl) to prepare a
+// pool-exports/<poolId>/ folder before `npm run build:exe` bundles it in.
 app.post("/api/pools/:id/export", (req, res) => {
   const pools = readPools();
   const pool = pools.find((p) => p.id === req.params.id);
@@ -216,7 +227,7 @@ app.post("/api/pools/:id/export", (req, res) => {
     const srcImage = path.join(IMAGES_DIR, `${card.id}.${card.imageExt}`);
     if (!fs.existsSync(srcImage)) continue;
     const imageName = `${card.id}.${card.imageExt}`;
-    fs.copyFileSync(srcImage, path.join(imagesFolder, imageName));
+    fs.writeFileSync(path.join(imagesFolder, imageName), fs.readFileSync(srcImage));
     manifestCards.push({ name: card.name, cost: card.cost, image: imageName });
   }
 
@@ -259,7 +270,7 @@ app.post("/api/pool-exports/:folderId/import", (req, res) => {
     if (!item.image || !fs.existsSync(srcImage)) return;
     const ext = path.extname(item.image).slice(1);
     const id = `card-${Date.now() + index}`;
-    fs.copyFileSync(srcImage, path.join(IMAGES_DIR, `${id}.${ext}`));
+    fs.writeFileSync(path.join(IMAGES_DIR, `${id}.${ext}`), fs.readFileSync(srcImage));
     cards.push({
       id,
       name: item.name || "",

@@ -56,21 +56,6 @@ function formatCardName(n) {
   return `CARD-${String(n).padStart(3, "0")}`;
 }
 
-// ---- Export (git-based sharing) ----
-
-document.getElementById("export-pool-btn").addEventListener("click", async () => {
-  if (!poolId) return;
-  try {
-    const result = await Api.exportPool(poolId);
-    alert(
-      `「${result.poolName}」(${result.cardCount}枚)を pool-exports/${result.folderId}/ に書き出しました。\n` +
-        `このフォルダをgitでコミットすると、他の環境から「カードプールをインポート」で取り込めます。`
-    );
-  } catch (err) {
-    alert(err.message);
-  }
-});
-
 // ---- Bulk selection ----
 
 const selectModeBtn = document.getElementById("select-mode-btn");

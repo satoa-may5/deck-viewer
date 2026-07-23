@@ -254,26 +254,45 @@ deck-viewer/
 理由に見送った。最終的にユーザーが「(`UA-maker`という自作ツールで)1から描いた
 イラストだ、全部俺が作った」と明言したため、その申告を前提に進めることにした。
 
-実装は「gitに画像を直接アップロードしてアプリが自動DLする」形ではなく、**git自体を
-転送経路として使う**形にした(ユーザー自身の環境間・信頼できる相手との間でgit経由の
-やり取りを想定):
+初期実装は「git commit/pushしたpool-exports/を別環境でgit pullしてインポート」という
+git転送前提の設計だったが、直後にユーザーから2点の修正指示が入った: (1) 一般ユーザー
+(exeを受け取る友人側)がエクスポートできる必要はなく、開発者側が事前に用意したものだけ
+インポートできればよい、(2) 「git pull」を要求する時点でアウトで、**exeを受け取って
+使う側は一切のコマンド操作(gitも含む)を経由せず、アプリの操作だけで完結**させたい。
+これを受けて設計を変更した:
 
-- `pool-exports/`ディレクトリを新設(`images/`と違い**gitで管理する**。`.gitignore`の
-  `images/*`除外パターンには掛からない場所を意図的に選んだ)
-- `POST /api/pools/:id/export`: 指定したプールのカード(名前・コスト)と画像を
-  `pool-exports/<poolId>/manifest.json` + `pool-exports/<poolId>/images/`に書き出す
-- `GET /api/pool-exports`: `pool-exports/`配下の各サブフォルダの`manifest.json`を
-  読んで一覧を返す
-- `POST /api/pool-exports/:folderId/import`: 指定フォルダのmanifestを読み、新規プール+
-  新規カードID(画像ファイルもコピー)を作成する
-- フロント: `pool-detail.html`に「エクスポート」ボタン(list-toolbarに追加)、
-  `index.html`のカードプールタブに「カードプールをインポート」ボタン+一覧モーダルを追加
-- **サーバー側もアプリ自体もネットワーク経由のダウンロードは一切行わない**。
-  `pool-exports/`にファイルを置く手段(`git add/commit/push`→別環境で`git pull`、
-  または単純なファイルコピー)は完全にユーザー側の操作に委ねている。エクスポート/
-  インポートAPIはあくまでローカルディスク上の読み書きのみ
-- 実機での往復テスト(合成テスト画像でexport→pool削除→pool-exports一覧取得→
-  import→カード・画像の一致を確認)は完了。検証用データは削除済み
+- `pool-exports/`はgitでの共有経路としてではなく、**pkgのexeビルドに静的アセットとして
+  同梱するための場所**に位置づけを変更(`package.json`の`pkg.assets`に
+  `"pool-exports/**/*"`を追加。`public/**/*`と同じ扱い)
+- `server.js`の`EXPORTS_DIR`を`APP_ROOT`基準から**`ASSETS_ROOT`基準**に変更した
+  (`public/`と同じ静的アセット扱い。exeパッケージ時はpkgのスナップショット
+  [読み取り専用]から読む。開発時[`process.pkg`が偽]は`ASSETS_ROOT === APP_ROOT`
+  なので今まで通りプロジェクト直下の`pool-exports/`を指す)。合わせて、起動時の
+  `fs.mkdirSync(EXPORTS_DIR)`は`!process.pkg`のときだけ実行するようにした
+  (読み取り専用スナップショット内にディレクトリを作ろうとするとエラーになるため)。
+  `GET /api/pool-exports`も、フォルダ自体が存在しない場合に空配列を返すようガードした
+  (exeにまだ何もバンドルしていない状態でも起動時にクラッシュしないように)
+- 画像のコピー処理は`fs.copyFileSync`(スナップショット越しのコピーでpkgが正しく
+  パッチしているか未検証だったため)をやめ、`fs.readFileSync`→`fs.writeFileSync`の
+  組み合わせに統一(pkgのアセットバンドルで安全に動作することが確実な方の実装)
+- **「エクスポート」ボタン自体を`pool-detail.html`/`pool-detail.js`から削除**した。
+  エクスポートは開発者が`npm start`/`npm run dev`で通常起動した状態で
+  `POST /api/pools/:id/export`をcurl等で直接叩く運用に変更(APIエンドポイント自体は
+  残しており、UIからは呼べない)。その後`npm run build:exe`すると、その時点で
+  `pool-exports/`にある内容がexeにバンドルされる
+- ホーム画面の「カードプールをインポート」ボタン+一覧モーダルはそのまま維持。
+  exeを受け取った側はこのボタンを押すだけで、バンドルされたプールを新規カードプール
+  として取り込める
+- **動作確認方法**: 開発サーバーでテストプール作成→`curl`でexport→
+  (UIから「エクスポート」ボタンが消えていることを確認)→ライブのプールを削除
+  (バンドル元データは別ディレクトリなので影響なし)→`npm run build:exe`→
+  生成されたexeを**プロジェクトと無関係な別フォルダにexe単体だけコピー**して起動
+  (`data/`/`images/`/`pool-exports/`など何もない状態を再現)→
+  `curl http://localhost:<port>/api/pool-exports`でバンドル済みプールが見えることを
+  確認→import実行→exeの隣に`data/`・`images/`が新規生成され、画像がバンドル元と
+  バイト一致することを確認→ホーム画面の「カードプールをインポート」ボタン経由でも
+  同じ一覧・インポートが機能することをUI操作で確認。検証用データ・exe・別フォルダは
+  全て削除済み
 
 ## 決定事項・方針
 

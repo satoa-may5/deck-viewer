@@ -95,13 +95,6 @@ const Api = {
     });
   },
 
-  async exportPool(id) {
-    const res = await fetch(`/api/pools/${encodeURIComponent(id)}/export`, { method: "POST" });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "エクスポートに失敗しました");
-    return data;
-  },
-
   async getPoolExports() {
     const res = await fetch("/api/pool-exports");
     return res.json();

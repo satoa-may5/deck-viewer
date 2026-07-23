@@ -19,7 +19,8 @@
   },
   "pkg": {
     "assets": [
-      "public/**/*"
+      "public/**/*",
+      "pool-exports/**/*"
     ]
   }
 }
