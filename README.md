@@ -17,22 +17,27 @@
 
 ## セットアップ
 
+必要なものはNode.js(LTS版)だけ。データベースや追加サービスは不要。
+
 Node.jsが未インストールの場合:
 
 ```powershell
 winget install OpenJS.NodeJS.LTS
 ```
 
-(インストール後、PowerShellを開き直してから `node --version` で確認)
+(Windows以外の場合は [nodejs.org](https://nodejs.org/) からLTS版をインストール。
+インストール後、ターミナルを開き直してから `node --version` で確認)
 
 このフォルダで:
 
-```powershell
+```bash
 npm install
 npm start
 ```
 
-ブラウザで `http://localhost:3000` を開く。
+ブラウザで `http://localhost:3000` を開く。`server.js` を編集しながら開発する場合は
+`npm start` の代わりに `npm run dev` を使うと、変更を検知して自動で再起動する
+(`nodemon` 使用。監視対象は`server.js`のみ)。
 
 同じWi-Fi内のスマホから使いたい場合は、PCのLAN IPアドレスを調べて
 (`ipconfig` の IPv4アドレス)、スマホから `http://<そのIP>:3000` にアクセスする。
@@ -87,3 +92,6 @@ deck-viewer/
 カード画像自体(スキャン/撮影データ)は著作権の関係もあるため `.gitignore` で除外している。
 `data/cards.json` や `data/decks/*.json` は通常のテキストなのでgit管理に含めており、
 他のPCで `git clone` すればカード情報・デッキ情報は引き継がれる(画像だけは別途用意)。
+リポジトリ自体は空のデータ(`data/cards.json`・`data/cardpools.json`は空配列)から
+始まるので、`git clone` した直後はカードプールもカードも0件の状態。まず「カードプール」
+タブから作成して試すところから始める。
