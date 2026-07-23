@@ -45,15 +45,16 @@ npm run build:exe
   {
     "poolName": "カードプールの表示名",
     "cards": [
-      { "image": "001.png", "name": "カード名を指定したい場合だけ書く", "cost": 3, "color": "青", "parallel": true },
+      { "image": "001.png", "name": "カード名を指定したい場合だけ書く", "cost": 3, "color": "青", "parallel": true, "type": "character" },
       { "image": "002.png" }
     ]
   }
   ```
   `cards`を書かない場合は`images/`内の全画像がファイル名順に使われ、`name`を省略
   した項目は画像のファイル名がそのままカード名になる。`cost`(必要エナジー)・
-  `color`(色)・`parallel`(パラレルかどうか)はいずれも省略可(それぞれ
-  `null`・空文字・`false`扱い)。
+  `color`(色)・`parallel`(パラレルかどうか)・`type`(`character`/`event`/`field`の
+  いずれか)はいずれも省略可(それぞれ`null`・空文字・`false`・空文字扱い。`type`に
+  上記3つ以外の値を書いても無視され空扱いになる)。
 - **アプリに登録済みのプールから作る場合**: 通常の`npm start`/`npm run dev`で
   動かした状態で対象プールに対して
   `curl -X POST http://localhost:3000/api/pools/<プールID>/export` を実行すると、

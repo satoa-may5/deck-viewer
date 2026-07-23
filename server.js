@@ -192,6 +192,12 @@ function defaultNameFromImage(image) {
   return image ? path.basename(image, path.extname(image)) : "";
 }
 
+const CARD_TYPES = ["character", "event", "field"];
+
+function normalizeCardType(type) {
+  return CARD_TYPES.includes(type) ? type : "";
+}
+
 function readManifest(folder) {
   const manifestFile = path.join(folder, "manifest.json");
   if (!fs.existsSync(manifestFile)) return {};
@@ -215,6 +221,7 @@ function resolveManifestCards(folder, manifest) {
         cost: item.cost ?? null,
         color: (item.color && String(item.color).trim()) || "",
         parallel: Boolean(item.parallel),
+        type: normalizeCardType(item.type),
       }));
   }
   const imagesFolder = path.join(folder, "images");
@@ -223,7 +230,7 @@ function resolveManifestCards(folder, manifest) {
     .readdirSync(imagesFolder)
     .filter((f) => /\.(png|jpe?g)$/i.test(f))
     .sort()
-    .map((image) => ({ image, name: defaultNameFromImage(image), cost: null, color: "", parallel: false }));
+    .map((image) => ({ image, name: defaultNameFromImage(image), cost: null, color: "", parallel: false, type: "" }));
 }
 
 app.get("/api/pool-exports", (req, res) => {
@@ -272,6 +279,7 @@ app.post("/api/pools/:id/export", (req, res) => {
       cost: card.cost,
       color: card.color || "",
       parallel: Boolean(card.parallel),
+      type: normalizeCardType(card.type),
       image: imageName,
     });
   }
@@ -327,6 +335,7 @@ app.post("/api/pool-exports/:folderId/import", (req, res) => {
       cost: item.cost,
       color: item.color,
       parallel: item.parallel,
+      type: item.type,
       poolId: newPool.id,
       imageExt: ext,
       order: order++,
@@ -353,7 +362,7 @@ app.get("/api/cards", (req, res) => {
 });
 
 app.post("/api/cards", upload.single("image"), (req, res) => {
-  const { name, cost, poolId, color, parallel } = req.body;
+  const { name, cost, poolId, color, parallel, type } = req.body;
 
   if (!poolId) {
     return res.status(400).json({ error: "カードプールを選択してください" });
@@ -380,6 +389,7 @@ app.post("/api/cards", upload.single("image"), (req, res) => {
     cost: cost === undefined || cost === "" ? null : Number(cost),
     color: (color || "").trim(),
     parallel: parallel === true || parallel === "true",
+    type: normalizeCardType(type),
     poolId,
     imageExt: ext,
     order: nextCardOrder(cards),
@@ -406,6 +416,9 @@ app.patch("/api/cards/:id", (req, res) => {
   }
   if (req.body.parallel !== undefined) {
     card.parallel = Boolean(req.body.parallel);
+  }
+  if (req.body.type !== undefined) {
+    card.type = normalizeCardType(req.body.type);
   }
   writeCards(cards);
   res.json(card);

@@ -129,8 +129,11 @@ async function renderCards() {
 
 // ---- List view ----
 
+const CARD_TYPE_LABELS = { character: "キャラクター", event: "イベント", field: "フィールド" };
+
 function cardCaption(card) {
   const parts = [];
+  if (card.type && CARD_TYPE_LABELS[card.type]) parts.push(CARD_TYPE_LABELS[card.type]);
   if (card.cost !== null && card.cost !== undefined) parts.push(`必要エナジー ${card.cost}`);
   if (card.color) parts.push(card.color);
   if (card.parallel) parts.push("パラレル");

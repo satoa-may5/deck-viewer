@@ -329,6 +329,16 @@ git転送前提の設計だったが、直後にユーザーから2点の修正�
 作っていない)。`curl`でmanifestに3フィールドを指定したケースをimport→表示確認→
 export→manifestへの書き戻し確認、まで一通り実機検証済み。検証用データは削除済み。
 
+同日中さらに`type`(character/event/fieldのいずれか)フィールドを追加した。
+`CARD_TYPES = ["character", "event", "field"]`と`normalizeCardType()`で許可リスト
+検証を行い、リストに無い値は空文字に丸める(`curl`で不正な値`"not-a-real-type"`を
+渡すと空文字にフォールバックすることを確認済み)。データモデル・API
+(`POST /api/cards`, `PATCH /api/cards/:id`, export, import)への追加はcolor/parallelと
+同じパターンで一貫させた。表示は`pool-detail.js`に`CARD_TYPE_LABELS`
+(character→キャラクター、event→イベント、field→フィールド)を追加し、
+`cardCaption()`の先頭に差し込んだ(値が入っていれば「キャラクター・必要エナジー3・
+青・パラレル」のように表示される)。
+
 ## 決定事項・方針
 
 - **2026-07-22時点の最新方針**: ユーザーから「コミットプッシュはこれから勝手にしていいよ
