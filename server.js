@@ -179,30 +179,66 @@ app.delete("/api/pools/:id", (req, res) => {
 
 // ---- Card pool import (pre-bundled, read-only) ----
 //
-// There is no export UI — pools are prepared ahead of time by calling the export
-// endpoint directly (e.g. with curl) while running normally, then bundled into the
-// exe at build time via pkg's assets config. Whoever downloads and runs the exe
-// only ever sees the import side: picking a bundled pool and clicking a button.
-// No network fetch, no git, no commands on their end.
+// There is no export UI — pools are prepared ahead of time either by dropping a
+// folder of images straight into pool-exports/<name>/images/ (manifest.json is
+// optional: card names default to their image filename, and the pool name
+// defaults to the folder name), or by calling the export endpoint directly (e.g.
+// with curl) against an existing pool. Either way the result gets bundled into the
+// exe at build time via pkg's assets config, and whoever downloads and runs the
+// exe only ever sees the import side: picking a bundled pool and clicking a
+// button. No network fetch, no git, no commands on their end.
+
+function defaultNameFromImage(image) {
+  return image ? path.basename(image, path.extname(image)) : "";
+}
+
+function readManifest(folder) {
+  const manifestFile = path.join(folder, "manifest.json");
+  if (!fs.existsSync(manifestFile)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(manifestFile, "utf8"));
+  } catch (err) {
+    return null;
+  }
+}
+
+// Explicit manifest.cards wins (lets you pick names/order by hand); otherwise
+// every image file found in images/ is used, sorted by filename.
+function resolveManifestCards(folder, manifest) {
+  if (Array.isArray(manifest.cards)) {
+    return manifest.cards
+      .filter((item) => item && item.image)
+      .map((item) => ({
+        image: item.image,
+        name: (item.name && String(item.name).trim()) || defaultNameFromImage(item.image),
+        cost: item.cost ?? null,
+      }));
+  }
+  const imagesFolder = path.join(folder, "images");
+  if (!fs.existsSync(imagesFolder)) return [];
+  return fs
+    .readdirSync(imagesFolder)
+    .filter((f) => /\.(png|jpe?g)$/i.test(f))
+    .sort()
+    .map((image) => ({ image, name: defaultNameFromImage(image), cost: null }));
+}
 
 app.get("/api/pool-exports", (req, res) => {
   if (!fs.existsSync(EXPORTS_DIR)) return res.json([]);
   const entries = fs.readdirSync(EXPORTS_DIR, { withFileTypes: true }).filter((e) => e.isDirectory());
   const exportList = [];
   for (const entry of entries) {
-    const manifestFile = path.join(EXPORTS_DIR, entry.name, "manifest.json");
-    if (!fs.existsSync(manifestFile)) continue;
-    try {
-      const manifest = JSON.parse(fs.readFileSync(manifestFile, "utf8"));
-      exportList.push({
-        folderId: entry.name,
-        poolName: manifest.poolName || entry.name,
-        cardCount: Array.isArray(manifest.cards) ? manifest.cards.length : 0,
-        exportedAt: manifest.exportedAt || null,
-      });
-    } catch (err) {
-      // skip malformed manifest
-    }
+    const folder = path.join(EXPORTS_DIR, entry.name);
+    const manifest = readManifest(folder);
+    if (manifest === null) continue; // malformed manifest.json
+    const cards = resolveManifestCards(folder, manifest);
+    if (cards.length === 0) continue; // nothing importable here
+    exportList.push({
+      folderId: entry.name,
+      poolName: manifest.poolName || entry.name,
+      cardCount: cards.length,
+      exportedAt: manifest.exportedAt || null,
+    });
   }
   res.json(exportList);
 });
@@ -243,14 +279,19 @@ app.post("/api/pools/:id/export", (req, res) => {
 
 app.post("/api/pool-exports/:folderId/import", (req, res) => {
   const folder = path.join(EXPORTS_DIR, req.params.folderId);
-  const manifestFile = path.join(folder, "manifest.json");
-  if (!fs.existsSync(manifestFile)) {
+  if (!fs.existsSync(folder)) {
     return res.status(404).json({ error: "インポート元が見つかりません" });
   }
-  const manifest = JSON.parse(fs.readFileSync(manifestFile, "utf8"));
-  const manifestCards = Array.isArray(manifest.cards) ? manifest.cards : [];
+  const manifest = readManifest(folder);
+  if (manifest === null) {
+    return res.status(400).json({ error: "manifest.jsonの形式が不正です" });
+  }
+  const manifestCards = resolveManifestCards(folder, manifest);
+  if (manifestCards.length === 0) {
+    return res.status(400).json({ error: "インポートできる画像が見つかりません" });
+  }
 
-  const poolName = (req.body && req.body.name && req.body.name.trim()) || manifest.poolName || "インポートしたカードプール";
+  const poolName = (req.body && req.body.name && req.body.name.trim()) || manifest.poolName || req.params.folderId;
   const pools = readPools();
   const newPool = {
     id: `pool-${Date.now()}`,
@@ -266,15 +307,15 @@ app.post("/api/pool-exports/:folderId/import", (req, res) => {
   const imagesFolder = path.join(folder, "images");
   let imported = 0;
   manifestCards.forEach((item, index) => {
-    const srcImage = path.join(imagesFolder, item.image || "");
-    if (!item.image || !fs.existsSync(srcImage)) return;
+    const srcImage = path.join(imagesFolder, item.image);
+    if (!fs.existsSync(srcImage)) return;
     const ext = path.extname(item.image).slice(1);
     const id = `card-${Date.now() + index}`;
     fs.writeFileSync(path.join(IMAGES_DIR, `${id}.${ext}`), fs.readFileSync(srcImage));
     cards.push({
       id,
-      name: item.name || "",
-      cost: item.cost ?? null,
+      name: item.name,
+      cost: item.cost,
       poolId: newPool.id,
       imageExt: ext,
       order: order++,
