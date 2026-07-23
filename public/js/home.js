@@ -77,15 +77,17 @@ function startRename(row, currentName, onSave, onCancel) {
   input.value = currentName;
   input.className = "rename-input";
 
+  const save = async () => {
+    const name = input.value.trim();
+    if (!name) return;
+    await onSave(name);
+  };
+
   const saveBtn = document.createElement("button");
   saveBtn.type = "button";
   saveBtn.className = "btn primary";
   saveBtn.textContent = "保存";
-  saveBtn.addEventListener("click", async () => {
-    const name = input.value.trim();
-    if (!name) return;
-    await onSave(name);
-  });
+  saveBtn.addEventListener("click", save);
 
   const cancelBtn = document.createElement("button");
   cancelBtn.type = "button";
@@ -93,9 +95,17 @@ function startRename(row, currentName, onSave, onCancel) {
   cancelBtn.textContent = "キャンセル";
   cancelBtn.addEventListener("click", onCancel);
 
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") save();
+    if (e.key === "Escape") onCancel();
+  });
+
   row.appendChild(input);
   row.appendChild(saveBtn);
   row.appendChild(cancelBtn);
+
+  input.focus();
+  input.select();
 }
 
 // ---- Decks ----
@@ -316,7 +326,18 @@ makeSortable(poolListEl, {
 
 document.getElementById("create-pool-row").addEventListener("click", async () => {
   const pool = await Api.createPool("新しいカードプール");
-  location.href = `pool-detail.html?id=${encodeURIComponent(pool.id)}`;
+  await renderPools();
+  const row = poolListEl.querySelector(`[data-id="${pool.id}"]`);
+  if (!row) return;
+  startRename(
+    row,
+    pool.name,
+    async (name) => {
+      await Api.renamePool(pool.id, name);
+      await renderPools();
+    },
+    renderPools
+  );
 });
 
 setActiveTab(activeTab);
