@@ -22,6 +22,9 @@
 
       <div class="tab-body">
         <div class="tab-panel" id="panel-pools">
+          <div class="list-toolbar">
+            <button type="button" class="btn" id="import-pool-btn">カードプールをインポート</button>
+          </div>
           <button type="button" class="ghost-row" id="create-pool-row">＋ カードプールを作る</button>
           <div class="deck-list" id="pool-list"></div>
         </div>
@@ -30,6 +33,16 @@
           <a class="ghost-row" href="builder.html">＋ デッキを作る</a>
           <div class="deck-list" id="deck-list"></div>
         </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="import-pool-modal" hidden>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2>カードプールをインポート</h2>
+          <button type="button" class="icon-btn" id="close-import-modal-btn">✕</button>
+        </div>
+        <div id="import-pool-list"></div>
       </div>
     </div>
   </div>

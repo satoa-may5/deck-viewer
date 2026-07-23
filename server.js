@@ -15,8 +15,13 @@ const DECKS_DIR = path.join(DATA_DIR, "decks");
 const IMAGES_DIR = path.join(APP_ROOT, "images");
 const CARDS_FILE = path.join(DATA_DIR, "cards.json");
 const POOLS_FILE = path.join(DATA_DIR, "cardpools.json");
+// Unlike images/ (gitignored — real card scans shouldn't be committed), pool-exports/
+// is meant to be tracked in git: it's how a card pool (your own artwork) travels
+// between your own checkouts via a normal commit/pull, without needing any external
+// hosting or a server-side download endpoint.
+const EXPORTS_DIR = path.join(APP_ROOT, "pool-exports");
 
-for (const dir of [DATA_DIR, DECKS_DIR, IMAGES_DIR]) {
+for (const dir of [DATA_DIR, DECKS_DIR, IMAGES_DIR, EXPORTS_DIR]) {
   fs.mkdirSync(dir, { recursive: true });
 }
 if (!fs.existsSync(CARDS_FILE)) {
@@ -161,6 +166,114 @@ app.delete("/api/pools/:id", (req, res) => {
   writeCards(remainingCards);
   writePools(pools.filter((p) => p.id !== req.params.id));
   res.status(204).end();
+});
+
+// ---- Card pool export/import (git-based sharing) ----
+//
+// Export writes a pool's cards + images into pool-exports/<poolId>/, a directory
+// meant to be committed to git. Import reads one of those directories (e.g. after
+// a `git pull` brought in someone else's export) and creates a brand new local
+// pool + cards + images from it. There is no network fetch involved on either
+// side — the transport is whatever gets the pool-exports/ directory onto disk
+// (a git commit/pull, a copied folder, etc.).
+
+app.get("/api/pool-exports", (req, res) => {
+  const entries = fs.readdirSync(EXPORTS_DIR, { withFileTypes: true }).filter((e) => e.isDirectory());
+  const exportList = [];
+  for (const entry of entries) {
+    const manifestFile = path.join(EXPORTS_DIR, entry.name, "manifest.json");
+    if (!fs.existsSync(manifestFile)) continue;
+    try {
+      const manifest = JSON.parse(fs.readFileSync(manifestFile, "utf8"));
+      exportList.push({
+        folderId: entry.name,
+        poolName: manifest.poolName || entry.name,
+        cardCount: Array.isArray(manifest.cards) ? manifest.cards.length : 0,
+        exportedAt: manifest.exportedAt || null,
+      });
+    } catch (err) {
+      // skip malformed manifest
+    }
+  }
+  res.json(exportList);
+});
+
+app.post("/api/pools/:id/export", (req, res) => {
+  const pools = readPools();
+  const pool = pools.find((p) => p.id === req.params.id);
+  if (!pool) return res.status(404).json({ error: "カードプールが見つかりません" });
+
+  const cards = readCards()
+    .filter((c) => c.poolId === pool.id)
+    .sort((a, b) => (typeof a.order === "number" ? a.order : 0) - (typeof b.order === "number" ? b.order : 0));
+
+  const folder = path.join(EXPORTS_DIR, pool.id);
+  const imagesFolder = path.join(folder, "images");
+  fs.mkdirSync(imagesFolder, { recursive: true });
+
+  const manifestCards = [];
+  for (const card of cards) {
+    const srcImage = path.join(IMAGES_DIR, `${card.id}.${card.imageExt}`);
+    if (!fs.existsSync(srcImage)) continue;
+    const imageName = `${card.id}.${card.imageExt}`;
+    fs.copyFileSync(srcImage, path.join(imagesFolder, imageName));
+    manifestCards.push({ name: card.name, cost: card.cost, image: imageName });
+  }
+
+  const manifest = {
+    poolName: pool.name,
+    exportedAt: new Date().toISOString(),
+    cards: manifestCards,
+  };
+  fs.writeFileSync(path.join(folder, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
+
+  res.json({ folderId: pool.id, poolName: pool.name, cardCount: manifestCards.length });
+});
+
+app.post("/api/pool-exports/:folderId/import", (req, res) => {
+  const folder = path.join(EXPORTS_DIR, req.params.folderId);
+  const manifestFile = path.join(folder, "manifest.json");
+  if (!fs.existsSync(manifestFile)) {
+    return res.status(404).json({ error: "インポート元が見つかりません" });
+  }
+  const manifest = JSON.parse(fs.readFileSync(manifestFile, "utf8"));
+  const manifestCards = Array.isArray(manifest.cards) ? manifest.cards : [];
+
+  const poolName = (req.body && req.body.name && req.body.name.trim()) || manifest.poolName || "インポートしたカードプール";
+  const pools = readPools();
+  const newPool = {
+    id: `pool-${Date.now()}`,
+    name: poolName,
+    favorite: false,
+    createdAt: new Date().toISOString(),
+  };
+  pools.push(newPool);
+  writePools(pools);
+
+  const cards = readCards();
+  let order = nextCardOrder(cards);
+  const imagesFolder = path.join(folder, "images");
+  let imported = 0;
+  manifestCards.forEach((item, index) => {
+    const srcImage = path.join(imagesFolder, item.image || "");
+    if (!item.image || !fs.existsSync(srcImage)) return;
+    const ext = path.extname(item.image).slice(1);
+    const id = `card-${Date.now() + index}`;
+    fs.copyFileSync(srcImage, path.join(IMAGES_DIR, `${id}.${ext}`));
+    cards.push({
+      id,
+      name: item.name || "",
+      cost: item.cost ?? null,
+      poolId: newPool.id,
+      imageExt: ext,
+      order: order++,
+      createdAt: new Date().toISOString(),
+    });
+    imported++;
+  });
+  writeCards(cards);
+
+  res.status(201).json({ pool: newPool, cardCount: imported });
 });
 
 // ---- Cards ----

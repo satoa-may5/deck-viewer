@@ -340,6 +340,73 @@ document.getElementById("create-pool-row").addEventListener("click", async () =>
   );
 });
 
+// ---- Import card pool (git-based sharing) ----
+
+const importPoolBtn = document.getElementById("import-pool-btn");
+const importModal = document.getElementById("import-pool-modal");
+const importListEl = document.getElementById("import-pool-list");
+
+function closeImportModal() {
+  importModal.hidden = true;
+}
+
+async function openImportModal() {
+  importModal.hidden = false;
+  importListEl.innerHTML = "読み込み中...";
+
+  const exportsList = await Api.getPoolExports();
+  if (exportsList.length === 0) {
+    importListEl.innerHTML =
+      '<div class="empty-state">インポートできるカードプールがありません。pool-exports/ フォルダにエクスポート済みのプールを置いてください。</div>';
+    return;
+  }
+
+  importListEl.innerHTML = "";
+  for (const item of exportsList) {
+    const row = document.createElement("div");
+    row.className = "deck-row";
+
+    const info = document.createElement("div");
+    info.className = "deck-info";
+    const title = document.createElement("strong");
+    title.textContent = item.poolName;
+    const small = document.createElement("small");
+    small.textContent = `${item.cardCount}枚`;
+    info.appendChild(title);
+    info.appendChild(small);
+
+    const importBtn = document.createElement("button");
+    importBtn.type = "button";
+    importBtn.className = "btn primary";
+    importBtn.textContent = "インポート";
+    importBtn.addEventListener("click", async () => {
+      importBtn.disabled = true;
+      try {
+        await Api.importPoolExport(item.folderId);
+        closeImportModal();
+        await renderPools();
+      } catch (err) {
+        alert(err.message);
+        importBtn.disabled = false;
+      }
+    });
+
+    const main = document.createElement("div");
+    main.className = "deck-row-main";
+    main.appendChild(info);
+
+    row.appendChild(main);
+    row.appendChild(importBtn);
+    importListEl.appendChild(row);
+  }
+}
+
+importPoolBtn.addEventListener("click", openImportModal);
+document.getElementById("close-import-modal-btn").addEventListener("click", closeImportModal);
+importModal.addEventListener("click", (e) => {
+  if (e.target === importModal) closeImportModal();
+});
+
 setActiveTab(activeTab);
 renderDecks();
 renderPools();
