@@ -38,8 +38,9 @@ const NAME_LEFT_PADDING = PADDING + 14;
 const HEADER_HEIGHT = 185; // fixed height of the blank area above the card grid
 const HEADER_SPLIT_GAP = 24; // gap between the deck-name half and the mana-curve half
 const PANEL_MARGIN_Y = 12; // top/bottom margin for the name/mana-curve content
-const NAME_FONT_SCALE = 0.15; // fraction of headerHeight used for the deck name's font size
+const NAME_FONT_SCALE = 0.23; // fraction of headerHeight used for the deck name's font size
 const CURVE_MARGIN_X = 90; // horizontal inset of the mana curve within its half (narrower chart)
+const CURVE_TOP_INSET = 34; // pushes the chart down from the top of its area
 const CURVE_BOTTOM_INSET = 10; // small bottom margin so the chart uses most of the available height
 
 function computeCanvasSize() {
@@ -290,9 +291,9 @@ function renderFrame() {
     }
     if (showManaCurve) {
       const curveX = curveAreaX + CURVE_MARGIN_X;
-      const curveY = panelY;
+      const curveY = panelY + CURVE_TOP_INSET;
       const curveW = curveAreaW - CURVE_MARGIN_X * 2;
-      const curveH = panelH - CURVE_BOTTOM_INSET;
+      const curveH = panelH - CURVE_TOP_INSET - CURVE_BOTTOM_INSET;
       drawManaCurve(ctx, curveX, curveY, curveW, curveH);
     }
   }
@@ -356,12 +357,9 @@ function drawCardTile(cardId, x, y, w, h, alpha, labelHeight) {
   ctx.shadowColor = "rgba(20, 21, 26, 0.35)";
   ctx.shadowBlur = 6;
   ctx.shadowOffsetY = 2;
-  const badgeGrad = ctx.createLinearGradient(bx - badgeR, by - badgeR, bx + badgeR, by + badgeR);
-  badgeGrad.addColorStop(0, ACCENT_1);
-  badgeGrad.addColorStop(1, ACCENT_2);
   ctx.beginPath();
   ctx.arc(bx, by, badgeR, 0, Math.PI * 2);
-  ctx.fillStyle = badgeGrad;
+  ctx.fillStyle = "rgba(20, 21, 26, 0.75)";
   ctx.fill();
   ctx.shadowColor = "transparent";
   ctx.fillStyle = "#ffffff";

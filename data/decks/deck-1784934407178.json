@@ -22,10 +22,6 @@
       "count": 2
     },
     {
-      "cardId": "card-1784891845064",
-      "count": 4
-    },
-    {
       "cardId": "card-1784891845062",
       "count": 4
     },
@@ -34,12 +30,16 @@
       "count": 3
     },
     {
+      "cardId": "card-1784891845055",
+      "count": 3
+    },
+    {
       "cardId": "card-1784891845057",
       "count": 4
     },
     {
-      "cardId": "card-1784891845055",
-      "count": 3
+      "cardId": "card-1784891845064",
+      "count": 4
     },
     {
       "cardId": "card-1784891845065",
@@ -50,12 +50,12 @@
       "count": 2
     },
     {
-      "cardId": "card-1784891845105",
-      "count": 4
-    },
-    {
       "cardId": "card-1784891845104",
       "count": 3
+    },
+    {
+      "cardId": "card-1784891845105",
+      "count": 4
     },
     {
       "cardId": "card-1784891845107",
@@ -68,5 +68,5 @@
   ],
   "thumbnailCardId": "card-1784891845065",
   "order": 2,
-  "updatedAt": "2026-07-24T23:10:19.272Z"
+  "updatedAt": "2026-07-24T23:36:15.361Z"
 }

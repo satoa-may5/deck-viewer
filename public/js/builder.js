@@ -318,6 +318,9 @@ function renderPoolPicker() {
 function renderPanes() {
   const cardById = Object.fromEntries(allCards.map((c) => [c.id, c]));
 
+  const totalCount = [...deckCounts.values()].reduce((sum, count) => sum + count, 0);
+  document.getElementById("deck-total-count").textContent = `${totalCount}枚`;
+
   deckGrid.innerHTML = "";
   for (const [cardId, count] of deckCounts) {
     const el = createCardElement(cardById[cardId] || null, cardId, count, {

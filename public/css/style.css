@@ -1713,6 +1713,14 @@ button {
   margin: 0;
 }
 
+.pane-title-count {
+  margin-left: 6px;
+  color: var(--text);
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 .pane-title-actions {
   display: flex;
   align-items: center;
