@@ -64,6 +64,13 @@ body {
   height: 100%;
 }
 
+html {
+  /* Always reserve the vertical scrollbar's width, even on short pages, so
+     content (e.g. the centered .page container) doesn't shift horizontally
+     when a filtered list goes from many rows to none. */
+  scrollbar-gutter: stable;
+}
+
 body {
   margin: 0;
   background: var(--bg-accent), var(--bg);
@@ -79,6 +86,11 @@ input,
 textarea {
   -webkit-user-select: text;
   user-select: text;
+}
+
+input[type="range"] {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 a {
@@ -753,7 +765,7 @@ button {
 .grid-thumbnail-btn {
   position: absolute;
   top: 4px;
-  left: 4px;
+  right: 4px;
   z-index: 2;
   width: 24px;
   height: 24px;
@@ -778,6 +790,13 @@ button {
 .grid-thumbnail-btn.active {
   background: #f5a623;
   color: #fff;
+}
+
+/* When a count badge or the bulk-select checkbox shares the same top-right
+   corner, push the star out to the left of it so the two don't overlap. */
+.badge + .grid-thumbnail-btn,
+.grid-select-checkbox ~ .grid-thumbnail-btn {
+  right: 34px;
 }
 
 .grid-favorite-btn {
@@ -1308,7 +1327,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  width: 220px;
+  width: 240px;
   flex-shrink: 0;
 }
 
@@ -1340,8 +1359,14 @@ button {
 
 .filter-horizontal {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.filter-horizontal .filter-pill {
+  flex: 1;
+  padding: 5px 0;
+  justify-content: center;
 }
 
 .filter-checkbox-item {
