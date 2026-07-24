@@ -301,6 +301,10 @@ const modalTitle = document.getElementById("modal-title");
 const modalImageArea = document.getElementById("modal-image-area");
 const modalFileInput = document.getElementById("modal-file-input");
 const modalNameInput = document.getElementById("modal-card-name");
+const modalTypeInput = document.getElementById("modal-card-type");
+const modalCostInput = document.getElementById("modal-card-cost");
+const modalColorInput = document.getElementById("modal-card-color");
+const modalParallelInput = document.getElementById("modal-card-parallel");
 const modalSaveBtn = document.getElementById("modal-save-btn");
 const modalStatus = document.getElementById("modal-status");
 
@@ -376,6 +380,10 @@ function openAddCardModal() {
   cropTool = null;
   modalNameInput.value = "";
   modalNameInput.placeholder = formatCardName(computeNextCardNumber(latestCards));
+  modalTypeInput.value = "";
+  modalCostInput.value = "";
+  modalColorInput.value = "";
+  modalParallelInput.checked = false;
   setModalStatus("", "");
   modalTitle.textContent = "カードを追加";
   modalSaveBtn.textContent = "保存する";
@@ -389,6 +397,10 @@ function openEditCardModal(card) {
   cropTool = null;
   modalNameInput.value = card.name || "";
   modalNameInput.placeholder = formatCardName(computeNextCardNumber(latestCards));
+  modalTypeInput.value = card.type || "";
+  modalCostInput.value = card.cost !== null && card.cost !== undefined ? card.cost : "";
+  modalColorInput.value = card.color || "";
+  modalParallelInput.checked = Boolean(card.parallel);
   setModalStatus("", "");
   modalTitle.textContent = "カードを編集";
   modalSaveBtn.textContent = "保存する";
@@ -417,6 +429,10 @@ bindModalDismissal(cropPopup, {
 
 modalSaveBtn.addEventListener("click", async () => {
   const name = modalNameInput.value.trim() || modalNameInput.placeholder;
+  const type = modalTypeInput.value;
+  const cost = modalCostInput.value;
+  const color = modalColorInput.value.trim();
+  const parallel = modalParallelInput.checked;
 
   if (editingCard) {
     setModalStatus("保存中...", "");
@@ -424,7 +440,7 @@ modalSaveBtn.addEventListener("click", async () => {
       if (croppedBlob) {
         await Api.replaceCardImage(editingCard.id, croppedBlob);
       }
-      await Api.updateCard(editingCard.id, { name });
+      await Api.updateCard(editingCard.id, { name, type, cost, color, parallel });
       closeAddCardModal();
       await renderCards();
     } catch (err) {
@@ -440,11 +456,15 @@ modalSaveBtn.addEventListener("click", async () => {
 
   setModalStatus("保存中...", "");
   try {
-    const card = await Api.addCard({ name, cost: "", poolId, imageBlob: croppedBlob });
+    const card = await Api.addCard({ name, cost, color, parallel, type, poolId, imageBlob: croppedBlob });
     setModalStatus(`「${displayName(card)}」を登録しました。続けて追加できます。`, "success");
     croppedBlob = null;
     cropTool = null;
     modalNameInput.value = "";
+    modalTypeInput.value = "";
+    modalCostInput.value = "";
+    modalColorInput.value = "";
+    modalParallelInput.checked = false;
     modalFileInput.value = "";
     showImagePlaceholder();
     await renderCards();

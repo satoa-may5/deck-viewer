@@ -5,10 +5,13 @@ const Api = {
     return res.json();
   },
 
-  async addCard({ name, cost, poolId, imageBlob }) {
+  async addCard({ name, cost, color, parallel, type, poolId, imageBlob }) {
     const form = new FormData();
     if (name) form.append("name", name);
     if (cost !== null && cost !== undefined && cost !== "") form.append("cost", cost);
+    if (color) form.append("color", color);
+    if (parallel) form.append("parallel", "true");
+    if (type) form.append("type", type);
     form.append("poolId", poolId);
     form.append("image", imageBlob, "card.jpg");
     const res = await fetch("/api/cards", { method: "POST", body: form });

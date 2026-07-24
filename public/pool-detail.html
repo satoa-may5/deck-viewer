@@ -57,6 +57,28 @@
               <label for="modal-card-name">カード名(任意)</label>
               <input type="text" id="modal-card-name" placeholder="" />
             </div>
+            <div class="field">
+              <label for="modal-card-type">タイプ(任意)</label>
+              <select id="modal-card-type">
+                <option value="">(未設定)</option>
+                <option value="character">キャラクター</option>
+                <option value="event">イベント</option>
+                <option value="field">フィールド</option>
+              </select>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="modal-card-cost">必要エナジー(任意)</label>
+                <input type="number" id="modal-card-cost" min="0" step="1" />
+              </div>
+              <div class="field">
+                <label for="modal-card-color">色(任意)</label>
+                <input type="text" id="modal-card-color" placeholder="例: 青" />
+              </div>
+            </div>
+            <div class="field checkbox-field">
+              <label><input type="checkbox" id="modal-card-parallel" /> パラレル</label>
+            </div>
             <button type="button" class="btn primary" id="modal-save-btn">保存する</button>
             <div id="modal-status" class="status-message"></div>
           </div>
