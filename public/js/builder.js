@@ -28,39 +28,6 @@ function attachTap(el, action) {
   });
 }
 
-// Quick, non-blocking "flies to the other pane" flourish: clones the tapped
-// card's image into a fixed-position ghost that animates toward the target
-// pane and then disappears. Purely decorative — the actual state update and
-// re-render happen immediately alongside it, so it never adds input latency.
-function flyCard(sourceEl, targetContainer) {
-  const imgEl = sourceEl.querySelector("img");
-  if (!imgEl) return;
-  const startRect = sourceEl.getBoundingClientRect();
-  const targetRect = targetContainer.getBoundingClientRect();
-
-  const ghost = imgEl.cloneNode(true);
-  ghost.style.position = "fixed";
-  ghost.style.left = `${startRect.left}px`;
-  ghost.style.top = `${startRect.top}px`;
-  ghost.style.width = `${startRect.width}px`;
-  ghost.style.height = `${startRect.height}px`;
-  ghost.style.margin = "0";
-  ghost.style.borderRadius = "8px";
-  ghost.style.zIndex = "999";
-  ghost.style.pointerEvents = "none";
-  ghost.style.transition = "transform 0.25s ease-in, opacity 0.25s ease-in";
-  document.body.appendChild(ghost);
-
-  const dx = targetRect.left + targetRect.width / 2 - (startRect.left + startRect.width / 2);
-  const dy = targetRect.top + targetRect.height / 2 - (startRect.top + startRect.height / 2);
-
-  requestAnimationFrame(() => {
-    ghost.style.transform = `translate(${dx}px, ${dy}px) scale(0.3)`;
-    ghost.style.opacity = "0.1";
-  });
-  setTimeout(() => ghost.remove(), 260);
-}
-
 function addToDeck(cardId) {
   deckCounts.set(cardId, (deckCounts.get(cardId) || 0) + 1);
   renderPanes();
@@ -293,10 +260,7 @@ function renderPanes() {
     if (deckThumbnailMode) {
       el.addEventListener("click", () => setDeckThumbnail(cardId));
     } else {
-      attachTap(el, () => {
-        flyCard(el, collectionGrid);
-        removeFromDeck(cardId);
-      });
+      attachTap(el, () => removeFromDeck(cardId));
     }
     deckGrid.appendChild(el);
   }
@@ -322,10 +286,7 @@ function renderPanes() {
     for (const card of visibleCards) {
       const count = deckCounts.get(card.id) || null;
       const el = createCardElement(card, card.id, count);
-      attachTap(el, () => {
-        flyCard(el, deckGrid);
-        addToDeck(card.id);
-      });
+      attachTap(el, () => addToDeck(card.id));
       collectionGrid.appendChild(el);
     }
   }

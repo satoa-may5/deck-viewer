@@ -386,16 +386,17 @@ button {
   transition: none !important;
 }
 
-/* Home page grid tiles (pools/decks): while dragging, hide everything except
-   the thumbnail itself — name, count, favorite star, and the row of icon
-   buttons all disappear so only the image appears to move. */
+/* Home page grid tiles (pools/decks): while dragging, remove everything
+   except the thumbnail itself — name, count, favorite star, and the row of
+   icon buttons are all removed from layout (not just hidden) so no blank
+   space is left behind and only the image appears to move. */
 #pool-list .card-item.dragging .card-caption,
 #deck-list .card-item.dragging .card-caption,
 #pool-list .card-item.dragging .grid-tile-actions,
 #deck-list .card-item.dragging .grid-tile-actions,
 #pool-list .card-item.dragging .grid-favorite-btn,
 #deck-list .card-item.dragging .grid-favorite-btn {
-  visibility: hidden;
+  display: none;
 }
 
 /* ---- Floating action button ---- */
@@ -1325,22 +1326,24 @@ button {
 }
 
 .content-with-filter {
-  display: flex;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  align-items: start;
   gap: 16px;
 }
 
 .content-main {
-  flex: 1;
+  grid-column: 1;
+  grid-row: 1;
   min-width: 0;
 }
 
 .filter-sidebar {
+  grid-column: 2;
+  grid-row: 1;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  width: 240px;
-  flex-shrink: 0;
 }
 
 .filter-box {
@@ -1519,11 +1522,16 @@ button {
 
 @media (max-width: 700px) {
   .content-with-filter {
-    flex-direction: column;
+    grid-template-columns: 1fr;
+  }
+
+  .content-main,
+  .filter-sidebar {
+    grid-column: 1;
   }
 
   .filter-sidebar {
-    width: 100%;
+    grid-row: 2;
     flex-direction: row;
     flex-wrap: wrap;
   }
@@ -1534,24 +1542,17 @@ button {
   }
 }
 
-/* Forces the same stacked layout as the mobile breakpoint above, regardless
-   of viewport width — used while no card pool is selected yet in the
-   builder's collection pane, so the "select a pool" placeholder can span the
-   full width of the pane instead of being squeezed next to the sidebar. */
-.content-with-filter.stacked {
-  flex-direction: column;
-  align-items: stretch;
+/* Used while no card pool is selected yet in the builder's collection pane:
+   the "select a pool" placeholder (inside .content-main) spans the full
+   width of the pane, on its own row above the filter sidebar — the sidebar
+   itself keeps the exact same vertical box layout it always has, just moved
+   down a row instead of sitting beside the (now much shorter) placeholder. */
+.content-with-filter.stacked .content-main {
+  grid-column: 1 / -1;
 }
 
 .content-with-filter.stacked .filter-sidebar {
-  width: 100%;
-  flex-direction: row;
-  flex-wrap: wrap;
-}
-
-.content-with-filter.stacked .filter-sidebar .filter-box {
-  flex: 1;
-  min-width: 140px;
+  grid-row: 2;
 }
 
 /* ---- Crop tool ---- */

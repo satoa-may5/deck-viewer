@@ -1,0 +1,16 @@
+{
+  "id": "deck-1784918868327",
+  "name": "新しいデッキ",
+  "poolIds": [
+    "pool-1784891844675"
+  ],
+  "cards": [
+    {
+      "cardId": "card-1784891844675",
+      "count": 4
+    }
+  ],
+  "thumbnailCardId": null,
+  "order": 0,
+  "updatedAt": "2026-07-24T18:51:37.644Z"
+}
