@@ -355,10 +355,6 @@ async function init() {
   const params = new URLSearchParams(location.search);
   deckId = params.get("id");
 
-  if (deckId) {
-    document.getElementById("export-image-link").href = `deck-view.html?id=${encodeURIComponent(deckId)}`;
-  }
-
   [allCards, allPools] = await Promise.all([Api.getCards(), Api.getPools()]);
 
   if (deckId) {
@@ -420,6 +416,21 @@ document.getElementById("discard-back-btn").addEventListener("click", async () =
   if (!result.confirmed) return;
   if (result.checked) localStorage.setItem(SKIP_DISCARD_WARNING_KEY, "true");
   location.href = "index.html";
+});
+
+document.getElementById("export-image-btn").addEventListener("click", () => {
+  if (!deckId) return;
+  // Export should reflect what's currently on screen, not the last-saved
+  // version — stash the in-memory state for deck-view.js to pick up instead
+  // of fetching the (possibly stale) saved deck.
+  const draft = {
+    name: nameInput.value.trim() || "無題のデッキ",
+    cards: [...deckCounts].map(([cardId, count]) => ({ cardId, count })),
+    poolIds: [...selectedPoolIds],
+    thumbnailCardId: deckThumbnailCardId,
+  };
+  sessionStorage.setItem(`deck-export-draft:${deckId}`, JSON.stringify(draft));
+  location.href = `deck-view.html?id=${encodeURIComponent(deckId)}`;
 });
 
 init();

@@ -4,6 +4,8 @@ const deckId = params.get("id");
 const canvas = document.getElementById("export-canvas");
 const ctx = canvas.getContext("2d");
 
+const FONT_STACK = '-apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic", sans-serif';
+
 let deck = null;
 let cardById = {};
 let cardOrder = []; // cardId[], display/output order
@@ -13,13 +15,16 @@ const imageCache = {}; // cardId -> HTMLImageElement
 let aspectRatio = "4:3";
 let orientation = "landscape";
 let showName = false;
+let showCardName = false;
 let showManaCurve = false;
 
 let cardRects = []; // last-computed layout rects, for hit-testing drags
+let currentLabelHeight = 0; // last-computed per-card name label height, for drag ghost
 
 const BASE_LONG_EDGE = 1600;
 const GAP = 14;
 const PADDING = 20;
+const NAME_LEFT_PADDING = PADDING + 14;
 
 function computeCanvasSize() {
   const [rw, rh] = aspectRatio === "16:9" ? [16, 9] : [4, 3];
@@ -33,23 +38,27 @@ function computeCanvasSize() {
 }
 
 // Finds the column count that lets a 63:88 card render as large as possible
-// while fitting all `n` cards into areaW x areaH.
-function computeCardLayout(n, areaW, areaH) {
-  if (n === 0) return { cols: 0, rows: 0, cardW: 0, cardH: 0 };
+// while fitting all `n` cards (each with an extra `labelHeight` reserved
+// below for its name, when shown) into areaW x areaH.
+function computeCardLayout(n, areaW, areaH, labelHeight) {
+  if (n === 0) return { cols: 0, rows: 0, cardW: 0, cardH: 0, cellH: 0 };
   let best = null;
   for (let cols = 1; cols <= n; cols++) {
     const rows = Math.ceil(n / cols);
     let cardW = (areaW - GAP * (cols - 1)) / cols;
     let cardH = (cardW * 88) / 63;
-    if (rows * cardH + GAP * (rows - 1) > areaH) {
-      cardH = (areaH - GAP * (rows - 1)) / rows;
+    let cellH = cardH + labelHeight;
+    if (rows * cellH + GAP * (rows - 1) > areaH) {
+      cellH = (areaH - GAP * (rows - 1)) / rows;
+      cardH = Math.max(cellH - labelHeight, 0);
       cardW = (cardH * 63) / 88;
+      cellH = cardH + labelHeight;
     }
     if (cardW <= 0 || cardH <= 0) continue;
     const area = cardW * cardH;
-    if (!best || area > best.area) best = { cols, rows, cardW, cardH, area };
+    if (!best || area > best.area) best = { cols, rows, cardW, cardH, cellH, area };
   }
-  return best || { cols: 1, rows: n, cardW: 0, cardH: 0 };
+  return best || { cols: 1, rows: n, cardW: 0, cardH: 0, cellH: 0 };
 }
 
 function loadImage(card) {
@@ -93,33 +102,41 @@ function roundedRectPath(context, x, y, w, h, r) {
 }
 
 function drawManaCurve(context, x, y, w, h) {
-  const buckets = new Array(11).fill(0); // costs 0..9, 10 = "10+"
+  const buckets = new Array(9).fill(0); // costs 0..7, 8 = "8+"
   for (const cardId of cardOrder) {
     const card = cardById[cardId];
     if (!card || card.cost === null || card.cost === undefined) continue;
-    buckets[Math.min(card.cost, 10)] += cardCounts[cardId] || 0;
+    buckets[Math.min(card.cost, 8)] += cardCounts[cardId] || 0;
   }
   const max = Math.max(1, ...buckets);
-  const labelSize = Math.max(9, h * 0.16);
-  const barAreaH = h - labelSize - 4;
-  const barGap = 3;
+  const countLabelSize = Math.max(9, h * 0.14);
+  const axisLabelSize = Math.max(9, h * 0.14);
+  const barAreaH = h - countLabelSize - axisLabelSize - 6;
+  const barGap = 4;
   const barW = (w - barGap * (buckets.length - 1)) / buckets.length;
 
   context.textAlign = "center";
   context.textBaseline = "top";
-  context.font = `${labelSize}px sans-serif`;
 
   buckets.forEach((count, i) => {
     const barH = Math.max((count / max) * barAreaH, count > 0 ? 2 : 0);
     const bx = x + i * (barW + barGap);
-    const by = y + barAreaH - barH;
+    const by = y + countLabelSize + 2 + (barAreaH - barH);
+    const cx = bx + barW / 2;
+
+    context.fillStyle = "#14151a";
+    context.font = `bold ${countLabelSize}px ${FONT_STACK}`;
+    context.fillText(count > 0 ? String(count) : "", cx, y);
+
     if (barH > 0) {
       context.fillStyle = "#5b6ef5";
       roundedRectPath(context, bx, by, barW, barH, Math.min(2, barW / 2));
       context.fill();
     }
+
     context.fillStyle = "#6b7080";
-    context.fillText(i === 10 ? "10+" : String(i), bx + barW / 2, y + barAreaH + 3);
+    context.font = `${axisLabelSize}px ${FONT_STACK}`;
+    context.fillText(i === 8 ? "8+" : String(i), cx, y + countLabelSize + 2 + barAreaH + 3);
   });
 }
 
@@ -134,15 +151,23 @@ function draw(excludeCardId) {
   let headerHeight = 0;
   if (showName || showManaCurve) {
     headerHeight = Math.max(70, height * 0.13);
+    const curveW = showManaCurve ? Math.min(width * 0.42, 460) : 0;
+
     if (showName && deck) {
-      ctx.fillStyle = "#14151a";
+      const nameMaxWidth = width - NAME_LEFT_PADDING - PADDING - (showManaCurve ? curveW + PADDING : 0);
+      let fontSize = Math.round(headerHeight * 0.4);
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.font = `bold ${Math.round(headerHeight * 0.4)}px sans-serif`;
-      ctx.fillText(deck.name, PADDING, headerHeight / 2);
+      ctx.fillStyle = "#14151a";
+      ctx.font = `700 ${fontSize}px ${FONT_STACK}`;
+      const textWidth = ctx.measureText(deck.name).width;
+      if (nameMaxWidth > 0 && textWidth > nameMaxWidth) {
+        fontSize = Math.max(12, Math.floor(fontSize * (nameMaxWidth / textWidth)));
+        ctx.font = `700 ${fontSize}px ${FONT_STACK}`;
+      }
+      ctx.fillText(deck.name, NAME_LEFT_PADDING, headerHeight / 2);
     }
     if (showManaCurve) {
-      const curveW = Math.min(width * 0.42, 460);
       const curveH = headerHeight - 24;
       drawManaCurve(ctx, width - curveW - PADDING, 12, curveW, curveH);
     }
@@ -153,14 +178,17 @@ function draw(excludeCardId) {
   const areaW = width - PADDING * 2;
   const areaH = height - headerHeight - PADDING * 2;
 
-  const layout = computeCardLayout(cardOrder.length, areaW, areaH);
+  const labelHeight = showCardName ? Math.max(16, areaH * 0.04) : 0;
+  currentLabelHeight = labelHeight;
+
+  const layout = computeCardLayout(cardOrder.length, areaW, areaH, labelHeight);
   cardRects = cardOrder.map((cardId, i) => {
     const col = i % layout.cols;
     const row = Math.floor(i / layout.cols);
     return {
       cardId,
       x: areaX + col * (layout.cardW + GAP),
-      y: areaY + row * (layout.cardH + GAP),
+      y: areaY + row * (layout.cellH + GAP),
       w: layout.cardW,
       h: layout.cardH,
     };
@@ -168,11 +196,11 @@ function draw(excludeCardId) {
 
   for (const rect of cardRects) {
     if (rect.cardId === excludeCardId) continue;
-    drawCardTile(rect.cardId, rect.x, rect.y, rect.w, rect.h, 1);
+    drawCardTile(rect.cardId, rect.x, rect.y, rect.w, rect.h, 1, labelHeight);
   }
 }
 
-function drawCardTile(cardId, x, y, w, h, alpha) {
+function drawCardTile(cardId, x, y, w, h, alpha, labelHeight) {
   const card = cardById[cardId];
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -190,6 +218,8 @@ function drawCardTile(cardId, x, y, w, h, alpha) {
   const badgeR = Math.max(10, w * 0.14);
   const bx = x + w - badgeR - 4;
   const by = y + badgeR + 4;
+  ctx.save();
+  ctx.globalAlpha = alpha;
   ctx.beginPath();
   ctx.arc(bx, by, badgeR, 0, Math.PI * 2);
   ctx.fillStyle = "#14151a";
@@ -197,8 +227,28 @@ function drawCardTile(cardId, x, y, w, h, alpha) {
   ctx.fillStyle = "#ffffff";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.font = `bold ${Math.round(badgeR * 1.1)}px sans-serif`;
+  ctx.font = `bold ${Math.round(badgeR * 1.1)}px ${FONT_STACK}`;
   ctx.fillText(String(count), bx, by + 1);
+  ctx.restore();
+
+  if (labelHeight > 0) {
+    const fontSize = Math.max(10, labelHeight * 0.6);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = "#14151a";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.font = `${fontSize}px ${FONT_STACK}`;
+    let text = card ? card.name || "(名称未設定)" : cardId;
+    if (ctx.measureText(text).width > w) {
+      while (text.length > 1 && ctx.measureText(`${text}…`).width > w) {
+        text = text.slice(0, -1);
+      }
+      text += "…";
+    }
+    ctx.fillText(text, x + w / 2, y + h + (labelHeight - fontSize) / 2);
+    ctx.restore();
+  }
 }
 
 // ---- Drag reorder (canvas-native: hit-test rects, swap cardOrder, redraw) ----
@@ -271,7 +321,9 @@ canvas.addEventListener("pointermove", (e) => {
   draw(dragState.cardId);
   const idx = cardOrder.indexOf(dragState.cardId);
   const rect = cardRects[idx];
-  if (rect) drawCardTile(dragState.cardId, p.x - rect.w / 2, p.y - rect.h / 2, rect.w, rect.h, 0.85);
+  if (rect) {
+    drawCardTile(dragState.cardId, p.x - rect.w / 2, p.y - rect.h / 2, rect.w, rect.h, 0.85, currentLabelHeight);
+  }
 });
 
 canvas.addEventListener("pointerup", async (e) => {
@@ -334,6 +386,11 @@ document.getElementById("show-name-checkbox").addEventListener("change", (e) => 
   draw();
 });
 
+document.getElementById("show-card-name-checkbox").addEventListener("change", (e) => {
+  showCardName = e.target.checked;
+  draw();
+});
+
 document.getElementById("show-mana-checkbox").addEventListener("change", (e) => {
   showManaCurve = e.target.checked;
   draw();
@@ -351,13 +408,47 @@ document.getElementById("download-btn").addEventListener("click", () => {
   }, "image/png");
 });
 
+document.getElementById("back-to-edit-btn").addEventListener("click", () => {
+  if (history.length > 1) {
+    history.back();
+  } else if (deckId) {
+    location.href = `builder.html?id=${encodeURIComponent(deckId)}`;
+  } else {
+    location.href = "index.html";
+  }
+});
+
 async function init() {
   if (!deckId) return;
-  document.getElementById("edit-link").href = `builder.html?id=${encodeURIComponent(deckId)}`;
 
-  const [d, cards] = await Promise.all([Api.getDeck(deckId), Api.getCards()]);
-  if (!d) return;
-  deck = d;
+  // If we got here from the "画像を出力" button on the edit screen, prefer
+  // its stashed in-memory (possibly unsaved) state over whatever's on the
+  // server — that's the whole point of exporting from there.
+  const draftKey = `deck-export-draft:${deckId}`;
+  const draftRaw = sessionStorage.getItem(draftKey);
+  let draft = null;
+  if (draftRaw) {
+    sessionStorage.removeItem(draftKey);
+    try {
+      draft = JSON.parse(draftRaw);
+    } catch (err) {
+      draft = null;
+    }
+  }
+
+  const [savedDeck, cards] = await Promise.all([Api.getDeck(deckId), Api.getCards()]);
+  if (!savedDeck && !draft) return;
+
+  deck = draft
+    ? {
+        id: deckId,
+        name: draft.name,
+        cards: draft.cards,
+        poolIds: draft.poolIds,
+        thumbnailCardId: draft.thumbnailCardId,
+      }
+    : savedDeck;
+
   cardById = Object.fromEntries(cards.map((c) => [c.id, c]));
   cardOrder = deck.cards.map((entry) => entry.cardId);
   cardCounts = Object.fromEntries(deck.cards.map((entry) => [entry.cardId, entry.count]));

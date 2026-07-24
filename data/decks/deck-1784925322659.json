@@ -1,0 +1,64 @@
+{
+  "id": "deck-1784925322659",
+  "name": "フォーゼ(バハムート入り)",
+  "poolIds": [
+    "pool-1784925826822"
+  ],
+  "cards": [
+    {
+      "cardId": "card-1784891844746",
+      "count": 4
+    },
+    {
+      "cardId": "card-1784891844739",
+      "count": 4
+    },
+    {
+      "cardId": "card-1784891844758",
+      "count": 4
+    },
+    {
+      "cardId": "card-1784891844738",
+      "count": 3
+    },
+    {
+      "cardId": "card-1784891844754",
+      "count": 4
+    },
+    {
+      "cardId": "card-1784891844762",
+      "count": 4
+    },
+    {
+      "cardId": "card-1784891844750",
+      "count": 4
+    },
+    {
+      "cardId": "card-1784926332731",
+      "count": 4
+    },
+    {
+      "cardId": "card-1784891844763",
+      "count": 4
+    },
+    {
+      "cardId": "card-1784891844768",
+      "count": 3
+    },
+    {
+      "cardId": "card-1784891844767",
+      "count": 4
+    },
+    {
+      "cardId": "card-1784891844774",
+      "count": 4
+    },
+    {
+      "cardId": "card-1784891844772",
+      "count": 4
+    }
+  ],
+  "thumbnailCardId": "card-1784926332731",
+  "order": 1,
+  "updatedAt": "2026-07-24T20:54:51.331Z"
+}

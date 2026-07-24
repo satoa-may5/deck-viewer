@@ -11,9 +11,8 @@
 <body>
   <div class="export-page">
     <div class="export-topbar">
-      <a class="btn" href="index.html">一覧に戻る</a>
+      <button type="button" class="btn" id="back-to-edit-btn">編集に戻る</button>
       <span id="deck-name-label" class="export-deck-name"></span>
-      <a class="btn" id="edit-link" href="#">編集する</a>
     </div>
 
     <div class="export-preview-area">
@@ -43,6 +42,9 @@
 
       <label class="filter-checkbox">
         <input type="checkbox" id="show-name-checkbox" /> デッキ名を表示
+      </label>
+      <label class="filter-checkbox">
+        <input type="checkbox" id="show-card-name-checkbox" /> カード名を表示
       </label>
       <label class="filter-checkbox">
         <input type="checkbox" id="show-mana-checkbox" /> マナカーブを表示
