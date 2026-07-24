@@ -51,7 +51,19 @@ function toggleDeckThumbnail(cardId) {
 // ---- Filtering (collection pane only: type / color / cost / parallel) ----
 
 const CARD_TYPE_LABELS = { character: "キャラクター", event: "イベント", field: "フィールド" };
-const filterState = { types: new Set(), colors: new Set(), costs: new Set(), parallelOnly: false };
+
+const COLOR_SWATCHES = {
+  "赤": { bg: "#e53e3e", text: "#fff" },
+  "青": { bg: "#3182ce", text: "#fff" },
+  "緑": { bg: "#38a169", text: "#fff" },
+  "黄": { bg: "#d69e2e", text: "#1a202c" },
+  "紫": { bg: "#805ad5", text: "#fff" },
+  "白": { bg: "#e2e8f0", text: "#1a202c" },
+  "黒": { bg: "#2d3748", text: "#fff" },
+  "無": { bg: "#a0aec0", text: "#1a202c" },
+};
+
+const filterState = { types: new Set(), colors: new Set(), costs: new Set(), excludeParallel: false };
 
 const filterBar = document.getElementById("filter-bar");
 const filterToggleBtn = document.getElementById("filter-toggle-btn");
@@ -75,6 +87,16 @@ function createFilterPill(label, active, onClick) {
   return btn;
 }
 
+function applyColorSwatch(pill, colorName, active) {
+  const swatch = COLOR_SWATCHES[colorName];
+  if (!swatch) return;
+  pill.style.borderColor = swatch.bg;
+  if (active) {
+    pill.style.background = swatch.bg;
+    pill.style.color = swatch.text;
+  }
+}
+
 function toggleInSet(set, value) {
   if (set.has(value)) set.delete(value);
   else set.add(value);
@@ -87,7 +109,6 @@ function clearPills(group) {
 function updateFilterUI(cards) {
   clearPills(filterTypeGroup);
   for (const [value, label] of Object.entries(CARD_TYPE_LABELS)) {
-    if (!cards.some((c) => c.type === value)) continue;
     filterTypeGroup.appendChild(
       createFilterPill(label, filterState.types.has(value), () => {
         toggleInSet(filterState.types, value);
@@ -99,12 +120,13 @@ function updateFilterUI(cards) {
   clearPills(filterColorGroup);
   const colors = [...new Set(cards.map((c) => c.color).filter(Boolean))].sort();
   for (const color of colors) {
-    filterColorGroup.appendChild(
-      createFilterPill(color, filterState.colors.has(color), () => {
-        toggleInSet(filterState.colors, color);
-        renderPanes();
-      })
-    );
+    const active = filterState.colors.has(color);
+    const pill = createFilterPill(color, active, () => {
+      toggleInSet(filterState.colors, color);
+      renderPanes();
+    });
+    applyColorSwatch(pill, color, active);
+    filterColorGroup.appendChild(pill);
   }
 
   clearPills(filterCostGroup);
@@ -120,11 +142,11 @@ function updateFilterUI(cards) {
     );
   }
 
-  filterParallelCheckbox.checked = filterState.parallelOnly;
+  filterParallelCheckbox.checked = filterState.excludeParallel;
 }
 
 filterParallelCheckbox.addEventListener("change", () => {
-  filterState.parallelOnly = filterParallelCheckbox.checked;
+  filterState.excludeParallel = filterParallelCheckbox.checked;
   renderPanes();
 });
 
@@ -132,7 +154,7 @@ filterClearBtn.addEventListener("click", () => {
   filterState.types.clear();
   filterState.colors.clear();
   filterState.costs.clear();
-  filterState.parallelOnly = false;
+  filterState.excludeParallel = false;
   renderPanes();
 });
 
@@ -140,7 +162,7 @@ function cardMatchesFilters(card) {
   if (filterState.types.size > 0 && !filterState.types.has(card.type)) return false;
   if (filterState.colors.size > 0 && !filterState.colors.has(card.color)) return false;
   if (filterState.costs.size > 0 && !filterState.costs.has(card.cost)) return false;
-  if (filterState.parallelOnly && !card.parallel) return false;
+  if (filterState.excludeParallel && card.parallel) return false;
   return true;
 }
 

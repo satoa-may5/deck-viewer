@@ -157,6 +157,19 @@ function makeSortable(container, { itemSelector, handleSelector = ".drag-handle"
       dragEl.style.transform = "";
       dragEl.style.position = "";
       dragEl.style.zIndex = "";
+
+      // A real drag+release still fires a native "click" afterward if the pointer
+      // ends up back over the same element (common — the dragged tile follows the
+      // cursor, so it's often still directly under it at drop time). Swallow that
+      // one click so it doesn't also trigger whatever the item's own click handler
+      // does (e.g. navigating to a detail page).
+      const suppressClick = (ev2) => {
+        ev2.stopPropagation();
+        ev2.preventDefault();
+      };
+      dragEl.addEventListener("click", suppressClick, { capture: true, once: true });
+      setTimeout(() => dragEl.removeEventListener("click", suppressClick, { capture: true }), 0);
+
       const order = [...container.querySelectorAll(itemSelector)].map((el) => el.dataset.id);
       onReorder(order);
     };

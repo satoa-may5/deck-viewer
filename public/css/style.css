@@ -780,6 +780,36 @@ button {
   color: #fff;
 }
 
+.grid-favorite-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: rgba(20, 21, 26, 0.45);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.85rem;
+  line-height: 1;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
+}
+
+.grid-favorite-btn:hover {
+  background: rgba(20, 21, 26, 0.65);
+  color: #fff;
+  transform: scale(1.08);
+}
+
+.grid-favorite-btn.active {
+  background: #f5a623;
+  color: #fff;
+}
+
 .card-frame.missing {
   display: flex;
   align-items: center;
@@ -1256,19 +1286,31 @@ button {
   box-shadow: 0 6px 16px rgba(91, 110, 245, 0.3);
 }
 
-/* ---- Card filter bar (pool-detail / builder collection pane) ---- */
+/* ---- Card filter bar (pool-detail / builder collection pane) ----
+   Anchored to .list-toolbar (which needs position:relative) and rendered as an
+   overlay dropdown — it floats above the card list below rather than pushing
+   it down, since expand/collapse here is meant to feel like a popover. */
+
+.list-toolbar {
+  position: relative;
+}
 
 .filter-bar {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 14px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 280px;
+  max-width: min(90vw, 420px);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 14px 16px;
-  margin-bottom: 12px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-lg);
 }
 
 .filter-group {
@@ -1276,6 +1318,7 @@ button {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+  width: 100%;
 }
 
 .filter-group-label {

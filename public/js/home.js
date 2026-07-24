@@ -508,7 +508,7 @@ function createPoolGridItem(pool) {
 
   const favBtn = document.createElement("button");
   favBtn.type = "button";
-  favBtn.className = "grid-thumbnail-btn" + (pool.favorite ? " active" : "");
+  favBtn.className = "grid-favorite-btn" + (pool.favorite ? " active" : "");
   favBtn.title = "お気に入り";
   favBtn.textContent = pool.favorite ? "★" : "☆";
   favBtn.addEventListener("pointerdown", (e) => e.stopPropagation());

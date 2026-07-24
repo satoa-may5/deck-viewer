@@ -32,21 +32,22 @@
         <p class="pane-title">手持ちカード(タップ/スワイプで1枚追加)</p>
         <div class="list-toolbar">
           <button type="button" class="btn" id="filter-toggle-btn">絞り込み</button>
-        </div>
-        <div class="filter-bar" id="filter-bar" hidden>
-          <div class="filter-group" id="filter-type-group">
-            <span class="filter-group-label">タイプ</span>
+
+          <div class="filter-bar" id="filter-bar" hidden>
+            <div class="filter-group" id="filter-type-group">
+              <span class="filter-group-label">タイプ</span>
+            </div>
+            <div class="filter-group" id="filter-color-group">
+              <span class="filter-group-label">色</span>
+            </div>
+            <div class="filter-group" id="filter-cost-group">
+              <span class="filter-group-label">必要エナジー</span>
+            </div>
+            <label class="filter-checkbox">
+              <input type="checkbox" id="filter-parallel-checkbox" /> パラレルを除外
+            </label>
+            <button type="button" class="btn" id="filter-clear-btn">リセット</button>
           </div>
-          <div class="filter-group" id="filter-color-group">
-            <span class="filter-group-label">色</span>
-          </div>
-          <div class="filter-group" id="filter-cost-group">
-            <span class="filter-group-label">必要エナジー</span>
-          </div>
-          <label class="filter-checkbox">
-            <input type="checkbox" id="filter-parallel-checkbox" /> パラレルのみ
-          </label>
-          <button type="button" class="btn" id="filter-clear-btn">リセット</button>
         </div>
         <div class="builder-grid" id="collection-grid"></div>
       </div>
