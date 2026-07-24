@@ -27,6 +27,12 @@ function attachTap(el, action) {
   });
 }
 
+// .builder-grid .card-item:active .card-frame shrinks to this scale while
+// pressed (see style.css) — the exit ghost should be based on the card's
+// normal size, not whatever momentarily-shrunk size is on screen right as
+// the tap releases.
+const PRESSED_SCALE = 0.94;
+
 // Quick, non-blocking exit flourish: clones just the tapped card's thumbnail
 // frame (not the whole tile — that includes the caption below it, which
 // would stretch the image vertically to fill the extra height) into a ghost
@@ -37,13 +43,20 @@ function attachTap(el, action) {
 // were already there) — so this captures the source rect and clones the
 // frame up front, before anything moves, and returns a function that does
 // the actual insert+animate once the caller has finished re-rendering.
-// z-index:-1 puts it behind the container's own live cards but, because
-// .builder-grid establishes its own stacking context, still above the
-// .pane's opaque background — not sunk behind the whole page.
+// z-index:1 keeps it above the container's own live cards — otherwise (e.g.
+// adding a card, which stays put in the collection grid) the unchanged live
+// card sits directly on top and hides the ghost completely.
 function prepareCardExit(sourceEl, direction) {
   const frame = sourceEl.querySelector(".card-frame");
   if (!frame) return null;
-  const frameRect = frame.getBoundingClientRect();
+  let frameRect = frame.getBoundingClientRect();
+  if (frame.matches(":active")) {
+    const cx = frameRect.left + frameRect.width / 2;
+    const cy = frameRect.top + frameRect.height / 2;
+    const width = frameRect.width / PRESSED_SCALE;
+    const height = frameRect.height / PRESSED_SCALE;
+    frameRect = new DOMRect(cx - width / 2, cy - height / 2, width, height);
+  }
   const ghost = frame.cloneNode(true);
 
   return (container) => {
@@ -54,7 +67,7 @@ function prepareCardExit(sourceEl, direction) {
     ghost.style.width = `${frameRect.width}px`;
     ghost.style.height = `${frameRect.height}px`;
     ghost.style.margin = "0";
-    ghost.style.zIndex = "-1";
+    ghost.style.zIndex = "1";
     ghost.style.pointerEvents = "none";
     ghost.style.transition = "transform 0.1s ease-in, opacity 0.1s ease-in";
     container.appendChild(ghost);
@@ -341,6 +354,10 @@ function renderPanes() {
 async function init() {
   const params = new URLSearchParams(location.search);
   deckId = params.get("id");
+
+  if (deckId) {
+    document.getElementById("export-image-link").href = `deck-view.html?id=${encodeURIComponent(deckId)}`;
+  }
 
   [allCards, allPools] = await Promise.all([Api.getCards(), Api.getPools()]);
 

@@ -1458,10 +1458,12 @@ button {
 
 .range-slider-wrap input[type="range"]::-webkit-slider-runnable-track {
   background: transparent;
+  height: 4px;
 }
 
 .range-slider-wrap input[type="range"]::-moz-range-track {
   background: transparent;
+  height: 4px;
 }
 
 .range-slider-wrap input[type="range"]::-webkit-slider-thumb {
@@ -1475,7 +1477,10 @@ button {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   cursor: pointer;
   pointer-events: auto;
-  margin-top: 4px;
+  /* WebKit centers the thumb on top of the (4px) runnable-track's top edge
+     by default, not its vertical center — this offsets it up by half the
+     difference so the 16px thumb's center lands exactly on the track's. */
+  margin-top: -6px;
 }
 
 .range-slider-wrap input[type="range"]::-moz-range-thumb {
@@ -1615,6 +1620,11 @@ button {
   border-radius: var(--radius-lg);
   background: var(--surface);
   overflow-y: auto;
+  /* This scrolls independently of the document (scrollbar-gutter:stable on
+     html doesn't reach it) — without its own, switching between an empty
+     placeholder and a full card grid shifts the content sideways as this
+     pane's own scrollbar appears/disappears. */
+  scrollbar-gutter: stable;
   padding: 14px;
   box-shadow: var(--shadow-sm);
 }
@@ -1701,5 +1711,117 @@ button {
   }
   .deck-row .nav-links {
     justify-content: flex-end;
+  }
+}
+
+/* ---- Image export screen (deck-view.html) ---- */
+
+.export-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 12px;
+  gap: 10px;
+}
+
+.export-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.export-deck-name {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.export-preview-area {
+  flex: 4;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  padding: 12px;
+}
+
+#export-canvas {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  box-shadow: var(--shadow-md);
+  border-radius: 4px;
+  touch-action: none;
+  cursor: grab;
+}
+
+.export-controls {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.export-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.export-control-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.export-toggle-row {
+  display: flex;
+  gap: 6px;
+}
+
+.export-toggle-btn {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.export-toggle-btn:hover {
+  border-color: var(--accent);
+}
+
+.export-toggle-btn[aria-pressed="true"] {
+  background: var(--accent-grad);
+  border-color: transparent;
+  color: #fff;
+}
+
+@media (max-width: 700px) {
+  .export-controls {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

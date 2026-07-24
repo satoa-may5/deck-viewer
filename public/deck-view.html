@@ -3,30 +3,57 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>デッキ表示 - デッキメーカー(仮)</title>
+  <title>画像出力 - デッキメーカー(仮)</title>
   <link rel="stylesheet" href="css/style.css" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icons/icon-192.png" />
 </head>
 <body>
-  <div class="page">
-    <div class="topbar">
-      <div>
-        <h1 id="deck-name">デッキ</h1>
-        <div id="deck-meta" class="deck-meta"></div>
-      </div>
-      <div class="nav-links">
-        <a class="btn" href="index.html">一覧に戻る</a>
-        <a class="btn primary" id="edit-link" href="#">編集する</a>
-      </div>
+  <div class="export-page">
+    <div class="export-topbar">
+      <a class="btn" href="index.html">一覧に戻る</a>
+      <span id="deck-name-label" class="export-deck-name"></span>
+      <a class="btn" id="edit-link" href="#">編集する</a>
     </div>
 
-    <main class="grid" id="grid"></main>
+    <div class="export-preview-area">
+      <canvas id="export-canvas"></canvas>
+    </div>
+
+    <div class="export-controls">
+      <div class="export-control-group">
+        <span class="export-control-label">縦横比</span>
+        <div class="export-toggle-row" id="ratio-toggle">
+          <button type="button" class="export-toggle-btn" data-ratio="16:9">16:9</button>
+          <button type="button" class="export-toggle-btn" data-ratio="4:3">4:3</button>
+        </div>
+      </div>
+
+      <div class="export-control-group">
+        <span class="export-control-label">向き</span>
+        <div class="export-toggle-row" id="orientation-toggle">
+          <button type="button" class="export-toggle-btn" data-orientation="portrait" title="縦">
+            <svg viewBox="0 0 16 16" width="14" height="14"><rect x="4" y="1" width="8" height="14" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+          </button>
+          <button type="button" class="export-toggle-btn" data-orientation="landscape" title="横">
+            <svg viewBox="0 0 16 16" width="14" height="14"><rect x="1" y="4" width="14" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <label class="filter-checkbox">
+        <input type="checkbox" id="show-name-checkbox" /> デッキ名を表示
+      </label>
+      <label class="filter-checkbox">
+        <input type="checkbox" id="show-mana-checkbox" /> マナカーブを表示
+      </label>
+
+      <button type="button" class="btn primary" id="download-btn">画像として保存</button>
+    </div>
   </div>
 
   <script src="js/api.js"></script>
   <script src="js/dialog.js"></script>
-  <script src="js/card-render.js"></script>
   <script src="js/deck-view.js"></script>
   <script src="js/register-sw.js"></script>
 </body>

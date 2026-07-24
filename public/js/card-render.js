@@ -44,9 +44,7 @@ function createCardElement(card, id, count, opts) {
 
   const caption = document.createElement("div");
   caption.className = "card-caption";
-  const label = card ? card.name || "(名称未設定)" : id;
-  const cost = card && card.cost !== null && card.cost !== undefined ? ` (${card.cost})` : "";
-  caption.textContent = label + cost;
+  caption.textContent = card ? card.name || "(名称未設定)" : id;
 
   item.appendChild(frame);
   item.appendChild(caption);

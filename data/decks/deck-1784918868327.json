@@ -8,9 +8,21 @@
     {
       "cardId": "card-1784891844675",
       "count": 4
+    },
+    {
+      "cardId": "card-1784891844677",
+      "count": 2
+    },
+    {
+      "cardId": "card-1784891844680",
+      "count": 2
+    },
+    {
+      "cardId": "card-1784891844684",
+      "count": 1
     }
   ],
   "thumbnailCardId": null,
   "order": 0,
-  "updatedAt": "2026-07-24T19:28:37.509Z"
+  "updatedAt": "2026-07-24T20:21:08.040Z"
 }

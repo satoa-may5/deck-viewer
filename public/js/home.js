@@ -268,7 +268,7 @@ function createDeckRow(deck) {
   const viewLink = document.createElement("a");
   viewLink.className = "btn";
   viewLink.href = `deck-view.html?id=${encodeURIComponent(deck.id)}`;
-  viewLink.textContent = "表示";
+  viewLink.textContent = "画像出力";
 
   const editLink = document.createElement("a");
   editLink.className = "btn";
@@ -316,8 +316,8 @@ function createDeckGridItem(deck) {
 
   const viewBtn = document.createElement("a");
   viewBtn.className = "icon-btn";
-  viewBtn.title = "表示";
-  viewBtn.textContent = "▶";
+  viewBtn.title = "画像出力";
+  viewBtn.textContent = "⬇";
   viewBtn.href = `deck-view.html?id=${encodeURIComponent(deck.id)}`;
 
   const renameBtn = document.createElement("button");

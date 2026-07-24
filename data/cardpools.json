@@ -7,10 +7,24 @@
     "createdAt": "2026-07-24T11:17:24.675Z"
   },
   {
-    "id": "pool-1784922215997",
+    "id": "pool-1784922634066",
     "name": "[UA] 無職転生",
     "favorite": false,
-    "thumbnailCardId": "card-1784922216110",
-    "createdAt": "2026-07-24T19:43:35.997Z"
+    "thumbnailCardId": "card-1784922634181",
+    "createdAt": "2026-07-24T19:50:34.066Z"
+  },
+  {
+    "id": "pool-1784924569000",
+    "name": "チェンソーマン",
+    "favorite": false,
+    "thumbnailCardId": "card-1784924569102",
+    "createdAt": "2026-07-24T20:22:49.000Z"
+  },
+  {
+    "id": "pool-1784924627250",
+    "name": "犬夜叉",
+    "favorite": false,
+    "thumbnailCardId": "card-1784924627349",
+    "createdAt": "2026-07-24T20:23:47.250Z"
   }
 ]
