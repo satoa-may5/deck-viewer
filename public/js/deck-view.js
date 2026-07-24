@@ -35,8 +35,9 @@ const BASE_LONG_EDGE = 1600;
 const GAP = 14;
 const PADDING = 20;
 const NAME_LEFT_PADDING = PADDING + 14;
+const HEADER_HEIGHT = 185; // fixed height of the blank area above the card grid
 const HEADER_SPLIT_GAP = 24; // gap between the deck-name half and the mana-curve half
-const CURVE_EDGE_MARGIN = 16; // inner margin around the mana curve within its own half
+const CURVE_EDGE_MARGIN = 48; // inner margin around the mana curve within its own half
 
 function computeCanvasSize() {
   const scale = BASE_LONG_EDGE / ASPECT_W;
@@ -67,18 +68,17 @@ function computeCardLayout(n, areaW, areaH, labelHeight) {
   return best || { cols: 1, rows: n, cardW: 0, cardH: 0, cellH: 0 };
 }
 
-// Lays cards out row-major within areaX/Y/W/H, then centers the whole grid
-// block within that area both horizontally and vertically, and additionally
-// centers any incomplete last row under the full grid width.
+// Lays cards out row-major within areaX/Y/W/H: centered horizontally as a
+// block (and any incomplete last row centered under the full grid width),
+// but top-aligned vertically (not centered) — cards start right at areaY.
 function buildTargetRects(areaX, areaY, areaW, areaH, labelHeight) {
   const n = cardOrder.length;
   const layout = computeCardLayout(n, areaW, areaH, labelHeight);
   if (layout.cols === 0) return [];
 
   const gridW = layout.cols * layout.cardW + GAP * (layout.cols - 1);
-  const gridH = layout.rows * layout.cellH + GAP * (layout.rows - 1);
   const offsetX = areaX + (areaW - gridW) / 2;
-  const offsetY = areaY + (areaH - gridH) / 2;
+  const offsetY = areaY;
 
   const rects = [];
   for (let row = 0; row * layout.cols < n; row++) {
@@ -194,7 +194,7 @@ function updateLayout() {
   canvas.height = height;
 
   let headerHeight = 0;
-  if (showName || showManaCurve) headerHeight = Math.max(70, height * 0.13);
+  if (showName || showManaCurve) headerHeight = HEADER_HEIGHT;
   headerHeightCache = headerHeight;
 
   const areaX = PADDING;
