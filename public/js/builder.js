@@ -37,15 +37,12 @@ const PRESSED_SCALE = 0.94;
 // frame (not the whole tile — that includes the caption below it, which
 // would stretch the image vertically to fill the extra height) into a ghost
 // that slides sideways at the same y-position while fading out, then
-// vanishes. The ghost has to be inserted into `container` (collectionGrid /
-// deckGrid) *after* the state-changing add/remove has re-rendered it (that
-// render wipes the container's innerHTML, which would delete the ghost if it
-// were already there) — so this captures the source rect and clones the
-// frame up front, before anything moves, and returns a function that does
-// the actual insert+animate once the caller has finished re-rendering.
-// z-index:1 keeps it above the container's own live cards — otherwise (e.g.
-// adding a card, which stays put in the collection grid) the unchanged live
-// card sits directly on top and hides the ghost completely.
+// vanishes. position:fixed + appending to document.body (not the pane's own
+// grid) is deliberate — .pane has overflow-y:auto, so a ghost positioned
+// relative to the grid gets clipped the moment it crosses the pane's edge.
+// A high z-index keeps it above the live (re-rendered) grid content, e.g.
+// so it stays visible in the add case where the tapped card remains in
+// place in the collection grid.
 function prepareCardExit(sourceEl, direction) {
   const frame = sourceEl.querySelector(".card-frame");
   if (!frame) return null;
@@ -59,18 +56,17 @@ function prepareCardExit(sourceEl, direction) {
   }
   const ghost = frame.cloneNode(true);
 
-  return (container) => {
-    const containerRect = container.getBoundingClientRect();
-    ghost.style.position = "absolute";
-    ghost.style.left = `${frameRect.left - containerRect.left}px`;
-    ghost.style.top = `${frameRect.top - containerRect.top}px`;
+  return () => {
+    ghost.style.position = "fixed";
+    ghost.style.left = `${frameRect.left}px`;
+    ghost.style.top = `${frameRect.top}px`;
     ghost.style.width = `${frameRect.width}px`;
     ghost.style.height = `${frameRect.height}px`;
     ghost.style.margin = "0";
-    ghost.style.zIndex = "1";
+    ghost.style.zIndex = "999";
     ghost.style.pointerEvents = "none";
     ghost.style.transition = "transform 0.1s ease-in, opacity 0.1s ease-in";
-    container.appendChild(ghost);
+    document.body.appendChild(ghost);
 
     const dx = direction === "left" ? -60 : 60;
     requestAnimationFrame(() => {
@@ -124,6 +120,23 @@ function setDeckThumbnail(cardId) {
 deckThumbnailModeBtn.addEventListener("click", () => {
   if (deckThumbnailMode) exitDeckThumbnailMode();
   else enterDeckThumbnailMode();
+});
+
+document.getElementById("deck-sort-cost-btn").addEventListener("click", () => {
+  const cardById = Object.fromEntries(allCards.map((c) => [c.id, c]));
+  const entries = [...deckCounts.entries()].sort(([idA], [idB]) => {
+    const costA = cardById[idA] ? cardById[idA].cost : null;
+    const costB = cardById[idB] ? cardById[idB].cost : null;
+    const hasA = costA !== null && costA !== undefined;
+    const hasB = costB !== null && costB !== undefined;
+    if (!hasA && !hasB) return 0;
+    if (!hasA) return 1;
+    if (!hasB) return -1;
+    return costA - costB;
+  });
+  deckCounts.clear();
+  for (const [cardId, count] of entries) deckCounts.set(cardId, count);
+  renderPanes();
 });
 
 // ---- Filtering (collection pane only: type / color / cost range / parallel) ----
@@ -316,7 +329,7 @@ function renderPanes() {
       attachTap(el, () => {
         const spawnGhost = prepareCardExit(el, "right");
         removeFromDeck(cardId);
-        if (spawnGhost) spawnGhost(deckGrid);
+        if (spawnGhost) spawnGhost();
       });
     }
     deckGrid.appendChild(el);
@@ -344,7 +357,7 @@ function renderPanes() {
       attachTap(el, () => {
         const spawnGhost = prepareCardExit(el, "left");
         addToDeck(card.id);
-        if (spawnGhost) spawnGhost(collectionGrid);
+        if (spawnGhost) spawnGhost();
       });
       collectionGrid.appendChild(el);
     }

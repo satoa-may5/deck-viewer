@@ -455,6 +455,19 @@ function createCardGridItem(card) {
     frame.appendChild(badge);
   }
 
+  if (!thumbnailMode && !selectMode) {
+    const zoomBtn = document.createElement("button");
+    zoomBtn.type = "button";
+    zoomBtn.className = "grid-zoom-btn";
+    zoomBtn.title = "拡大表示";
+    zoomBtn.textContent = "⤢";
+    zoomBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openCardZoom(card);
+    });
+    frame.appendChild(zoomBtn);
+  }
+
   item.appendChild(frame);
 
   const caption = document.createElement("div");
@@ -464,6 +477,24 @@ function createCardGridItem(card) {
 
   return item;
 }
+
+// ---- Card zoom lightbox ----
+
+const cardZoomOverlay = document.getElementById("card-zoom-overlay");
+const cardZoomImg = document.getElementById("card-zoom-img");
+
+function openCardZoom(card) {
+  cardZoomImg.src = Api.cardImageUrl(card);
+  cardZoomImg.alt = displayName(card);
+  cardZoomOverlay.hidden = false;
+}
+
+function closeCardZoom() {
+  cardZoomOverlay.hidden = true;
+}
+
+document.getElementById("card-zoom-close").addEventListener("click", closeCardZoom);
+bindModalDismissal(cardZoomOverlay, { onCancel: closeCardZoom });
 
 makeSortable(cardListEl, {
   itemSelector: ".card-row",

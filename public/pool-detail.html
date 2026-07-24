@@ -146,6 +146,11 @@
     </div>
 
     <input type="file" id="modal-file-input" accept="image/png,image/jpeg" capture="environment" hidden />
+
+    <div class="modal-overlay lightbox-overlay" id="card-zoom-overlay" hidden>
+      <button type="button" class="icon-btn lightbox-close" id="card-zoom-close">✕</button>
+      <img id="card-zoom-img" src="" alt="" />
+    </div>
   </div>
 
   <script src="js/api.js"></script>

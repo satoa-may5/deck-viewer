@@ -819,6 +819,61 @@ button {
   accent-color: var(--accent);
 }
 
+.grid-zoom-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: rgba(20, 21, 26, 0.45);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.8rem;
+  line-height: 1;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
+}
+
+.grid-zoom-btn:hover {
+  background: rgba(20, 21, 26, 0.65);
+  color: #fff;
+  transform: scale(1.08);
+}
+
+/* ---- Card zoom lightbox (pool-detail.html) ---- */
+
+.lightbox-overlay {
+  background: rgba(10, 10, 16, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.lightbox-overlay img {
+  max-width: min(90vw, 640px);
+  max-height: 85vh;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: none;
+}
+
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
 .card-frame.missing {
   display: flex;
   align-items: center;
@@ -1658,6 +1713,13 @@ button {
   margin: 0;
 }
 
+.pane-title-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .builder-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
@@ -1775,48 +1837,6 @@ button {
   box-shadow: var(--shadow-sm);
   overflow-y: auto;
   scrollbar-gutter: stable;
-}
-
-.export-control-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.export-control-label {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--muted);
-}
-
-.export-toggle-row {
-  display: flex;
-  gap: 6px;
-}
-
-.export-toggle-btn {
-  padding: 6px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text);
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-
-.export-toggle-btn:hover {
-  border-color: var(--accent);
-}
-
-.export-toggle-btn[aria-pressed="true"] {
-  background: var(--accent-grad);
-  border-color: transparent;
-  color: #fff;
 }
 
 @media (max-width: 700px) {

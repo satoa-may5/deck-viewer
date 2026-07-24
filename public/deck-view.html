@@ -20,34 +20,14 @@
     </div>
 
     <div class="export-controls">
-      <div class="export-control-group">
-        <span class="export-control-label">縦横比</span>
-        <div class="export-toggle-row" id="ratio-toggle">
-          <button type="button" class="export-toggle-btn" data-ratio="16:9">16:9</button>
-          <button type="button" class="export-toggle-btn" data-ratio="4:3">4:3</button>
-        </div>
-      </div>
-
-      <div class="export-control-group">
-        <span class="export-control-label">向き</span>
-        <div class="export-toggle-row" id="orientation-toggle">
-          <button type="button" class="export-toggle-btn" data-orientation="portrait" title="縦">
-            <svg viewBox="0 0 16 16" width="14" height="14"><rect x="4" y="1" width="8" height="14" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-          </button>
-          <button type="button" class="export-toggle-btn" data-orientation="landscape" title="横">
-            <svg viewBox="0 0 16 16" width="14" height="14"><rect x="1" y="4" width="14" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-          </button>
-        </div>
-      </div>
-
       <label class="filter-checkbox">
-        <input type="checkbox" id="show-name-checkbox" /> デッキ名を表示
+        <input type="checkbox" id="show-name-checkbox" checked /> デッキ名を表示
       </label>
       <label class="filter-checkbox">
-        <input type="checkbox" id="show-card-name-checkbox" /> カード名を表示
+        <input type="checkbox" id="show-card-name-checkbox" checked /> カード名を表示
       </label>
       <label class="filter-checkbox">
-        <input type="checkbox" id="show-mana-checkbox" /> マナカーブを表示
+        <input type="checkbox" id="show-mana-checkbox" checked /> マナカーブを表示
       </label>
 
       <button type="button" class="btn primary" id="download-btn">画像として保存</button>

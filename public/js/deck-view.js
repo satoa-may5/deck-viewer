@@ -17,11 +17,13 @@ let cardOrder = []; // cardId[], display/output order
 let cardCounts = {}; // cardId -> count
 const imageCache = {}; // cardId -> HTMLImageElement
 
-let aspectRatio = "4:3";
-let orientation = "landscape";
-let showName = false;
-let showCardName = false;
-let showManaCurve = false;
+// Aspect ratio/orientation are fixed (16:9 landscape) — no longer user-facing controls.
+const ASPECT_W = 16;
+const ASPECT_H = 9;
+
+let showName = true;
+let showCardName = true;
+let showManaCurve = true;
 
 let targetRects = []; // authoritative layout (hit-testing, hand-off to display positions)
 let displayPos = {}; // cardId -> {x, y} — current on-screen position, eased toward targetRects
@@ -33,17 +35,12 @@ const BASE_LONG_EDGE = 1600;
 const GAP = 14;
 const PADDING = 20;
 const NAME_LEFT_PADDING = PADDING + 14;
-const CURVE_RIGHT_MARGIN = PADDING + 24;
+const HEADER_SPLIT_GAP = 24; // gap between the deck-name half and the mana-curve half
+const CURVE_EDGE_MARGIN = 16; // inner margin around the mana curve within its own half
 
 function computeCanvasSize() {
-  const [rw, rh] = aspectRatio === "16:9" ? [16, 9] : [4, 3];
-  let w = rw;
-  let h = rh;
-  if (orientation === "portrait") {
-    [w, h] = [h, w];
-  }
-  const scale = BASE_LONG_EDGE / Math.max(w, h);
-  return { width: Math.round(w * scale), height: Math.round(h * scale) };
+  const scale = BASE_LONG_EDGE / ASPECT_W;
+  return { width: Math.round(ASPECT_W * scale), height: Math.round(ASPECT_H * scale) };
 }
 
 // Finds the column count that lets a 63:88 card render as large as possible
@@ -261,10 +258,18 @@ function renderFrame() {
   ctx.fillRect(0, 0, width, 6);
 
   if (showName || showManaCurve) {
-    const curveW = showManaCurve ? Math.min(width * 0.42, 460) : 0;
+    // Split the blank area above the cards into a left half (deck name) and
+    // a right half (mana curve).
+    const headerContentW = width - PADDING * 2;
+    const halfW = (headerContentW - HEADER_SPLIT_GAP) / 2;
+    const nameAreaX = PADDING;
+    const nameAreaW = halfW;
+    const curveAreaX = PADDING + halfW + HEADER_SPLIT_GAP;
+    const curveAreaW = halfW;
 
     if (showName && deck) {
-      const nameMaxWidth = width - NAME_LEFT_PADDING - PADDING - (showManaCurve ? curveW + CURVE_RIGHT_MARGIN : 0);
+      const nameX = nameAreaX + (NAME_LEFT_PADDING - PADDING);
+      const nameMaxWidth = nameAreaW - (NAME_LEFT_PADDING - PADDING);
       let fontSize = Math.round(headerHeight * 0.4);
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
@@ -275,12 +280,14 @@ function renderFrame() {
         fontSize = Math.max(12, Math.floor(fontSize * (nameMaxWidth / textWidth)));
         ctx.font = `700 ${fontSize}px ${FONT_STACK}`;
       }
-      ctx.fillText(deck.name, NAME_LEFT_PADDING, headerHeight / 2 + 3);
+      ctx.fillText(deck.name, nameX, headerHeight / 2 + 3);
     }
     if (showManaCurve) {
-      const curveH = headerHeight * 0.7;
-      const curveY = (headerHeight - curveH) / 2 + 3;
-      drawManaCurve(ctx, width - curveW - CURVE_RIGHT_MARGIN, curveY, curveW, curveH);
+      const curveX = curveAreaX + CURVE_EDGE_MARGIN;
+      const curveY = CURVE_EDGE_MARGIN + 3;
+      const curveW = curveAreaW - CURVE_EDGE_MARGIN * 2;
+      const curveH = headerHeight - CURVE_EDGE_MARGIN * 2;
+      drawManaCurve(ctx, curveX, curveY, curveW, curveH);
     }
   }
 
@@ -492,34 +499,6 @@ async function persistOrder() {
 }
 
 // ---- Controls ----
-
-const ratioButtons = [...document.querySelectorAll("#ratio-toggle .export-toggle-btn")];
-function updateRatioButtons() {
-  for (const btn of ratioButtons) btn.setAttribute("aria-pressed", String(btn.dataset.ratio === aspectRatio));
-}
-for (const btn of ratioButtons) {
-  btn.addEventListener("click", () => {
-    aspectRatio = btn.dataset.ratio;
-    updateRatioButtons();
-    updateLayout();
-  });
-}
-updateRatioButtons();
-
-const orientationButtons = [...document.querySelectorAll("#orientation-toggle .export-toggle-btn")];
-function updateOrientationButtons() {
-  for (const btn of orientationButtons) {
-    btn.setAttribute("aria-pressed", String(btn.dataset.orientation === orientation));
-  }
-}
-for (const btn of orientationButtons) {
-  btn.addEventListener("click", () => {
-    orientation = btn.dataset.orientation;
-    updateOrientationButtons();
-    updateLayout();
-  });
-}
-updateOrientationButtons();
 
 document.getElementById("show-name-checkbox").addEventListener("change", (e) => {
   showName = e.target.checked;
