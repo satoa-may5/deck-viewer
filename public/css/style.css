@@ -1286,50 +1286,78 @@ button {
   box-shadow: 0 6px 16px rgba(91, 110, 245, 0.3);
 }
 
-/* ---- Card filter bar (pool-detail / builder collection pane) ----
-   Anchored to .list-toolbar (which needs position:relative) and rendered as an
-   overlay dropdown — it floats above the card list below rather than pushing
-   it down, since expand/collapse here is meant to feel like a popover. */
+/* ---- Card filter sidebar (pool-detail / builder collection pane) ----
+   Displayed persistently to the right of the card list (no expand/collapse). */
 
 .list-toolbar {
   position: relative;
 }
 
-.filter-bar {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 40;
+.content-with-filter {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.content-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.filter-sidebar {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   gap: 12px;
-  min-width: 280px;
-  max-width: min(90vw, 420px);
-  background: var(--surface);
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.filter-box {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 14px 16px;
-  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  background: var(--surface);
 }
 
-.filter-group {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-}
-
-.filter-group-label {
+.filter-box-title {
+  padding: 6px 12px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
   font-size: 0.78rem;
   font-weight: 700;
   color: var(--muted);
-  margin-right: 2px;
 }
 
-.filter-group:empty {
-  display: none;
+.filter-box-body {
+  padding: 10px 12px;
+}
+
+.filter-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-horizontal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filter-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.filter-checkbox-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
 }
 
 .filter-pill {
@@ -1369,6 +1397,104 @@ button {
   height: 16px;
   accent-color: var(--accent);
   cursor: pointer;
+}
+
+/* ---- Cost range slider (twin overlapping <input type="range">) ---- */
+
+.range-slider-wrap {
+  position: relative;
+  height: 24px;
+  margin: 4px 2px 0;
+}
+
+.range-slider-track {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 4px;
+  transform: translateY(-50%);
+  background: var(--border);
+  border-radius: 999px;
+}
+
+.range-slider-fill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: var(--accent-grad);
+  border-radius: 999px;
+}
+
+.range-slider-wrap input[type="range"] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 24px;
+  margin: 0;
+  background: transparent;
+  pointer-events: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.range-slider-wrap input[type="range"]::-webkit-slider-runnable-track {
+  background: transparent;
+}
+
+.range-slider-wrap input[type="range"]::-moz-range-track {
+  background: transparent;
+}
+
+.range-slider-wrap input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  pointer-events: auto;
+  margin-top: 4px;
+}
+
+.range-slider-wrap input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.range-slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+@media (max-width: 700px) {
+  .content-with-filter {
+    flex-direction: column;
+  }
+
+  .filter-sidebar {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .filter-sidebar .filter-box {
+    flex: 1;
+    min-width: 140px;
+  }
 }
 
 /* ---- Crop tool ---- */

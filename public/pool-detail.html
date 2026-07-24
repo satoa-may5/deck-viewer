@@ -31,24 +31,7 @@
     </div>
 
     <div class="list-toolbar">
-      <button type="button" class="btn" id="filter-toggle-btn">絞り込み</button>
       <button type="button" class="btn" id="select-mode-btn">選択して削除</button>
-
-      <div class="filter-bar" id="filter-bar" hidden>
-        <div class="filter-group" id="filter-type-group">
-          <span class="filter-group-label">タイプ</span>
-        </div>
-        <div class="filter-group" id="filter-color-group">
-          <span class="filter-group-label">色</span>
-        </div>
-        <div class="filter-group" id="filter-cost-group">
-          <span class="filter-group-label">必要エナジー</span>
-        </div>
-        <label class="filter-checkbox">
-          <input type="checkbox" id="filter-parallel-checkbox" /> パラレルを除外
-        </label>
-        <button type="button" class="btn" id="filter-clear-btn">リセット</button>
-      </div>
     </div>
 
     <div class="selection-bar" id="selection-bar" hidden>
@@ -57,7 +40,50 @@
       <button type="button" class="btn" id="selection-cancel-btn">キャンセル</button>
     </div>
 
-    <div id="card-list"></div>
+    <div class="content-with-filter">
+      <div class="content-main">
+        <div id="card-list"></div>
+      </div>
+
+      <aside class="filter-sidebar" id="filter-bar">
+        <div class="filter-box">
+          <div class="filter-box-title">タイプ</div>
+          <div class="filter-box-body filter-vertical" id="filter-type-group"></div>
+        </div>
+
+        <div class="filter-box">
+          <div class="filter-box-title">色</div>
+          <div class="filter-box-body filter-horizontal" id="filter-color-group"></div>
+        </div>
+
+        <div class="filter-box">
+          <div class="filter-box-title">必要エナジー</div>
+          <div class="filter-box-body">
+            <div class="range-slider-wrap">
+              <div class="range-slider-track">
+                <div class="range-slider-fill" id="filter-cost-fill"></div>
+              </div>
+              <input type="range" id="filter-cost-min" min="0" max="15" step="1" value="0" />
+              <input type="range" id="filter-cost-max" min="0" max="15" step="1" value="15" />
+            </div>
+            <div class="range-slider-labels">
+              <span id="filter-cost-min-label">0</span>
+              <span id="filter-cost-max-label">15</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-box">
+          <div class="filter-box-body">
+            <label class="filter-checkbox">
+              <input type="checkbox" id="filter-parallel-checkbox" /> パラレルを除外
+            </label>
+          </div>
+        </div>
+
+        <button type="button" class="btn" id="filter-clear-btn">リセット</button>
+      </aside>
+    </div>
 
     <button type="button" class="fab" id="open-add-card-btn">＋</button>
 

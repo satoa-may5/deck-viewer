@@ -142,36 +142,51 @@ async function renderCards() {
   }
 }
 
-// ---- Filtering (type / color / cost / parallel) ----
+// ---- Filtering (type / color / cost range / parallel) ----
 
-// Common TCG color names mapped to a swatch so filter pills for color can show
-// the actual color as a border (and, when active, a fill) instead of looking
-// like every other plain pill. Free-text colors outside this list just fall
-// back to the default pill styling.
+// UAのカードは5色(赤/青/緑/黄/紫)のみ。常にこの5色を表示する(データに存在するかは問わない)。
+const CARD_COLORS = ["赤", "青", "緑", "黄", "紫"];
+
 const COLOR_SWATCHES = {
   "赤": { bg: "#e53e3e", text: "#fff" },
   "青": { bg: "#3182ce", text: "#fff" },
   "緑": { bg: "#38a169", text: "#fff" },
   "黄": { bg: "#d69e2e", text: "#1a202c" },
   "紫": { bg: "#805ad5", text: "#fff" },
-  "白": { bg: "#e2e8f0", text: "#1a202c" },
-  "黒": { bg: "#2d3748", text: "#fff" },
-  "無": { bg: "#a0aec0", text: "#1a202c" },
 };
 
-const filterState = { types: new Set(), colors: new Set(), costs: new Set(), excludeParallel: false };
+const COST_RANGE_MIN = 0;
+const COST_RANGE_MAX = 15;
 
-const filterBar = document.getElementById("filter-bar");
-const filterToggleBtn = document.getElementById("filter-toggle-btn");
+const filterState = {
+  types: new Set(),
+  colors: new Set(),
+  costMin: COST_RANGE_MIN,
+  costMax: COST_RANGE_MAX,
+  excludeParallel: false,
+};
+
 const filterTypeGroup = document.getElementById("filter-type-group");
 const filterColorGroup = document.getElementById("filter-color-group");
-const filterCostGroup = document.getElementById("filter-cost-group");
 const filterParallelCheckbox = document.getElementById("filter-parallel-checkbox");
 const filterClearBtn = document.getElementById("filter-clear-btn");
+const filterCostMinInput = document.getElementById("filter-cost-min");
+const filterCostMaxInput = document.getElementById("filter-cost-max");
+const filterCostFill = document.getElementById("filter-cost-fill");
+const filterCostMinLabel = document.getElementById("filter-cost-min-label");
+const filterCostMaxLabel = document.getElementById("filter-cost-max-label");
 
-filterToggleBtn.addEventListener("click", () => {
-  filterBar.hidden = !filterBar.hidden;
-});
+function createFilterCheckbox(label, checked, onChange) {
+  const wrapper = document.createElement("label");
+  wrapper.className = "filter-checkbox-item";
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.checked = checked;
+  input.addEventListener("change", () => onChange(input.checked));
+  wrapper.appendChild(input);
+  wrapper.appendChild(document.createTextNode(label));
+  return wrapper;
+}
 
 function createFilterPill(label, active, onClick) {
   const btn = document.createElement("button");
@@ -198,27 +213,47 @@ function toggleInSet(set, value) {
   else set.add(value);
 }
 
-function clearPills(group) {
-  group.querySelectorAll(".filter-pill").forEach((el) => el.remove());
+function updateCostSliderUI() {
+  const range = COST_RANGE_MAX - COST_RANGE_MIN;
+  const leftPct = ((filterState.costMin - COST_RANGE_MIN) / range) * 100;
+  const rightPct = ((filterState.costMax - COST_RANGE_MIN) / range) * 100;
+  filterCostFill.style.left = `${leftPct}%`;
+  filterCostFill.style.width = `${rightPct - leftPct}%`;
+  filterCostMinLabel.textContent = filterState.costMin;
+  filterCostMaxLabel.textContent = filterState.costMax;
+  filterCostMinInput.value = filterState.costMin;
+  filterCostMaxInput.value = filterState.costMax;
 }
 
-function updateFilterUI(cards) {
-  clearPills(filterTypeGroup);
+filterCostMinInput.addEventListener("input", () => {
+  let value = Number(filterCostMinInput.value);
+  if (value > filterState.costMax) value = filterState.costMax;
+  filterState.costMin = value;
+  updateCostSliderUI();
+  renderCards();
+});
+
+filterCostMaxInput.addEventListener("input", () => {
+  let value = Number(filterCostMaxInput.value);
+  if (value < filterState.costMin) value = filterState.costMin;
+  filterState.costMax = value;
+  updateCostSliderUI();
+  renderCards();
+});
+
+function updateFilterUI() {
+  filterTypeGroup.innerHTML = "";
   for (const [value, label] of Object.entries(CARD_TYPE_LABELS)) {
-    // Always shown, even if no card currently has this type — type is a fixed,
-    // known set of options, unlike color/cost which only make sense to offer
-    // once at least one card actually uses that value.
     filterTypeGroup.appendChild(
-      createFilterPill(label, filterState.types.has(value), () => {
+      createFilterCheckbox(label, filterState.types.has(value), () => {
         toggleInSet(filterState.types, value);
         renderCards();
       })
     );
   }
 
-  clearPills(filterColorGroup);
-  const colors = [...new Set(cards.map((c) => c.color).filter(Boolean))].sort();
-  for (const color of colors) {
+  filterColorGroup.innerHTML = "";
+  for (const color of CARD_COLORS) {
     const active = filterState.colors.has(color);
     const pill = createFilterPill(color, active, () => {
       toggleInSet(filterState.colors, color);
@@ -228,19 +263,7 @@ function updateFilterUI(cards) {
     filterColorGroup.appendChild(pill);
   }
 
-  clearPills(filterCostGroup);
-  const costs = [...new Set(cards.map((c) => c.cost).filter((c) => c !== null && c !== undefined))].sort(
-    (a, b) => a - b
-  );
-  for (const cost of costs) {
-    filterCostGroup.appendChild(
-      createFilterPill(String(cost), filterState.costs.has(cost), () => {
-        toggleInSet(filterState.costs, cost);
-        renderCards();
-      })
-    );
-  }
-
+  updateCostSliderUI();
   filterParallelCheckbox.checked = filterState.excludeParallel;
 }
 
@@ -252,15 +275,20 @@ filterParallelCheckbox.addEventListener("change", () => {
 filterClearBtn.addEventListener("click", () => {
   filterState.types.clear();
   filterState.colors.clear();
-  filterState.costs.clear();
+  filterState.costMin = COST_RANGE_MIN;
+  filterState.costMax = COST_RANGE_MAX;
   filterState.excludeParallel = false;
+  updateFilterUI();
   renderCards();
 });
 
 function cardMatchesFilters(card) {
   if (filterState.types.size > 0 && !filterState.types.has(card.type)) return false;
   if (filterState.colors.size > 0 && !filterState.colors.has(card.color)) return false;
-  if (filterState.costs.size > 0 && !filterState.costs.has(card.cost)) return false;
+  if (filterState.costMin > COST_RANGE_MIN || filterState.costMax < COST_RANGE_MAX) {
+    if (card.cost === null || card.cost === undefined) return false;
+    if (card.cost < filterState.costMin || card.cost > filterState.costMax) return false;
+  }
   if (filterState.excludeParallel && card.parallel) return false;
   return true;
 }
