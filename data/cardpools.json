@@ -12,5 +12,12 @@
     "favorite": false,
     "createdAt": "2026-07-24T20:43:46.823Z",
     "thumbnailCardId": "card-1784926332731"
+  },
+  {
+    "id": "pool-1784930070534",
+    "name": "[UA] チェンソーマン",
+    "favorite": false,
+    "thumbnailCardId": "card-1784930070636",
+    "createdAt": "2026-07-24T21:54:30.534Z"
   }
 ]
