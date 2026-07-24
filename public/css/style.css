@@ -827,6 +827,43 @@ button {
   font-size: 0.78rem;
 }
 
+.card-caption.cost {
+  margin-top: 2px;
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 0.78rem;
+}
+
+.grid-rename-input {
+  width: 100%;
+  padding: 3px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.grid-rename-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-tint);
+}
+
+.grid-tile-actions {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.grid-tile-actions .icon-btn {
+  width: 28px;
+  height: 28px;
+  font-size: 0.8rem;
+}
+
 .empty-state {
   color: var(--muted);
   padding: 52px 20px;

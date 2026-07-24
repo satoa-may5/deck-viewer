@@ -1,4 +1,4 @@
-const CACHE_NAME = "deck-viewer-shell-v31";
+const CACHE_NAME = "deck-viewer-shell-v32";
 const SHELL_FILES = [
   "index.html",
   "deck-view.html",

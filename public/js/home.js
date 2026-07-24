@@ -3,6 +3,8 @@ const panelDecks = document.getElementById("panel-decks");
 const panelPools = document.getElementById("panel-pools");
 const deckListEl = document.getElementById("deck-list");
 const poolListEl = document.getElementById("pool-list");
+const poolViewToggle = document.getElementById("pool-view-toggle");
+const deckViewToggle = document.getElementById("deck-view-toggle");
 
 const ACTIVE_TAB_KEY = "deck-viewer-active-tab";
 let activeTab = localStorage.getItem(ACTIVE_TAB_KEY) || "decks";
@@ -23,25 +25,43 @@ tabs.addEventListener("click", (e) => {
   setActiveTab(btn.dataset.tab);
 });
 
-function createReorderButtons(onMoveUp, onMoveDown, { isFirst, isLast }) {
-  const wrap = document.createElement("div");
-  wrap.className = "reorder-btns";
+// ---- View mode (list / grid), default grid, per list ----
 
-  const upBtn = document.createElement("button");
-  upBtn.type = "button";
-  upBtn.textContent = "▲";
-  upBtn.disabled = isFirst;
-  upBtn.addEventListener("click", onMoveUp);
+const POOL_VIEW_KEY = "deck-viewer-home-pool-view";
+const DECK_VIEW_KEY = "deck-viewer-home-deck-view";
+let poolViewMode = localStorage.getItem(POOL_VIEW_KEY) || "grid";
+let deckViewMode = localStorage.getItem(DECK_VIEW_KEY) || "grid";
 
-  const downBtn = document.createElement("button");
-  downBtn.type = "button";
-  downBtn.textContent = "▼";
-  downBtn.disabled = isLast;
-  downBtn.addEventListener("click", onMoveDown);
+function updateViewToggleUI(toggleEl, mode) {
+  for (const btn of toggleEl.querySelectorAll(".view-toggle-btn")) {
+    btn.classList.toggle("active", btn.dataset.view === mode);
+  }
+}
 
-  wrap.appendChild(upBtn);
-  wrap.appendChild(downBtn);
-  return wrap;
+poolViewToggle.addEventListener("click", (e) => {
+  const btn = e.target.closest(".view-toggle-btn");
+  if (!btn) return;
+  poolViewMode = btn.dataset.view;
+  localStorage.setItem(POOL_VIEW_KEY, poolViewMode);
+  updateViewToggleUI(poolViewToggle, poolViewMode);
+  renderPools();
+});
+
+deckViewToggle.addEventListener("click", (e) => {
+  const btn = e.target.closest(".view-toggle-btn");
+  if (!btn) return;
+  deckViewMode = btn.dataset.view;
+  localStorage.setItem(DECK_VIEW_KEY, deckViewMode);
+  updateViewToggleUI(deckViewToggle, deckViewMode);
+  renderDecks();
+});
+
+function dragHandle() {
+  const span = document.createElement("span");
+  span.className = "drag-handle";
+  span.innerHTML =
+    '<svg viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+  return span;
 }
 
 function createMenu(actionDefs) {
@@ -59,7 +79,8 @@ function createMenu(actionDefs) {
     btn.type = "button";
     btn.textContent = label;
     if (danger) btn.className = "danger";
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
       menu.open = false;
       await onClick();
     });
@@ -108,31 +129,129 @@ function startRename(row, currentName, onSave, onCancel) {
   input.select();
 }
 
+// Same rename interaction as startRename, but for a compact grid tile caption
+// (used by pool/deck grid tiles) rather than a full list row.
+function startCaptionRename(captionEl, currentName, onSave, onCancel) {
+  captionEl.innerHTML = "";
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "grid-rename-input";
+  input.value = currentName;
+
+  let done = false;
+  const finish = async (commit) => {
+    if (done) return;
+    done = true;
+    if (commit) {
+      const name = input.value.trim();
+      if (name) {
+        await onSave(name);
+        return;
+      }
+    }
+    onCancel();
+  };
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") finish(true);
+    if (e.key === "Escape") finish(false);
+  });
+  input.addEventListener("blur", () => finish(true));
+
+  captionEl.appendChild(input);
+  input.focus();
+  input.select();
+}
+
+function createThumbnailFrame(thumbnailUrl, name, onClick) {
+  const frame = document.createElement("div");
+  frame.className = "card-frame editable-frame";
+  if (thumbnailUrl) {
+    const img = document.createElement("img");
+    img.src = thumbnailUrl;
+    img.alt = name;
+    img.draggable = false;
+    frame.appendChild(img);
+  } else {
+    frame.classList.add("missing");
+    frame.textContent = "🂠";
+  }
+  frame.addEventListener("click", onClick);
+  return frame;
+}
+
 // ---- Decks ----
 
 async function renderDecks() {
   const decks = await Api.getDecks();
-  deckListEl.innerHTML = "";
-  for (let i = 0; i < decks.length; i++) {
-    deckListEl.appendChild(
-      createDeckRow(decks[i], { isFirst: i === 0, isLast: i === decks.length - 1 }, decks)
-    );
+  if (decks.length === 0) {
+    deckListEl.className = "";
+    deckListEl.innerHTML = '<div class="empty-state">まだデッキがありません。上の「＋ デッキを作る」から作成してください。</div>';
+    return;
+  }
+  if (deckViewMode === "grid") {
+    deckListEl.className = "grid";
+    deckListEl.innerHTML = "";
+    for (const deck of decks) deckListEl.appendChild(createDeckGridItem(deck));
+  } else {
+    deckListEl.className = "deck-list";
+    deckListEl.innerHTML = "";
+    for (const deck of decks) deckListEl.appendChild(createDeckRow(deck));
   }
 }
 
-function createDeckRow(deck, position, decks) {
+function deckMenuActions(deck, row) {
+  return [
+    {
+      label: "リネーム",
+      onClick: () => {
+        startRename(
+          row,
+          deck.name,
+          async (name) => {
+            const full = await Api.getDeck(deck.id);
+            await Api.saveDeck({
+              id: deck.id,
+              name,
+              cards: full.cards,
+              poolIds: full.poolIds || [],
+              thumbnailCardId: full.thumbnailCardId || null,
+            });
+            await renderDecks();
+          },
+          renderDecks
+        );
+      },
+    },
+    {
+      label: "複製",
+      onClick: async () => {
+        const full = await Api.getDeck(deck.id);
+        await Api.saveDeck({
+          name: `${deck.name} のコピー`,
+          cards: full.cards,
+          poolIds: full.poolIds || [],
+          thumbnailCardId: full.thumbnailCardId || null,
+        });
+        await renderDecks();
+      },
+    },
+    {
+      label: "削除",
+      danger: true,
+      onClick: async () => {
+        if (!(await showConfirm(`「${deck.name}」を削除します。よろしいですか?`))) return;
+        await Api.deleteDeck(deck.id);
+        await renderDecks();
+      },
+    },
+  ];
+}
+
+function createDeckRow(deck) {
   const row = document.createElement("div");
   row.className = "deck-row";
-
-  const reorder = createReorderButtons(
-    async () => {
-      await moveDeck(decks, deck.id, -1);
-    },
-    async () => {
-      await moveDeck(decks, deck.id, 1);
-    },
-    position
-  );
+  row.dataset.id = deck.id;
 
   const info = document.createElement("div");
   info.className = "deck-info";
@@ -156,44 +275,7 @@ function createDeckRow(deck, position, decks) {
   editLink.href = `builder.html?id=${encodeURIComponent(deck.id)}`;
   editLink.textContent = "編集";
 
-  const menu = createMenu([
-    {
-      label: "リネーム",
-      onClick: () => {
-        startRename(
-          row,
-          deck.name,
-          async (name) => {
-            const full = await Api.getDeck(deck.id);
-            await Api.saveDeck({ id: deck.id, name, cards: full.cards, poolIds: full.poolIds || [] });
-            await renderDecks();
-          },
-          renderDecks
-        );
-      },
-    },
-    {
-      label: "複製",
-      onClick: async () => {
-        const full = await Api.getDeck(deck.id);
-        await Api.saveDeck({
-          name: `${deck.name} のコピー`,
-          cards: full.cards,
-          poolIds: full.poolIds || [],
-        });
-        await renderDecks();
-      },
-    },
-    {
-      label: "削除",
-      danger: true,
-      onClick: async () => {
-        if (!(await showConfirm(`「${deck.name}」を削除します。よろしいですか?`))) return;
-        await Api.deleteDeck(deck.id);
-        await renderDecks();
-      },
-    },
-  ]);
+  const menu = createMenu(deckMenuActions(deck, row));
 
   actions.appendChild(viewLink);
   actions.appendChild(editLink);
@@ -201,7 +283,7 @@ function createDeckRow(deck, position, decks) {
 
   const main = document.createElement("div");
   main.className = "deck-row-main";
-  main.appendChild(reorder);
+  main.appendChild(dragHandle());
   main.appendChild(info);
 
   row.appendChild(main);
@@ -209,31 +291,130 @@ function createDeckRow(deck, position, decks) {
   return row;
 }
 
-async function moveDeck(decks, deckId, delta) {
-  const ids = decks.map((d) => d.id);
-  const index = ids.indexOf(deckId);
-  const target = index + delta;
-  if (target < 0 || target >= ids.length) return;
-  [ids[index], ids[target]] = [ids[target], ids[index]];
-  await Api.reorderDecks(ids);
-  await renderDecks();
+function createDeckGridItem(deck) {
+  const item = document.createElement("div");
+  item.className = "card-item";
+  item.dataset.id = deck.id;
+
+  const frame = createThumbnailFrame(deck.thumbnailUrl, deck.name, () => {
+    location.href = `builder.html?id=${encodeURIComponent(deck.id)}`;
+  });
+  item.appendChild(frame);
+
+  const caption = document.createElement("div");
+  caption.className = "card-caption";
+  caption.textContent = deck.name;
+  item.appendChild(caption);
+
+  const sub = document.createElement("div");
+  sub.className = "card-caption cost";
+  sub.textContent = `合計 ${deck.totalCount}枚`;
+  item.appendChild(sub);
+
+  const tileActions = document.createElement("div");
+  tileActions.className = "grid-tile-actions";
+
+  const viewBtn = document.createElement("a");
+  viewBtn.className = "icon-btn";
+  viewBtn.title = "表示";
+  viewBtn.textContent = "▶";
+  viewBtn.href = `deck-view.html?id=${encodeURIComponent(deck.id)}`;
+
+  const renameBtn = document.createElement("button");
+  renameBtn.type = "button";
+  renameBtn.className = "icon-btn";
+  renameBtn.title = "リネーム";
+  renameBtn.textContent = "✎";
+  renameBtn.addEventListener("click", () => {
+    startCaptionRename(
+      caption,
+      deck.name,
+      async (name) => {
+        const full = await Api.getDeck(deck.id);
+        await Api.saveDeck({
+          id: deck.id,
+          name,
+          cards: full.cards,
+          poolIds: full.poolIds || [],
+          thumbnailCardId: full.thumbnailCardId || null,
+        });
+        await renderDecks();
+      },
+      renderDecks
+    );
+  });
+
+  const copyBtn = document.createElement("button");
+  copyBtn.type = "button";
+  copyBtn.className = "icon-btn";
+  copyBtn.title = "複製";
+  copyBtn.textContent = "⧉";
+  copyBtn.addEventListener("click", async () => {
+    const full = await Api.getDeck(deck.id);
+    await Api.saveDeck({
+      name: `${deck.name} のコピー`,
+      cards: full.cards,
+      poolIds: full.poolIds || [],
+      thumbnailCardId: full.thumbnailCardId || null,
+    });
+    await renderDecks();
+  });
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "icon-btn danger";
+  deleteBtn.title = "削除";
+  deleteBtn.textContent = "🗑";
+  deleteBtn.addEventListener("click", async () => {
+    if (!(await showConfirm(`「${deck.name}」を削除します。よろしいですか?`))) return;
+    await Api.deleteDeck(deck.id);
+    await renderDecks();
+  });
+
+  tileActions.appendChild(viewBtn);
+  tileActions.appendChild(renameBtn);
+  tileActions.appendChild(copyBtn);
+  tileActions.appendChild(deleteBtn);
+  item.appendChild(tileActions);
+
+  return item;
 }
+
+makeSortable(deckListEl, {
+  itemSelector: ".deck-row",
+  onReorder: async (order) => {
+    await Api.reorderDecks(order);
+    await renderDecks();
+  },
+});
+
+makeSortable(deckListEl, {
+  itemSelector: ".card-item",
+  handleSelector: ".card-frame",
+  axis: "grid",
+  onReorder: async (order) => {
+    await Api.reorderDecks(order);
+    await renderDecks();
+  },
+});
 
 // ---- Card pools ----
 
-function dragHandle() {
-  const span = document.createElement("span");
-  span.className = "drag-handle";
-  span.innerHTML =
-    '<svg viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
-  return span;
-}
-
 async function renderPools() {
   const pools = await Api.getPools();
-  poolListEl.innerHTML = "";
-  for (const pool of pools) {
-    poolListEl.appendChild(createPoolRow(pool));
+  if (pools.length === 0) {
+    poolListEl.className = "";
+    poolListEl.innerHTML = '<div class="empty-state">まだカードプールがありません。上の「＋ カードプールを作る」から作成してください。</div>';
+    return;
+  }
+  if (poolViewMode === "grid") {
+    poolListEl.className = "grid";
+    poolListEl.innerHTML = "";
+    for (const pool of pools) poolListEl.appendChild(createPoolGridItem(pool));
+  } else {
+    poolListEl.className = "deck-list";
+    poolListEl.innerHTML = "";
+    for (const pool of pools) poolListEl.appendChild(createPoolRow(pool));
   }
 }
 
@@ -316,8 +497,94 @@ function createPoolRow(pool) {
   return row;
 }
 
+function createPoolGridItem(pool) {
+  const item = document.createElement("div");
+  item.className = "card-item";
+  item.dataset.id = pool.id;
+
+  const frame = createThumbnailFrame(pool.thumbnailUrl, pool.name, () => {
+    location.href = `pool-detail.html?id=${encodeURIComponent(pool.id)}`;
+  });
+
+  const favBtn = document.createElement("button");
+  favBtn.type = "button";
+  favBtn.className = "grid-thumbnail-btn" + (pool.favorite ? " active" : "");
+  favBtn.title = "お気に入り";
+  favBtn.textContent = pool.favorite ? "★" : "☆";
+  favBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
+  favBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    await Api.updatePool(pool.id, { favorite: !pool.favorite });
+    await renderPools();
+  });
+  frame.appendChild(favBtn);
+
+  item.appendChild(frame);
+
+  const caption = document.createElement("div");
+  caption.className = "card-caption";
+  caption.textContent = pool.name;
+  item.appendChild(caption);
+
+  const sub = document.createElement("div");
+  sub.className = "card-caption cost";
+  sub.textContent = `${pool.cardCount}枚のカード`;
+  item.appendChild(sub);
+
+  const tileActions = document.createElement("div");
+  tileActions.className = "grid-tile-actions";
+
+  const renameBtn = document.createElement("button");
+  renameBtn.type = "button";
+  renameBtn.className = "icon-btn";
+  renameBtn.title = "リネーム";
+  renameBtn.textContent = "✎";
+  renameBtn.addEventListener("click", () => {
+    startCaptionRename(
+      caption,
+      pool.name,
+      async (name) => {
+        await Api.renamePool(pool.id, name);
+        await renderPools();
+      },
+      renderPools
+    );
+  });
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "icon-btn danger";
+  deleteBtn.title = "削除";
+  deleteBtn.textContent = "🗑";
+  deleteBtn.addEventListener("click", async () => {
+    const warning =
+      pool.cardCount > 0
+        ? `「${pool.name}」を削除します。プール内の${pool.cardCount}枚のカードも一緒に削除されます。よろしいですか?`
+        : `「${pool.name}」を削除します。よろしいですか?`;
+    if (!(await showConfirm(warning))) return;
+    await Api.deletePool(pool.id);
+    await renderPools();
+  });
+
+  tileActions.appendChild(renameBtn);
+  tileActions.appendChild(deleteBtn);
+  item.appendChild(tileActions);
+
+  return item;
+}
+
 makeSortable(poolListEl, {
   itemSelector: ".deck-row",
+  onReorder: async (order) => {
+    await Api.reorderPools(order);
+    await renderPools();
+  },
+});
+
+makeSortable(poolListEl, {
+  itemSelector: ".card-item",
+  handleSelector: ".card-frame",
+  axis: "grid",
   onReorder: async (order) => {
     await Api.reorderPools(order);
     await renderPools();
@@ -327,6 +594,21 @@ makeSortable(poolListEl, {
 document.getElementById("create-pool-row").addEventListener("click", async () => {
   const pool = await Api.createPool("新しいカードプール");
   await renderPools();
+  if (poolViewMode === "grid") {
+    const item = poolListEl.querySelector(`[data-id="${pool.id}"]`);
+    const caption = item && item.querySelector(".card-caption");
+    if (!caption) return;
+    startCaptionRename(
+      caption,
+      pool.name,
+      async (name) => {
+        await Api.renamePool(pool.id, name);
+        await renderPools();
+      },
+      renderPools
+    );
+    return;
+  }
   const row = poolListEl.querySelector(`[data-id="${pool.id}"]`);
   if (!row) return;
   startRename(
@@ -340,7 +622,7 @@ document.getElementById("create-pool-row").addEventListener("click", async () =>
   );
 });
 
-// ---- Import card pool (git-based sharing) ----
+// ---- Import card pool (pre-bundled, read-only) ----
 
 const importPoolBtn = document.getElementById("import-pool-btn");
 const importModal = document.getElementById("import-pool-modal");
@@ -405,6 +687,8 @@ importPoolBtn.addEventListener("click", openImportModal);
 document.getElementById("close-import-modal-btn").addEventListener("click", closeImportModal);
 bindModalDismissal(importModal, { onCancel: closeImportModal });
 
+updateViewToggleUI(poolViewToggle, poolViewMode);
+updateViewToggleUI(deckViewToggle, deckViewMode);
 setActiveTab(activeTab);
 renderDecks();
 renderPools();

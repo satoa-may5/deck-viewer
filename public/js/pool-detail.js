@@ -7,7 +7,7 @@ const cardListEl = document.getElementById("card-list");
 const viewToggle = document.getElementById("view-toggle");
 
 const VIEW_MODE_KEY = "deck-viewer-pool-view-mode";
-let viewMode = localStorage.getItem(VIEW_MODE_KEY) || "list";
+let viewMode = localStorage.getItem(VIEW_MODE_KEY) || "grid";
 let latestCards = [];
 let currentPool = null;
 

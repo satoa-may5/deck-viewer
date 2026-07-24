@@ -23,6 +23,10 @@
       <div class="tab-body">
         <div class="tab-panel" id="panel-pools">
           <div class="list-toolbar">
+            <div class="view-toggle" id="pool-view-toggle">
+              <button type="button" class="view-toggle-btn" data-view="list" title="一覧表示">☰</button>
+              <button type="button" class="view-toggle-btn" data-view="grid" title="グリッド表示">▦</button>
+            </div>
             <button type="button" class="btn" id="import-pool-btn">カードプールをインポート</button>
           </div>
           <button type="button" class="ghost-row" id="create-pool-row">＋ カードプールを作る</button>
@@ -30,6 +34,12 @@
         </div>
 
         <div class="tab-panel" id="panel-decks">
+          <div class="list-toolbar">
+            <div class="view-toggle" id="deck-view-toggle">
+              <button type="button" class="view-toggle-btn" data-view="list" title="一覧表示">☰</button>
+              <button type="button" class="view-toggle-btn" data-view="grid" title="グリッド表示">▦</button>
+            </div>
+          </div>
           <a class="ghost-row" href="builder.html">＋ デッキを作る</a>
           <div class="deck-list" id="deck-list"></div>
         </div>
