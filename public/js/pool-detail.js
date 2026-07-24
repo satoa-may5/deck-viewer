@@ -121,17 +121,120 @@ selectionDeleteBtn.addEventListener("click", async () => {
 async function renderCards() {
   latestCards = await Api.getCards(poolId);
   cardCountEl.textContent = `${latestCards.length}枚`;
+  updateFilterUI(latestCards);
+  const visibleCards = latestCards.filter(cardMatchesFilters);
+
   if (latestCards.length === 0) {
     cardListEl.className = "";
     cardListEl.innerHTML =
       '<div class="empty-state">まだカードがありません。右下の＋ボタンから追加してください。</div>';
     return;
   }
-  if (viewMode === "grid") {
-    renderGridView(latestCards);
-  } else {
-    renderListView(latestCards);
+  if (visibleCards.length === 0) {
+    cardListEl.className = "";
+    cardListEl.innerHTML = '<div class="empty-state">絞り込み条件に一致するカードがありません。</div>';
+    return;
   }
+  if (viewMode === "grid") {
+    renderGridView(visibleCards);
+  } else {
+    renderListView(visibleCards);
+  }
+}
+
+// ---- Filtering (type / color / cost / parallel) ----
+
+const filterState = { types: new Set(), colors: new Set(), costs: new Set(), parallelOnly: false };
+
+const filterBar = document.getElementById("filter-bar");
+const filterToggleBtn = document.getElementById("filter-toggle-btn");
+const filterTypeGroup = document.getElementById("filter-type-group");
+const filterColorGroup = document.getElementById("filter-color-group");
+const filterCostGroup = document.getElementById("filter-cost-group");
+const filterParallelCheckbox = document.getElementById("filter-parallel-checkbox");
+const filterClearBtn = document.getElementById("filter-clear-btn");
+
+filterToggleBtn.addEventListener("click", () => {
+  filterBar.hidden = !filterBar.hidden;
+});
+
+function createFilterPill(label, active, onClick) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "filter-pill";
+  btn.setAttribute("aria-pressed", String(active));
+  btn.textContent = label;
+  btn.addEventListener("click", onClick);
+  return btn;
+}
+
+function toggleInSet(set, value) {
+  if (set.has(value)) set.delete(value);
+  else set.add(value);
+}
+
+function clearPills(group) {
+  group.querySelectorAll(".filter-pill").forEach((el) => el.remove());
+}
+
+function updateFilterUI(cards) {
+  clearPills(filterTypeGroup);
+  for (const [value, label] of Object.entries(CARD_TYPE_LABELS)) {
+    if (!cards.some((c) => c.type === value)) continue;
+    filterTypeGroup.appendChild(
+      createFilterPill(label, filterState.types.has(value), () => {
+        toggleInSet(filterState.types, value);
+        renderCards();
+      })
+    );
+  }
+
+  clearPills(filterColorGroup);
+  const colors = [...new Set(cards.map((c) => c.color).filter(Boolean))].sort();
+  for (const color of colors) {
+    filterColorGroup.appendChild(
+      createFilterPill(color, filterState.colors.has(color), () => {
+        toggleInSet(filterState.colors, color);
+        renderCards();
+      })
+    );
+  }
+
+  clearPills(filterCostGroup);
+  const costs = [...new Set(cards.map((c) => c.cost).filter((c) => c !== null && c !== undefined))].sort(
+    (a, b) => a - b
+  );
+  for (const cost of costs) {
+    filterCostGroup.appendChild(
+      createFilterPill(String(cost), filterState.costs.has(cost), () => {
+        toggleInSet(filterState.costs, cost);
+        renderCards();
+      })
+    );
+  }
+
+  filterParallelCheckbox.checked = filterState.parallelOnly;
+}
+
+filterParallelCheckbox.addEventListener("change", () => {
+  filterState.parallelOnly = filterParallelCheckbox.checked;
+  renderCards();
+});
+
+filterClearBtn.addEventListener("click", () => {
+  filterState.types.clear();
+  filterState.colors.clear();
+  filterState.costs.clear();
+  filterState.parallelOnly = false;
+  renderCards();
+});
+
+function cardMatchesFilters(card) {
+  if (filterState.types.size > 0 && !filterState.types.has(card.type)) return false;
+  if (filterState.colors.size > 0 && !filterState.colors.has(card.color)) return false;
+  if (filterState.costs.size > 0 && !filterState.costs.has(card.cost)) return false;
+  if (filterState.parallelOnly && !card.parallel) return false;
+  return true;
 }
 
 // ---- List view ----

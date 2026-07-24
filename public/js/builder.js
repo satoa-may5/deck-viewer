@@ -48,6 +48,102 @@ function toggleDeckThumbnail(cardId) {
   renderPanes();
 }
 
+// ---- Filtering (collection pane only: type / color / cost / parallel) ----
+
+const CARD_TYPE_LABELS = { character: "キャラクター", event: "イベント", field: "フィールド" };
+const filterState = { types: new Set(), colors: new Set(), costs: new Set(), parallelOnly: false };
+
+const filterBar = document.getElementById("filter-bar");
+const filterToggleBtn = document.getElementById("filter-toggle-btn");
+const filterTypeGroup = document.getElementById("filter-type-group");
+const filterColorGroup = document.getElementById("filter-color-group");
+const filterCostGroup = document.getElementById("filter-cost-group");
+const filterParallelCheckbox = document.getElementById("filter-parallel-checkbox");
+const filterClearBtn = document.getElementById("filter-clear-btn");
+
+filterToggleBtn.addEventListener("click", () => {
+  filterBar.hidden = !filterBar.hidden;
+});
+
+function createFilterPill(label, active, onClick) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "filter-pill";
+  btn.setAttribute("aria-pressed", String(active));
+  btn.textContent = label;
+  btn.addEventListener("click", onClick);
+  return btn;
+}
+
+function toggleInSet(set, value) {
+  if (set.has(value)) set.delete(value);
+  else set.add(value);
+}
+
+function clearPills(group) {
+  group.querySelectorAll(".filter-pill").forEach((el) => el.remove());
+}
+
+function updateFilterUI(cards) {
+  clearPills(filterTypeGroup);
+  for (const [value, label] of Object.entries(CARD_TYPE_LABELS)) {
+    if (!cards.some((c) => c.type === value)) continue;
+    filterTypeGroup.appendChild(
+      createFilterPill(label, filterState.types.has(value), () => {
+        toggleInSet(filterState.types, value);
+        renderPanes();
+      })
+    );
+  }
+
+  clearPills(filterColorGroup);
+  const colors = [...new Set(cards.map((c) => c.color).filter(Boolean))].sort();
+  for (const color of colors) {
+    filterColorGroup.appendChild(
+      createFilterPill(color, filterState.colors.has(color), () => {
+        toggleInSet(filterState.colors, color);
+        renderPanes();
+      })
+    );
+  }
+
+  clearPills(filterCostGroup);
+  const costs = [...new Set(cards.map((c) => c.cost).filter((c) => c !== null && c !== undefined))].sort(
+    (a, b) => a - b
+  );
+  for (const cost of costs) {
+    filterCostGroup.appendChild(
+      createFilterPill(String(cost), filterState.costs.has(cost), () => {
+        toggleInSet(filterState.costs, cost);
+        renderPanes();
+      })
+    );
+  }
+
+  filterParallelCheckbox.checked = filterState.parallelOnly;
+}
+
+filterParallelCheckbox.addEventListener("change", () => {
+  filterState.parallelOnly = filterParallelCheckbox.checked;
+  renderPanes();
+});
+
+filterClearBtn.addEventListener("click", () => {
+  filterState.types.clear();
+  filterState.colors.clear();
+  filterState.costs.clear();
+  filterState.parallelOnly = false;
+  renderPanes();
+});
+
+function cardMatchesFilters(card) {
+  if (filterState.types.size > 0 && !filterState.types.has(card.type)) return false;
+  if (filterState.colors.size > 0 && !filterState.colors.has(card.color)) return false;
+  if (filterState.costs.size > 0 && !filterState.costs.has(card.cost)) return false;
+  if (filterState.parallelOnly && !card.parallel) return false;
+  return true;
+}
+
 function renderPoolPicker() {
   poolCheckboxList.innerHTML = "";
   if (allPools.length === 0) {
@@ -93,9 +189,13 @@ function renderPanes() {
     collectionGrid.innerHTML = '<div class="empty-state">上で参照するカードプールを選択してください</div>';
     return;
   }
-  const visibleCards = allCards.filter((c) => selectedPoolIds.has(c.poolId));
-  if (visibleCards.length === 0) {
+  const poolCards = allCards.filter((c) => selectedPoolIds.has(c.poolId));
+  updateFilterUI(poolCards);
+  const visibleCards = poolCards.filter(cardMatchesFilters);
+  if (poolCards.length === 0) {
     collectionGrid.innerHTML = '<div class="empty-state">選択したカードプールにカードがありません。「カードを追加」から登録してください。</div>';
+  } else if (visibleCards.length === 0) {
+    collectionGrid.innerHTML = '<div class="empty-state">絞り込み条件に一致するカードがありません。</div>';
   } else {
     for (const card of visibleCards) {
       const count = deckCounts.get(card.id) || null;
