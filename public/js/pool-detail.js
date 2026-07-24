@@ -9,6 +9,13 @@ const viewToggle = document.getElementById("view-toggle");
 const VIEW_MODE_KEY = "deck-viewer-pool-view-mode";
 let viewMode = localStorage.getItem(VIEW_MODE_KEY) || "list";
 let latestCards = [];
+let currentPool = null;
+
+async function toggleThumbnail(card) {
+  const nextId = currentPool.thumbnailCardId === card.id ? null : card.id;
+  currentPool = await Api.updatePool(poolId, { thumbnailCardId: nextId });
+  renderCards();
+}
 
 function updateViewToggleUI() {
   for (const btn of viewToggle.querySelectorAll(".view-toggle-btn")) {
@@ -100,7 +107,7 @@ selectionCancelBtn.addEventListener("click", exitSelectMode);
 
 selectionDeleteBtn.addEventListener("click", async () => {
   if (selectedIds.size === 0) return;
-  if (!confirm(`選択した${selectedIds.size}件のカードを削除します。よろしいですか?`)) return;
+  if (!(await showConfirm(`選択した${selectedIds.size}件のカードを削除します。よろしいですか?`))) return;
   for (const id of selectedIds) {
     await Api.deleteCard(id);
   }
@@ -233,6 +240,18 @@ function createCardGridItem(card) {
     frame.classList.add("editable-frame");
     frame.addEventListener("click", () => openEditCardModal(card));
   }
+
+  const thumbnailBtn = document.createElement("button");
+  thumbnailBtn.type = "button";
+  thumbnailBtn.className = "grid-thumbnail-btn";
+  thumbnailBtn.classList.toggle("active", currentPool && currentPool.thumbnailCardId === card.id);
+  thumbnailBtn.title = "カードプールのサムネイルに設定";
+  thumbnailBtn.textContent = "★";
+  thumbnailBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleThumbnail(card);
+  });
+  frame.appendChild(thumbnailBtn);
 
   item.appendChild(frame);
 
@@ -384,13 +403,16 @@ function closeAddCardModal() {
 
 document.getElementById("open-add-card-btn").addEventListener("click", openAddCardModal);
 document.getElementById("close-modal-btn").addEventListener("click", closeAddCardModal);
-modal.addEventListener("click", (e) => {
-  if (e.target === modal) closeAddCardModal();
+
+// Bind add-card-modal before crop-popup so crop-popup (opened on top of it) is
+// treated as the topmost modal — Enter/Escape act on whichever is actually on top.
+bindModalDismissal(modal, {
+  onCancel: closeAddCardModal,
+  onConfirm: () => modalSaveBtn.click(),
 });
-document.addEventListener("keydown", (e) => {
-  if (e.key !== "Escape") return;
-  if (!cropPopup.hidden) closeCropPopup();
-  else if (!modal.hidden) closeAddCardModal();
+bindModalDismissal(cropPopup, {
+  onCancel: closeCropPopup,
+  onConfirm: () => document.getElementById("crop-popup-ok").click(),
 });
 
 modalSaveBtn.addEventListener("click", async () => {
@@ -447,6 +469,7 @@ async function init() {
     cardListEl.innerHTML = '<div class="empty-state">カードプールが見つかりません</div>';
     return;
   }
+  currentPool = pool;
   nameInput.value = pool.name;
   await renderCards();
 }

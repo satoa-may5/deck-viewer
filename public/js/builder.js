@@ -1,6 +1,7 @@
 let allCards = [];
 let allPools = [];
 let deckId = null;
+let deckThumbnailCardId = null;
 const deckCounts = new Map(); // cardId -> count
 const selectedPoolIds = new Set();
 
@@ -35,9 +36,15 @@ function removeFromDeck(cardId) {
   const current = deckCounts.get(cardId) || 0;
   if (current <= 1) {
     deckCounts.delete(cardId);
+    if (deckThumbnailCardId === cardId) deckThumbnailCardId = null;
   } else {
     deckCounts.set(cardId, current - 1);
   }
+  renderPanes();
+}
+
+function toggleDeckThumbnail(cardId) {
+  deckThumbnailCardId = deckThumbnailCardId === cardId ? null : cardId;
   renderPanes();
 }
 
@@ -72,7 +79,10 @@ function renderPanes() {
     deckGrid.innerHTML = '<div class="empty-state">下の一覧からカードを追加してください</div>';
   } else {
     for (const [cardId, count] of deckCounts) {
-      const el = createCardElement(cardById[cardId] || null, cardId, count);
+      const el = createCardElement(cardById[cardId] || null, cardId, count, {
+        active: deckThumbnailCardId === cardId,
+        onToggle: () => toggleDeckThumbnail(cardId),
+      });
       attachTapOrSwipe(el, () => removeFromDeck(cardId));
       deckGrid.appendChild(el);
     }
@@ -112,6 +122,7 @@ async function init() {
       for (const poolId of deck.poolIds || []) {
         selectedPoolIds.add(poolId);
       }
+      deckThumbnailCardId = deck.thumbnailCardId || null;
     }
   }
 
@@ -129,7 +140,7 @@ document.getElementById("save-btn").addEventListener("click", async () => {
   const cards = [...deckCounts].map(([cardId, count]) => ({ cardId, count }));
   const poolIds = [...selectedPoolIds];
   try {
-    const deck = await Api.saveDeck({ id: deckId, name, cards, poolIds });
+    const deck = await Api.saveDeck({ id: deckId, name, cards, poolIds, thumbnailCardId: deckThumbnailCardId });
     deckId = deck.id;
     history.replaceState(null, "", `builder.html?id=${encodeURIComponent(deckId)}`);
     saveStatus.textContent = "保存しました";

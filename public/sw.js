@@ -1,4 +1,4 @@
-const CACHE_NAME = "deck-viewer-shell-v29";
+const CACHE_NAME = "deck-viewer-shell-v31";
 const SHELL_FILES = [
   "index.html",
   "deck-view.html",
@@ -6,6 +6,7 @@ const SHELL_FILES = [
   "pool-detail.html",
   "css/style.css",
   "js/api.js",
+  "js/dialog.js",
   "js/card-render.js",
   "js/crop.js",
   "js/sortable.js",

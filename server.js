@@ -91,6 +91,17 @@ function nextCardOrder(cards) {
   return cards.reduce((max, c) => Math.max(max, typeof c.order === "number" ? c.order : 0), 0) + 1;
 }
 
+// Appends " (1)", " (2)", ... until `desired` no longer collides with anything
+// in `existingNames` (case-sensitive exact match, matching how names are shown
+// in the UI). Pass the current name in `existingNames` when renaming something
+// in place so it doesn't collide with itself.
+function uniqueName(desired, existingNames) {
+  if (!existingNames.includes(desired)) return desired;
+  let n = 1;
+  while (existingNames.includes(`${desired} (${n})`)) n++;
+  return `${desired} (${n})`;
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(ASSETS_ROOT, "public")));
@@ -103,6 +114,10 @@ const upload = multer({
 
 // ---- Card pools ----
 
+function cardImageUrl(card) {
+  return card ? `/images/${card.id}.${card.imageExt}` : null;
+}
+
 app.get("/api/pools", (req, res) => {
   const pools = readPools();
   const cards = readCards();
@@ -110,6 +125,7 @@ app.get("/api/pools", (req, res) => {
     pools.map((p) => ({
       ...p,
       cardCount: cards.filter((c) => c.poolId === p.id).length,
+      thumbnailUrl: cardImageUrl(cards.find((c) => c.id === p.thumbnailCardId)),
     }))
   );
 });
@@ -121,7 +137,12 @@ app.post("/api/pools", (req, res) => {
   }
 
   const pools = readPools();
-  const pool = { id: `pool-${Date.now()}`, name, favorite: false, createdAt: new Date().toISOString() };
+  const pool = {
+    id: `pool-${Date.now()}`,
+    name: uniqueName(name, pools.map((p) => p.name)),
+    favorite: false,
+    createdAt: new Date().toISOString(),
+  };
   pools.push(pool);
   writePools(pools);
   res.status(201).json(pool);
@@ -137,10 +158,23 @@ app.patch("/api/pools/:id", (req, res) => {
     if (!name) {
       return res.status(400).json({ error: "カードプール名は必須です" });
     }
-    pool.name = name;
+    const otherNames = pools.filter((p) => p.id !== pool.id).map((p) => p.name);
+    pool.name = uniqueName(name, otherNames);
   }
   if (req.body.favorite !== undefined) {
     pool.favorite = Boolean(req.body.favorite);
+  }
+  if (req.body.thumbnailCardId !== undefined) {
+    const thumbnailCardId = req.body.thumbnailCardId;
+    if (thumbnailCardId === null) {
+      pool.thumbnailCardId = null;
+    } else {
+      const card = readCards().find((c) => c.id === thumbnailCardId && c.poolId === pool.id);
+      if (!card) {
+        return res.status(400).json({ error: "指定されたカードがこのプールに見つかりません" });
+      }
+      pool.thumbnailCardId = thumbnailCardId;
+    }
   }
   writePools(pools);
   res.json(pool);
@@ -269,6 +303,7 @@ app.post("/api/pools/:id/export", (req, res) => {
   fs.mkdirSync(imagesFolder, { recursive: true });
 
   const manifestCards = [];
+  let thumbnailImage = null;
   for (const card of cards) {
     const srcImage = path.join(IMAGES_DIR, `${card.id}.${card.imageExt}`);
     if (!fs.existsSync(srcImage)) continue;
@@ -282,10 +317,12 @@ app.post("/api/pools/:id/export", (req, res) => {
       type: normalizeCardType(card.type),
       image: imageName,
     });
+    if (card.id === pool.thumbnailCardId) thumbnailImage = imageName;
   }
 
   const manifest = {
     poolName: pool.name,
+    thumbnail: thumbnailImage,
     exportedAt: new Date().toISOString(),
     cards: manifestCards,
   };
@@ -312,12 +349,12 @@ app.post("/api/pool-exports/:folderId/import", (req, res) => {
   const pools = readPools();
   const newPool = {
     id: `pool-${Date.now()}`,
-    name: poolName,
+    name: uniqueName(poolName, pools.map((p) => p.name)),
     favorite: false,
+    thumbnailCardId: null,
     createdAt: new Date().toISOString(),
   };
   pools.push(newPool);
-  writePools(pools);
 
   const cards = readCards();
   let order = nextCardOrder(cards);
@@ -341,8 +378,10 @@ app.post("/api/pool-exports/:folderId/import", (req, res) => {
       order: order++,
       createdAt: new Date().toISOString(),
     });
+    if (manifest.thumbnail && item.image === manifest.thumbnail) newPool.thumbnailCardId = id;
     imported++;
   });
+  writePools(pools);
   writeCards(cards);
 
   res.status(201).json({ pool: newPool, cardCount: imported });
@@ -475,11 +514,13 @@ app.delete("/api/cards/:id", (req, res) => {
 // ---- Decks ----
 
 app.get("/api/decks", (req, res) => {
+  const cards = readCards();
   const decks = listDecks()
     .map((d) => ({
       id: d.id,
       name: d.name,
       totalCount: d.cards.reduce((sum, c) => sum + c.count, 0),
+      thumbnailUrl: cardImageUrl(cards.find((c) => c.id === d.thumbnailCardId)),
       updatedAt: d.updatedAt,
       order: typeof d.order === "number" ? d.order : 0,
     }))
@@ -494,7 +535,7 @@ app.get("/api/decks/:id", (req, res) => {
 });
 
 app.post("/api/decks", (req, res) => {
-  const { id, name, cards, poolIds } = req.body;
+  const { id, name, cards, poolIds, thumbnailCardId } = req.body;
   if (!name) {
     return res.status(400).json({ error: "デッキ名は必須です" });
   }
@@ -504,11 +545,19 @@ app.post("/api/decks", (req, res) => {
 
   const deckId = id && ID_PATTERN.test(id) ? id : `deck-${Date.now()}`;
   const existing = readDeck(deckId);
+  const otherNames = listDecks()
+    .filter((d) => d.id !== deckId)
+    .map((d) => d.name);
+  // Silently dropped rather than rejected: a stale thumbnail pointing at a card
+  // no longer in the deck shouldn't block saving the rest of the deck.
+  const validThumbnail =
+    thumbnailCardId && cards.some((c) => c.cardId === thumbnailCardId) ? thumbnailCardId : null;
   const deck = {
     id: deckId,
-    name,
+    name: uniqueName(name, otherNames),
     poolIds: Array.isArray(poolIds) ? poolIds : [],
     cards,
+    thumbnailCardId: validThumbnail,
     order: existing ? existing.order ?? nextDeckOrder() : nextDeckOrder(),
     updatedAt: new Date().toISOString(),
   };

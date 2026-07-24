@@ -188,7 +188,7 @@ function createDeckRow(deck, position, decks) {
       label: "削除",
       danger: true,
       onClick: async () => {
-        if (!confirm(`「${deck.name}」を削除します。よろしいですか?`)) return;
+        if (!(await showConfirm(`「${deck.name}」を削除します。よろしいですか?`))) return;
         await Api.deleteDeck(deck.id);
         await renderDecks();
       },
@@ -297,7 +297,7 @@ function createPoolRow(pool) {
       pool.cardCount > 0
         ? `「${pool.name}」を削除します。プール内の${pool.cardCount}枚のカードも一緒に削除されます。よろしいですか?`
         : `「${pool.name}」を削除します。よろしいですか?`;
-    if (!confirm(warning)) return;
+    if (!(await showConfirm(warning))) return;
     await Api.deletePool(pool.id);
     await renderPools();
   });
@@ -403,9 +403,7 @@ async function openImportModal() {
 
 importPoolBtn.addEventListener("click", openImportModal);
 document.getElementById("close-import-modal-btn").addEventListener("click", closeImportModal);
-importModal.addEventListener("click", (e) => {
-  if (e.target === importModal) closeImportModal();
-});
+bindModalDismissal(importModal, { onCancel: closeImportModal });
 
 setActiveTab(activeTab);
 renderDecks();
