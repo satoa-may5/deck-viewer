@@ -27,26 +27,28 @@ function attachTap(el, action) {
   });
 }
 
-// Quick, non-blocking exit flourish: clones the tapped card's image into a
-// fixed-position ghost that slides sideways while fading out, then vanishes.
-// Purely decorative overlay — the actual state update and re-render happen
-// immediately alongside it, so it never adds input latency.
+// Quick, non-blocking exit flourish: clones just the tapped card's thumbnail
+// frame (not the whole tile — that includes the caption below it, which
+// would stretch the image vertically to fill the extra height) into a
+// fixed-position ghost sitting behind the grid, sliding sideways at the same
+// y-position while fading out, then vanishing. Purely decorative — the
+// actual state update and re-render happen immediately alongside it, so it
+// never adds input latency.
 function animateCardExit(sourceEl, direction) {
-  const imgEl = sourceEl.querySelector("img");
-  if (!imgEl) return;
-  const rect = sourceEl.getBoundingClientRect();
+  const frame = sourceEl.querySelector(".card-frame");
+  if (!frame) return;
+  const rect = frame.getBoundingClientRect();
 
-  const ghost = imgEl.cloneNode(true);
+  const ghost = frame.cloneNode(true);
   ghost.style.position = "fixed";
   ghost.style.left = `${rect.left}px`;
   ghost.style.top = `${rect.top}px`;
   ghost.style.width = `${rect.width}px`;
   ghost.style.height = `${rect.height}px`;
   ghost.style.margin = "0";
-  ghost.style.borderRadius = "8px";
-  ghost.style.zIndex = "999";
+  ghost.style.zIndex = "-1";
   ghost.style.pointerEvents = "none";
-  ghost.style.transition = "transform 0.15s ease-in, opacity 0.15s ease-in";
+  ghost.style.transition = "transform 0.1s ease-in, opacity 0.1s ease-in";
   document.body.appendChild(ghost);
 
   const dx = direction === "left" ? -60 : 60;
@@ -54,7 +56,7 @@ function animateCardExit(sourceEl, direction) {
     ghost.style.transform = `translateX(${dx}px)`;
     ghost.style.opacity = "0";
   });
-  setTimeout(() => ghost.remove(), 160);
+  setTimeout(() => ghost.remove(), 110);
 }
 
 function addToDeck(cardId) {

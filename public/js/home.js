@@ -438,17 +438,6 @@ function createPoolRow(pool) {
   const actions = document.createElement("div");
   actions.className = "nav-links";
 
-  const favBtn = document.createElement("button");
-  favBtn.type = "button";
-  favBtn.className = "icon-btn" + (pool.favorite ? " favorited" : "");
-  favBtn.title = "お気に入り";
-  favBtn.textContent = pool.favorite ? "★" : "☆";
-  favBtn.addEventListener("click", async (e) => {
-    e.stopPropagation();
-    await Api.updatePool(pool.id, { favorite: !pool.favorite });
-    await renderPools();
-  });
-
   const renameBtn = document.createElement("button");
   renameBtn.type = "button";
   renameBtn.className = "icon-btn";
@@ -483,7 +472,6 @@ function createPoolRow(pool) {
     await renderPools();
   });
 
-  actions.appendChild(favBtn);
   actions.appendChild(renameBtn);
   actions.appendChild(deleteBtn);
 
@@ -505,19 +493,6 @@ function createPoolGridItem(pool) {
   const frame = createThumbnailFrame(pool.thumbnailUrl, pool.name, () => {
     location.href = `pool-detail.html?id=${encodeURIComponent(pool.id)}`;
   });
-
-  const favBtn = document.createElement("button");
-  favBtn.type = "button";
-  favBtn.className = "grid-favorite-btn" + (pool.favorite ? " active" : "");
-  favBtn.title = "お気に入り";
-  favBtn.textContent = pool.favorite ? "★" : "☆";
-  favBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
-  favBtn.addEventListener("click", async (e) => {
-    e.stopPropagation();
-    await Api.updatePool(pool.id, { favorite: !pool.favorite });
-    await renderPools();
-  });
-  frame.appendChild(favBtn);
 
   item.appendChild(frame);
 

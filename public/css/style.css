@@ -321,12 +321,6 @@ button {
   border-color: var(--danger);
 }
 
-.icon-btn.favorited {
-  color: #f5a623;
-  border-color: #f5a623;
-  background: rgba(245, 166, 35, 0.14);
-}
-
 .btn.danger {
   color: var(--danger);
   border-color: var(--danger);
@@ -394,17 +388,15 @@ button {
 }
 
 /* Home page grid tiles (pools/decks): while dragging, hide everything
-   except the thumbnail itself — name, count, favorite star, and the row of
-   icon buttons all disappear so only the image appears to move. Uses
-   visibility (not display) so the tile's layout footprint doesn't change —
-   removing it from layout would shrink the row height mid-drag and shift
-   everything below it. */
+   except the thumbnail itself — name, count, and the row of icon buttons
+   disappear so only the image appears to move. Uses visibility (not
+   display) so the tile's layout footprint doesn't change — removing it
+   from layout would shrink the row height mid-drag and shift everything
+   below it. */
 #pool-list .card-item.dragging .card-caption,
 #deck-list .card-item.dragging .card-caption,
 #pool-list .card-item.dragging .grid-tile-actions,
-#deck-list .card-item.dragging .grid-tile-actions,
-#pool-list .card-item.dragging .grid-favorite-btn,
-#deck-list .card-item.dragging .grid-favorite-btn {
+#deck-list .card-item.dragging .grid-tile-actions {
   visibility: hidden;
 }
 
@@ -777,6 +769,12 @@ button {
   flex-direction: column;
   align-items: center;
   user-select: none;
+  /* Needed for the FLIP displacement animation in sortable.js — without a
+     transition here, a displaced sibling's transform change (set then
+     cleared on the next frame) jumps instantly instead of sliding. The
+     dragged item itself is unaffected: .dragging overrides this with
+     transition:none so it tracks the pointer directly. */
+  transition: transform 0.2s var(--ease);
 }
 
 .card-frame {
@@ -819,36 +817,6 @@ button {
   z-index: 2;
   cursor: pointer;
   accent-color: var(--accent);
-}
-
-.grid-favorite-btn {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  z-index: 2;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 999px;
-  background: rgba(20, 21, 26, 0.45);
-  color: rgba(255, 255, 255, 0.75);
-  font-size: 0.85rem;
-  line-height: 1;
-  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
-}
-
-.grid-favorite-btn:hover {
-  background: rgba(20, 21, 26, 0.65);
-  color: #fff;
-  transform: scale(1.08);
-}
-
-.grid-favorite-btn.active {
-  background: #f5a623;
-  color: #fff;
 }
 
 .card-frame.missing {
