@@ -15,7 +15,10 @@
 // so a nested popup (e.g. the crop popup opened on top of the add-card modal)
 // doesn't also close the one underneath it.
 
-function showConfirm(message, { confirmText = "削除する", cancelText = "キャンセル", danger = true } = {}) {
+function showConfirm(
+  message,
+  { confirmText = "削除する", cancelText = "キャンセル", danger = true, checkboxLabel } = {}
+) {
   return new Promise((resolve) => {
     const overlay = document.createElement("div");
     overlay.className = "modal-overlay confirm-overlay";
@@ -26,6 +29,8 @@ function showConfirm(message, { confirmText = "削除する", cancelText = "キ�
     const messageEl = document.createElement("p");
     messageEl.className = "confirm-message";
     messageEl.textContent = message;
+
+    let checkboxInput = null;
 
     const actions = document.createElement("div");
     actions.className = "nav-links confirm-actions";
@@ -43,6 +48,15 @@ function showConfirm(message, { confirmText = "削除する", cancelText = "キ�
     actions.appendChild(cancelBtn);
     actions.appendChild(confirmBtn);
     card.appendChild(messageEl);
+    if (checkboxLabel) {
+      const checkboxWrap = document.createElement("label");
+      checkboxWrap.className = "filter-checkbox confirm-checkbox";
+      checkboxInput = document.createElement("input");
+      checkboxInput.type = "checkbox";
+      checkboxWrap.appendChild(checkboxInput);
+      checkboxWrap.appendChild(document.createTextNode(checkboxLabel));
+      card.appendChild(checkboxWrap);
+    }
     card.appendChild(actions);
     overlay.appendChild(card);
     document.body.appendChild(overlay);
@@ -50,7 +64,7 @@ function showConfirm(message, { confirmText = "削除する", cancelText = "キ�
     function finish(result) {
       document.removeEventListener("keydown", onKeydown, true);
       overlay.remove();
-      resolve(result);
+      resolve(checkboxLabel ? { confirmed: result, checked: checkboxInput.checked } : result);
     }
 
     function onKeydown(e) {

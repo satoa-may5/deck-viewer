@@ -1,9 +1,9 @@
 // card: { id, name, cost, imageExt } | null (null = referenced but not found in collection)
 // count: number | null (null = no badge shown, used in the collection picker)
-// thumbnail: optional { active, onToggle } — when given, renders a small star
-// button on the card for marking it as the deck's thumbnail (used only in the
-// builder's deck pane, not the collection picker)
-function createCardElement(card, id, count, thumbnail) {
+// opts: optional { isThumbnail } — when true, renders a small non-interactive
+// marker showing this card is the deck's current thumbnail (set via the
+// "サムネイルを設定" selection mode, not by clicking the marker itself)
+function createCardElement(card, id, count, opts) {
   const item = document.createElement("div");
   item.className = "card-item";
   item.dataset.cardId = id;
@@ -34,20 +34,12 @@ function createCardElement(card, id, count, thumbnail) {
     frame.appendChild(badge);
   }
 
-  if (thumbnail) {
-    const thumbnailBtn = document.createElement("button");
-    thumbnailBtn.type = "button";
-    thumbnailBtn.className = "grid-thumbnail-btn";
-    thumbnailBtn.classList.toggle("active", !!thumbnail.active);
-    thumbnailBtn.title = "デッキのサムネイルに設定";
-    thumbnailBtn.textContent = "★";
-    thumbnailBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
-    thumbnailBtn.addEventListener("pointerup", (e) => e.stopPropagation());
-    thumbnailBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      thumbnail.onToggle();
-    });
-    frame.appendChild(thumbnailBtn);
+  if (opts && opts.isThumbnail) {
+    const badge = document.createElement("span");
+    badge.className = "thumbnail-indicator";
+    badge.title = "デッキのサムネイル";
+    badge.textContent = "★";
+    frame.appendChild(badge);
   }
 
   const caption = document.createElement("div");

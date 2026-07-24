@@ -11,9 +11,11 @@
 <body>
   <div class="builder-page">
     <div class="builder-header">
-      <a class="btn" href="index.html">戻る</a>
+      <div class="builder-header-actions">
+        <button type="button" class="btn primary" id="save-back-btn">保存して戻る</button>
+        <button type="button" class="btn" id="discard-back-btn">保存せずに戻る</button>
+      </div>
       <input type="text" id="deck-name-input" placeholder="デッキ名" />
-      <button class="btn primary" id="save-btn">保存</button>
       <span id="save-status" class="status-message"></span>
     </div>
 
@@ -24,14 +26,17 @@
 
     <div class="builder-panes">
       <div class="pane pane-deck">
-        <p class="pane-title">デッキ(タップ/スワイプで1枚減らす)</p>
+        <div class="pane-title-row">
+          <p class="pane-title">デッキ</p>
+          <button type="button" class="btn" id="deck-thumbnail-mode-btn">サムネイルを設定</button>
+        </div>
         <div class="builder-grid" id="deck-grid"></div>
       </div>
 
       <div class="pane pane-collection">
-        <p class="pane-title">手持ちカード(タップ/スワイプで1枚追加)</p>
+        <p class="pane-title">手持ちカード</p>
 
-        <div class="content-with-filter">
+        <div class="content-with-filter" id="collection-content">
           <div class="content-main">
             <div class="builder-grid" id="collection-grid"></div>
           </div>

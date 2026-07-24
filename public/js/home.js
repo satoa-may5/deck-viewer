@@ -591,6 +591,51 @@ makeSortable(poolListEl, {
   },
 });
 
+document.getElementById("create-deck-row").addEventListener("click", async () => {
+  const deck = await Api.saveDeck({ name: "新しいデッキ", cards: [], poolIds: [] });
+  await renderDecks();
+  if (deckViewMode === "grid") {
+    const item = deckListEl.querySelector(`[data-id="${deck.id}"]`);
+    const caption = item && item.querySelector(".card-caption");
+    if (!caption) return;
+    startCaptionRename(
+      caption,
+      deck.name,
+      async (name) => {
+        const full = await Api.getDeck(deck.id);
+        await Api.saveDeck({
+          id: deck.id,
+          name,
+          cards: full.cards,
+          poolIds: full.poolIds || [],
+          thumbnailCardId: full.thumbnailCardId || null,
+        });
+        await renderDecks();
+      },
+      renderDecks
+    );
+    return;
+  }
+  const row = deckListEl.querySelector(`[data-id="${deck.id}"]`);
+  if (!row) return;
+  startRename(
+    row,
+    deck.name,
+    async (name) => {
+      const full = await Api.getDeck(deck.id);
+      await Api.saveDeck({
+        id: deck.id,
+        name,
+        cards: full.cards,
+        poolIds: full.poolIds || [],
+        thumbnailCardId: full.thumbnailCardId || null,
+      });
+      await renderDecks();
+    },
+    renderDecks
+  );
+});
+
 document.getElementById("create-pool-row").addEventListener("click", async () => {
   const pool = await Api.createPool("新しいカードプール");
   await renderPools();

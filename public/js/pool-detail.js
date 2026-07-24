@@ -11,10 +11,9 @@ let viewMode = localStorage.getItem(VIEW_MODE_KEY) || "grid";
 let latestCards = [];
 let currentPool = null;
 
-async function toggleThumbnail(card) {
-  const nextId = currentPool.thumbnailCardId === card.id ? null : card.id;
-  currentPool = await Api.updatePool(poolId, { thumbnailCardId: nextId });
-  renderCards();
+async function setThumbnail(card) {
+  currentPool = await Api.updatePool(poolId, { thumbnailCardId: card.id });
+  exitThumbnailMode();
 }
 
 function updateViewToggleUI() {
@@ -86,10 +85,12 @@ function toggleSelect(id) {
 }
 
 function enterSelectMode() {
+  if (thumbnailMode) return;
   selectMode = true;
   selectedIds.clear();
   selectModeBtn.hidden = true;
   selectionBar.hidden = false;
+  thumbnailModeBtn.hidden = true;
   updateSelectionUI();
   renderCards();
 }
@@ -99,6 +100,7 @@ function exitSelectMode() {
   selectedIds.clear();
   selectModeBtn.hidden = false;
   selectionBar.hidden = true;
+  thumbnailModeBtn.hidden = false;
   renderCards();
 }
 
@@ -116,6 +118,33 @@ selectionDeleteBtn.addEventListener("click", async () => {
   selectModeBtn.hidden = false;
   selectionBar.hidden = true;
   await renderCards();
+});
+
+// ---- Thumbnail selection mode ----
+
+const thumbnailModeBtn = document.getElementById("thumbnail-mode-btn");
+let thumbnailMode = false;
+
+function enterThumbnailMode() {
+  if (selectMode) return;
+  thumbnailMode = true;
+  thumbnailModeBtn.textContent = "サムネイルにするカードを選択(キャンセル)";
+  thumbnailModeBtn.classList.add("active");
+  selectModeBtn.hidden = true;
+  renderCards();
+}
+
+function exitThumbnailMode() {
+  thumbnailMode = false;
+  thumbnailModeBtn.textContent = "サムネイルを設定";
+  thumbnailModeBtn.classList.remove("active");
+  selectModeBtn.hidden = false;
+  renderCards();
+}
+
+thumbnailModeBtn.addEventListener("click", () => {
+  if (thumbnailMode) exitThumbnailMode();
+  else enterThumbnailMode();
 });
 
 async function renderCards() {
@@ -319,6 +348,8 @@ function createCardRow(card) {
   row.className = "card-row";
   row.dataset.id = card.id;
   if (selectMode && selectedIds.has(card.id)) row.classList.add("selected");
+  const isThumbnail = currentPool && currentPool.thumbnailCardId === card.id;
+  if (isThumbnail) row.classList.add("is-thumbnail");
 
   const thumb = document.createElement("div");
   thumb.className = "card-row-thumb";
@@ -327,8 +358,21 @@ function createCardRow(card) {
   img.alt = displayName(card);
   img.draggable = false;
   thumb.appendChild(img);
+  if (isThumbnail) {
+    const badge = document.createElement("span");
+    badge.className = "thumbnail-indicator";
+    badge.title = "カードプールのサムネイル";
+    badge.textContent = "★";
+    thumb.appendChild(badge);
+  }
 
-  if (selectMode) {
+  if (thumbnailMode) {
+    row.classList.add("selectable-row");
+    row.addEventListener("click", (e) => {
+      if (e.target.closest(".drag-handle")) return;
+      setThumbnail(card);
+    });
+  } else if (selectMode) {
     row.classList.add("selectable-row");
     row.addEventListener("click", (e) => {
       if (e.target.closest(".drag-handle")) return;
@@ -381,7 +425,10 @@ function createCardGridItem(card) {
   img.draggable = false;
   frame.appendChild(img);
 
-  if (selectMode) {
+  if (thumbnailMode) {
+    frame.classList.add("selectable-frame");
+    frame.addEventListener("click", () => setThumbnail(card));
+  } else if (selectMode) {
     frame.classList.add("selectable-frame");
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
@@ -400,17 +447,13 @@ function createCardGridItem(card) {
     frame.addEventListener("click", () => openEditCardModal(card));
   }
 
-  const thumbnailBtn = document.createElement("button");
-  thumbnailBtn.type = "button";
-  thumbnailBtn.className = "grid-thumbnail-btn";
-  thumbnailBtn.classList.toggle("active", currentPool && currentPool.thumbnailCardId === card.id);
-  thumbnailBtn.title = "カードプールのサムネイルに設定";
-  thumbnailBtn.textContent = "★";
-  thumbnailBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    toggleThumbnail(card);
-  });
-  frame.appendChild(thumbnailBtn);
+  if (currentPool && currentPool.thumbnailCardId === card.id) {
+    const badge = document.createElement("span");
+    badge.className = "thumbnail-indicator";
+    badge.title = "カードプールのサムネイル";
+    badge.textContent = "★";
+    frame.appendChild(badge);
+  }
 
   item.appendChild(frame);
 

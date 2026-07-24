@@ -8,10 +8,11 @@ const selectedPoolIds = new Set();
 const poolCheckboxList = document.getElementById("pool-checkbox-list");
 const deckGrid = document.getElementById("deck-grid");
 const collectionGrid = document.getElementById("collection-grid");
+const collectionContent = document.getElementById("collection-content");
 const nameInput = document.getElementById("deck-name-input");
 const saveStatus = document.getElementById("save-status");
 
-function attachTapOrSwipe(el, action) {
+function attachTap(el, action) {
   let downX = 0;
   let downY = 0;
   el.addEventListener("pointerdown", (e) => {
@@ -21,10 +22,43 @@ function attachTapOrSwipe(el, action) {
   el.addEventListener("pointerup", (e) => {
     const dx = e.clientX - downX;
     const dy = e.clientY - downY;
-    const isTap = Math.abs(dx) < 10 && Math.abs(dy) < 10;
-    const isHorizontalSwipe = Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy) * 1.5;
-    if (isTap || isHorizontalSwipe) action();
+    // Only a real tap/click triggers add-remove — anything that moved more than
+    // this is a scroll/swipe gesture and should just scroll normally.
+    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) action();
   });
+}
+
+// Quick, non-blocking "flies to the other pane" flourish: clones the tapped
+// card's image into a fixed-position ghost that animates toward the target
+// pane and then disappears. Purely decorative — the actual state update and
+// re-render happen immediately alongside it, so it never adds input latency.
+function flyCard(sourceEl, targetContainer) {
+  const imgEl = sourceEl.querySelector("img");
+  if (!imgEl) return;
+  const startRect = sourceEl.getBoundingClientRect();
+  const targetRect = targetContainer.getBoundingClientRect();
+
+  const ghost = imgEl.cloneNode(true);
+  ghost.style.position = "fixed";
+  ghost.style.left = `${startRect.left}px`;
+  ghost.style.top = `${startRect.top}px`;
+  ghost.style.width = `${startRect.width}px`;
+  ghost.style.height = `${startRect.height}px`;
+  ghost.style.margin = "0";
+  ghost.style.borderRadius = "8px";
+  ghost.style.zIndex = "999";
+  ghost.style.pointerEvents = "none";
+  ghost.style.transition = "transform 0.25s ease-in, opacity 0.25s ease-in";
+  document.body.appendChild(ghost);
+
+  const dx = targetRect.left + targetRect.width / 2 - (startRect.left + startRect.width / 2);
+  const dy = targetRect.top + targetRect.height / 2 - (startRect.top + startRect.height / 2);
+
+  requestAnimationFrame(() => {
+    ghost.style.transform = `translate(${dx}px, ${dy}px) scale(0.3)`;
+    ghost.style.opacity = "0.1";
+  });
+  setTimeout(() => ghost.remove(), 260);
 }
 
 function addToDeck(cardId) {
@@ -43,10 +77,34 @@ function removeFromDeck(cardId) {
   renderPanes();
 }
 
-function toggleDeckThumbnail(cardId) {
-  deckThumbnailCardId = deckThumbnailCardId === cardId ? null : cardId;
+// ---- Deck thumbnail selection mode ----
+
+const deckThumbnailModeBtn = document.getElementById("deck-thumbnail-mode-btn");
+let deckThumbnailMode = false;
+
+function enterDeckThumbnailMode() {
+  deckThumbnailMode = true;
+  deckThumbnailModeBtn.textContent = "サムネイルにするカードを選択(キャンセル)";
+  deckThumbnailModeBtn.classList.add("active");
   renderPanes();
 }
+
+function exitDeckThumbnailMode() {
+  deckThumbnailMode = false;
+  deckThumbnailModeBtn.textContent = "サムネイルを設定";
+  deckThumbnailModeBtn.classList.remove("active");
+  renderPanes();
+}
+
+function setDeckThumbnail(cardId) {
+  deckThumbnailCardId = cardId;
+  exitDeckThumbnailMode();
+}
+
+deckThumbnailModeBtn.addEventListener("click", () => {
+  if (deckThumbnailMode) exitDeckThumbnailMode();
+  else enterDeckThumbnailMode();
+});
 
 // ---- Filtering (collection pane only: type / color / cost range / parallel) ----
 
@@ -228,18 +286,26 @@ function renderPanes() {
   const cardById = Object.fromEntries(allCards.map((c) => [c.id, c]));
 
   deckGrid.innerHTML = "";
-  if (deckCounts.size === 0) {
-    deckGrid.innerHTML = '<div class="empty-state">下の一覧からカードを追加してください</div>';
-  } else {
-    for (const [cardId, count] of deckCounts) {
-      const el = createCardElement(cardById[cardId] || null, cardId, count, {
-        active: deckThumbnailCardId === cardId,
-        onToggle: () => toggleDeckThumbnail(cardId),
+  for (const [cardId, count] of deckCounts) {
+    const el = createCardElement(cardById[cardId] || null, cardId, count, {
+      isThumbnail: deckThumbnailCardId === cardId,
+    });
+    if (deckThumbnailMode) {
+      el.addEventListener("click", () => setDeckThumbnail(cardId));
+    } else {
+      attachTap(el, () => {
+        flyCard(el, collectionGrid);
+        removeFromDeck(cardId);
       });
-      attachTapOrSwipe(el, () => removeFromDeck(cardId));
-      deckGrid.appendChild(el);
     }
+    deckGrid.appendChild(el);
   }
+
+  // Type/color filters are a fixed, known set of options, so they're always
+  // populated regardless of whether a pool is selected yet.
+  updateFilterUI();
+
+  collectionContent.classList.toggle("stacked", selectedPoolIds.size === 0);
 
   collectionGrid.innerHTML = "";
   if (selectedPoolIds.size === 0) {
@@ -247,7 +313,6 @@ function renderPanes() {
     return;
   }
   const poolCards = allCards.filter((c) => selectedPoolIds.has(c.poolId));
-  updateFilterUI(poolCards);
   const visibleCards = poolCards.filter(cardMatchesFilters);
   if (poolCards.length === 0) {
     collectionGrid.innerHTML = '<div class="empty-state">選択したカードプールにカードがありません。「カードを追加」から登録してください。</div>';
@@ -257,7 +322,10 @@ function renderPanes() {
     for (const card of visibleCards) {
       const count = deckCounts.get(card.id) || null;
       const el = createCardElement(card, card.id, count);
-      attachTapOrSwipe(el, () => addToDeck(card.id));
+      attachTap(el, () => {
+        flyCard(el, deckGrid);
+        addToDeck(card.id);
+      });
       collectionGrid.appendChild(el);
     }
   }
@@ -287,12 +355,12 @@ async function init() {
   renderPanes();
 }
 
-document.getElementById("save-btn").addEventListener("click", async () => {
+async function saveDeck() {
   const name = nameInput.value.trim();
   if (!name) {
     saveStatus.textContent = "デッキ名を入力してください";
     saveStatus.className = "status-message error";
-    return;
+    return false;
   }
   const cards = [...deckCounts].map(([cardId, count]) => ({ cardId, count }));
   const poolIds = [...selectedPoolIds];
@@ -302,10 +370,32 @@ document.getElementById("save-btn").addEventListener("click", async () => {
     history.replaceState(null, "", `builder.html?id=${encodeURIComponent(deckId)}`);
     saveStatus.textContent = "保存しました";
     saveStatus.className = "status-message success";
+    return true;
   } catch (err) {
     saveStatus.textContent = err.message;
     saveStatus.className = "status-message error";
+    return false;
   }
+}
+
+const SKIP_DISCARD_WARNING_KEY = "deck-viewer-skip-discard-warning";
+
+document.getElementById("save-back-btn").addEventListener("click", async () => {
+  if (await saveDeck()) location.href = "index.html";
+});
+
+document.getElementById("discard-back-btn").addEventListener("click", async () => {
+  if (localStorage.getItem(SKIP_DISCARD_WARNING_KEY) === "true") {
+    location.href = "index.html";
+    return;
+  }
+  const result = await showConfirm("作業内容が失われますが大丈夫ですか?", {
+    confirmText: "戻る",
+    checkboxLabel: "次回以降表示しない",
+  });
+  if (!result.confirmed) return;
+  if (result.checked) localStorage.setItem(SKIP_DISCARD_WARNING_KEY, "true");
+  location.href = "index.html";
 });
 
 init();
