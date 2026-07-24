@@ -376,6 +376,13 @@ button {
 }
 
 .card-item.dragging {
+  /* Override the generic .dragging rule above — that box-shadow/border is
+     painted on this element's own border box, which (being a flex column)
+     spans all the way down through the hidden caption/icons area below,
+     making it look like a "backing card" behind the thumbnail. The visual
+     lift belongs on .card-frame only (below), scoped to just the image. */
+  box-shadow: none;
+  border-color: transparent !important;
   opacity: 0.95;
   cursor: grabbing;
 }
@@ -386,17 +393,19 @@ button {
   transition: none !important;
 }
 
-/* Home page grid tiles (pools/decks): while dragging, remove everything
+/* Home page grid tiles (pools/decks): while dragging, hide everything
    except the thumbnail itself — name, count, favorite star, and the row of
-   icon buttons are all removed from layout (not just hidden) so no blank
-   space is left behind and only the image appears to move. */
+   icon buttons all disappear so only the image appears to move. Uses
+   visibility (not display) so the tile's layout footprint doesn't change —
+   removing it from layout would shrink the row height mid-drag and shift
+   everything below it. */
 #pool-list .card-item.dragging .card-caption,
 #deck-list .card-item.dragging .card-caption,
 #pool-list .card-item.dragging .grid-tile-actions,
 #deck-list .card-item.dragging .grid-tile-actions,
 #pool-list .card-item.dragging .grid-favorite-btn,
 #deck-list .card-item.dragging .grid-favorite-btn {
-  display: none;
+  visibility: hidden;
 }
 
 /* ---- Floating action button ---- */
@@ -1542,19 +1551,6 @@ button {
   }
 }
 
-/* Used while no card pool is selected yet in the builder's collection pane:
-   the "select a pool" placeholder (inside .content-main) spans the full
-   width of the pane, on its own row above the filter sidebar — the sidebar
-   itself keeps the exact same vertical box layout it always has, just moved
-   down a row instead of sitting beside the (now much shorter) placeholder. */
-.content-with-filter.stacked .content-main {
-  grid-column: 1 / -1;
-}
-
-.content-with-filter.stacked .filter-sidebar {
-  grid-row: 2;
-}
-
 /* ---- Crop tool ---- */
 
 .crop-stage {
@@ -1692,6 +1688,13 @@ button {
 
 .builder-grid .card-item {
   cursor: pointer;
+}
+
+/* .builder-grid stays a grid container even when its only child is an
+   empty-state message (the class isn't removed like it is elsewhere), which
+   would otherwise confine that message to a single auto-fill column. */
+.builder-grid .empty-state {
+  grid-column: 1 / -1;
 }
 
 .builder-grid .card-frame {

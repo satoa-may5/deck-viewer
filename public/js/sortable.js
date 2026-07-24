@@ -129,14 +129,21 @@ function makeSortable(container, { itemSelector, handleSelector = ".drag-handle"
 
       if (closest) {
         const closestIndex = items.indexOf(closest);
-        const beforeLeft = closest.offsetLeft;
-        const beforeTop = closest.offsetTop;
+        // Moving the dragged item can shift every sibling between its old and
+        // new slot (not just the one it's swapping with directly) — e.g. a
+        // fast drag can jump several positions in one step. Record every
+        // sibling's position before the reorder and FLIP-animate whichever
+        // ones actually moved, so nothing teleports.
+        const before = items.map((el) => [el, el.offsetLeft, el.offsetTop]);
         if (closestIndex < dragIndex) {
           container.insertBefore(dragEl, closest);
         } else {
           container.insertBefore(dragEl, closest.nextSibling);
         }
-        animateDisplacement(closest, beforeLeft - closest.offsetLeft, beforeTop - closest.offsetTop);
+        for (const [el, left, top] of before) {
+          if (el === dragEl) continue;
+          animateDisplacement(el, left - el.offsetLeft, top - el.offsetTop);
+        }
         items = [...container.querySelectorAll(itemSelector)];
         applyTransform();
       }

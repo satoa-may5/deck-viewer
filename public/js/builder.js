@@ -8,7 +8,6 @@ const selectedPoolIds = new Set();
 const poolCheckboxList = document.getElementById("pool-checkbox-list");
 const deckGrid = document.getElementById("deck-grid");
 const collectionGrid = document.getElementById("collection-grid");
-const collectionContent = document.getElementById("collection-content");
 const nameInput = document.getElementById("deck-name-input");
 const saveStatus = document.getElementById("save-status");
 
@@ -26,6 +25,36 @@ function attachTap(el, action) {
     // this is a scroll/swipe gesture and should just scroll normally.
     if (Math.abs(dx) < 10 && Math.abs(dy) < 10) action();
   });
+}
+
+// Quick, non-blocking exit flourish: clones the tapped card's image into a
+// fixed-position ghost that slides sideways while fading out, then vanishes.
+// Purely decorative overlay — the actual state update and re-render happen
+// immediately alongside it, so it never adds input latency.
+function animateCardExit(sourceEl, direction) {
+  const imgEl = sourceEl.querySelector("img");
+  if (!imgEl) return;
+  const rect = sourceEl.getBoundingClientRect();
+
+  const ghost = imgEl.cloneNode(true);
+  ghost.style.position = "fixed";
+  ghost.style.left = `${rect.left}px`;
+  ghost.style.top = `${rect.top}px`;
+  ghost.style.width = `${rect.width}px`;
+  ghost.style.height = `${rect.height}px`;
+  ghost.style.margin = "0";
+  ghost.style.borderRadius = "8px";
+  ghost.style.zIndex = "999";
+  ghost.style.pointerEvents = "none";
+  ghost.style.transition = "transform 0.15s ease-in, opacity 0.15s ease-in";
+  document.body.appendChild(ghost);
+
+  const dx = direction === "left" ? -60 : 60;
+  requestAnimationFrame(() => {
+    ghost.style.transform = `translateX(${dx}px)`;
+    ghost.style.opacity = "0";
+  });
+  setTimeout(() => ghost.remove(), 160);
 }
 
 function addToDeck(cardId) {
@@ -260,7 +289,10 @@ function renderPanes() {
     if (deckThumbnailMode) {
       el.addEventListener("click", () => setDeckThumbnail(cardId));
     } else {
-      attachTap(el, () => removeFromDeck(cardId));
+      attachTap(el, () => {
+        animateCardExit(el, "right");
+        removeFromDeck(cardId);
+      });
     }
     deckGrid.appendChild(el);
   }
@@ -268,8 +300,6 @@ function renderPanes() {
   // Type/color filters are a fixed, known set of options, so they're always
   // populated regardless of whether a pool is selected yet.
   updateFilterUI();
-
-  collectionContent.classList.toggle("stacked", selectedPoolIds.size === 0);
 
   collectionGrid.innerHTML = "";
   if (selectedPoolIds.size === 0) {
@@ -286,7 +316,10 @@ function renderPanes() {
     for (const card of visibleCards) {
       const count = deckCounts.get(card.id) || null;
       const el = createCardElement(card, card.id, count);
-      attachTap(el, () => addToDeck(card.id));
+      attachTap(el, () => {
+        animateCardExit(el, "left");
+        addToDeck(card.id);
+      });
       collectionGrid.appendChild(el);
     }
   }

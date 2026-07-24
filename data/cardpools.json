@@ -5,5 +5,47 @@
     "favorite": false,
     "thumbnailCardId": "card-1784891845141",
     "createdAt": "2026-07-24T11:17:24.675Z"
+  },
+  {
+    "id": "pool-1784920066666",
+    "name": "新しいカードプール",
+    "favorite": false,
+    "createdAt": "2026-07-24T19:07:46.666Z"
+  },
+  {
+    "id": "pool-1784920067257",
+    "name": "新しいカードプール (1)",
+    "favorite": false,
+    "createdAt": "2026-07-24T19:07:47.257Z"
+  },
+  {
+    "id": "pool-1784920067390",
+    "name": "新しいカードプール (2)",
+    "favorite": false,
+    "createdAt": "2026-07-24T19:07:47.390Z"
+  },
+  {
+    "id": "pool-1784920067562",
+    "name": "新しいカードプール (3)",
+    "favorite": false,
+    "createdAt": "2026-07-24T19:07:47.562Z"
+  },
+  {
+    "id": "pool-1784920067717",
+    "name": "新しいカードプール (4)",
+    "favorite": false,
+    "createdAt": "2026-07-24T19:07:47.717Z"
+  },
+  {
+    "id": "pool-1784920067876",
+    "name": "新しいカードプール (5)",
+    "favorite": false,
+    "createdAt": "2026-07-24T19:07:47.876Z"
+  },
+  {
+    "id": "pool-1784920280489",
+    "name": "新しいカードプール (12)",
+    "favorite": false,
+    "createdAt": "2026-07-24T19:11:20.489Z"
   }
 ]
