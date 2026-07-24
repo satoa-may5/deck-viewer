@@ -37,12 +37,10 @@ const PADDING = 20;
 const NAME_LEFT_PADDING = PADDING + 14;
 const HEADER_HEIGHT = 185; // fixed height of the blank area above the card grid
 const HEADER_SPLIT_GAP = 24; // gap between the deck-name half and the mana-curve half
-const PANEL_MARGIN_Y = 12; // top/bottom margin for the decorative header panels
-const NAME_FONT_SCALE = 0.3; // fraction of headerHeight used for the deck name's font size
-const NAME_STRIP_WIDTH = 6; // width of the accent strip on the name panel's left edge
-const CURVE_MARGIN_X = 90; // horizontal inset of the mana curve within its panel (narrower chart)
-const CURVE_TITLE_HEIGHT = 34; // room reserved above the chart for its "マナカーブ" title
-const CURVE_BOTTOM_INSET = 10; // small bottom margin so the chart uses most of the panel's height
+const PANEL_MARGIN_Y = 12; // top/bottom margin for the name/mana-curve content
+const NAME_FONT_SCALE = 0.15; // fraction of headerHeight used for the deck name's font size
+const CURVE_MARGIN_X = 90; // horizontal inset of the mana curve within its half (narrower chart)
+const CURVE_BOTTOM_INSET = 10; // small bottom margin so the chart uses most of the available height
 
 function computeCanvasSize() {
   const scale = BASE_LONG_EDGE / ASPECT_W;
@@ -144,35 +142,6 @@ function roundedRectPath(context, x, y, w, h, r) {
   context.arcTo(x, y + h, x, y, r);
   context.arcTo(x, y, x + w, y, r);
   context.closePath();
-}
-
-// Decorative card-like backing for the header's name/mana-curve areas: a
-// soft rounded panel with a subtle shadow and border, optionally with a
-// gradient accent strip down its left edge.
-function drawHeaderPanel(context, x, y, w, h, withStrip) {
-  context.save();
-  context.shadowColor = "rgba(20, 21, 26, 0.12)";
-  context.shadowBlur = 16;
-  context.shadowOffsetY = 5;
-  roundedRectPath(context, x, y, w, h, 16);
-  context.fillStyle = "rgba(255, 255, 255, 0.82)";
-  context.fill();
-  context.restore();
-
-  context.save();
-  roundedRectPath(context, x, y, w, h, 16);
-  context.clip();
-  context.strokeStyle = "rgba(20, 21, 26, 0.06)";
-  context.lineWidth = 2;
-  context.stroke();
-  if (withStrip) {
-    const stripGrad = context.createLinearGradient(x, 0, x + NAME_STRIP_WIDTH, 0);
-    stripGrad.addColorStop(0, ACCENT_1);
-    stripGrad.addColorStop(1, ACCENT_2);
-    context.fillStyle = stripGrad;
-    context.fillRect(x, y, NAME_STRIP_WIDTH, h);
-  }
-  context.restore();
 }
 
 function drawManaCurve(context, x, y, w, h) {
@@ -305,10 +274,8 @@ function renderFrame() {
     const panelH = headerHeight - PANEL_MARGIN_Y * 2;
 
     if (showName && deck) {
-      drawHeaderPanel(ctx, nameAreaX, panelY, nameAreaW, panelH, true);
-
-      const nameX = nameAreaX + NAME_STRIP_WIDTH + (NAME_LEFT_PADDING - PADDING);
-      const nameMaxWidth = nameAreaW - NAME_STRIP_WIDTH - (NAME_LEFT_PADDING - PADDING) - 16;
+      const nameX = nameAreaX + (NAME_LEFT_PADDING - PADDING);
+      const nameMaxWidth = nameAreaW - (NAME_LEFT_PADDING - PADDING) - 16;
       let fontSize = Math.round(headerHeight * NAME_FONT_SCALE);
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
@@ -322,18 +289,10 @@ function renderFrame() {
       ctx.fillText(deck.name, nameX, panelY + panelH / 2 + 3);
     }
     if (showManaCurve) {
-      drawHeaderPanel(ctx, curveAreaX, panelY, curveAreaW, panelH, false);
-
-      ctx.textAlign = "left";
-      ctx.textBaseline = "top";
-      ctx.fillStyle = MUTED_COLOR;
-      ctx.font = `700 13px ${FONT_STACK}`;
-      ctx.fillText("マナカーブ", curveAreaX + CURVE_MARGIN_X, panelY + 10);
-
       const curveX = curveAreaX + CURVE_MARGIN_X;
-      const curveY = panelY + CURVE_TITLE_HEIGHT;
+      const curveY = panelY;
       const curveW = curveAreaW - CURVE_MARGIN_X * 2;
-      const curveH = panelH - CURVE_TITLE_HEIGHT - CURVE_BOTTOM_INSET;
+      const curveH = panelH - CURVE_BOTTOM_INSET;
       drawManaCurve(ctx, curveX, curveY, curveW, curveH);
     }
   }

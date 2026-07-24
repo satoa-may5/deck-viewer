@@ -1,0 +1,72 @@
+{
+  "id": "deck-1784934407178",
+  "name": "電王",
+  "poolIds": [
+    "pool-1784891844675"
+  ],
+  "cards": [
+    {
+      "cardId": "card-1784891845097",
+      "count": 4
+    },
+    {
+      "cardId": "card-1784891845089",
+      "count": 3
+    },
+    {
+      "cardId": "card-1784891845092",
+      "count": 3
+    },
+    {
+      "cardId": "card-1784891845100",
+      "count": 2
+    },
+    {
+      "cardId": "card-1784891845064",
+      "count": 4
+    },
+    {
+      "cardId": "card-1784891845062",
+      "count": 4
+    },
+    {
+      "cardId": "card-1784891845069",
+      "count": 3
+    },
+    {
+      "cardId": "card-1784891845057",
+      "count": 4
+    },
+    {
+      "cardId": "card-1784891845055",
+      "count": 3
+    },
+    {
+      "cardId": "card-1784891845065",
+      "count": 4
+    },
+    {
+      "cardId": "card-1784891845058",
+      "count": 2
+    },
+    {
+      "cardId": "card-1784891845105",
+      "count": 4
+    },
+    {
+      "cardId": "card-1784891845104",
+      "count": 3
+    },
+    {
+      "cardId": "card-1784891845107",
+      "count": 4
+    },
+    {
+      "cardId": "card-1784891844853",
+      "count": 3
+    }
+  ],
+  "thumbnailCardId": "card-1784891845065",
+  "order": 2,
+  "updatedAt": "2026-07-24T23:10:19.272Z"
+}
