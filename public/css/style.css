@@ -1652,6 +1652,13 @@ button {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
   gap: 12px 10px;
+  /* Establishes its own stacking context so the add/remove exit ghost (a
+     child with z-index:-1, see js/builder.js) sinks below this grid's own
+     live cards but stays above the .pane's opaque background above it —
+     without this, a negative z-index on a position:fixed ghost sinks all
+     the way behind the page's own background layers and becomes invisible. */
+  position: relative;
+  z-index: 0;
 }
 
 .builder-grid .card-item {

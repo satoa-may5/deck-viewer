@@ -29,34 +29,43 @@ function attachTap(el, action) {
 
 // Quick, non-blocking exit flourish: clones just the tapped card's thumbnail
 // frame (not the whole tile — that includes the caption below it, which
-// would stretch the image vertically to fill the extra height) into a
-// fixed-position ghost sitting behind the grid, sliding sideways at the same
-// y-position while fading out, then vanishing. Purely decorative — the
-// actual state update and re-render happen immediately alongside it, so it
-// never adds input latency.
-function animateCardExit(sourceEl, direction) {
+// would stretch the image vertically to fill the extra height) into a ghost
+// that slides sideways at the same y-position while fading out, then
+// vanishes. The ghost has to be inserted into `container` (collectionGrid /
+// deckGrid) *after* the state-changing add/remove has re-rendered it (that
+// render wipes the container's innerHTML, which would delete the ghost if it
+// were already there) — so this captures the source rect and clones the
+// frame up front, before anything moves, and returns a function that does
+// the actual insert+animate once the caller has finished re-rendering.
+// z-index:-1 puts it behind the container's own live cards but, because
+// .builder-grid establishes its own stacking context, still above the
+// .pane's opaque background — not sunk behind the whole page.
+function prepareCardExit(sourceEl, direction) {
   const frame = sourceEl.querySelector(".card-frame");
-  if (!frame) return;
-  const rect = frame.getBoundingClientRect();
-
+  if (!frame) return null;
+  const frameRect = frame.getBoundingClientRect();
   const ghost = frame.cloneNode(true);
-  ghost.style.position = "fixed";
-  ghost.style.left = `${rect.left}px`;
-  ghost.style.top = `${rect.top}px`;
-  ghost.style.width = `${rect.width}px`;
-  ghost.style.height = `${rect.height}px`;
-  ghost.style.margin = "0";
-  ghost.style.zIndex = "-1";
-  ghost.style.pointerEvents = "none";
-  ghost.style.transition = "transform 0.1s ease-in, opacity 0.1s ease-in";
-  document.body.appendChild(ghost);
 
-  const dx = direction === "left" ? -60 : 60;
-  requestAnimationFrame(() => {
-    ghost.style.transform = `translateX(${dx}px)`;
-    ghost.style.opacity = "0";
-  });
-  setTimeout(() => ghost.remove(), 110);
+  return (container) => {
+    const containerRect = container.getBoundingClientRect();
+    ghost.style.position = "absolute";
+    ghost.style.left = `${frameRect.left - containerRect.left}px`;
+    ghost.style.top = `${frameRect.top - containerRect.top}px`;
+    ghost.style.width = `${frameRect.width}px`;
+    ghost.style.height = `${frameRect.height}px`;
+    ghost.style.margin = "0";
+    ghost.style.zIndex = "-1";
+    ghost.style.pointerEvents = "none";
+    ghost.style.transition = "transform 0.1s ease-in, opacity 0.1s ease-in";
+    container.appendChild(ghost);
+
+    const dx = direction === "left" ? -60 : 60;
+    requestAnimationFrame(() => {
+      ghost.style.transform = `translateX(${dx}px)`;
+      ghost.style.opacity = "0";
+    });
+    setTimeout(() => ghost.remove(), 110);
+  };
 }
 
 function addToDeck(cardId) {
@@ -292,8 +301,9 @@ function renderPanes() {
       el.addEventListener("click", () => setDeckThumbnail(cardId));
     } else {
       attachTap(el, () => {
-        animateCardExit(el, "right");
+        const spawnGhost = prepareCardExit(el, "right");
         removeFromDeck(cardId);
+        if (spawnGhost) spawnGhost(deckGrid);
       });
     }
     deckGrid.appendChild(el);
@@ -319,8 +329,9 @@ function renderPanes() {
       const count = deckCounts.get(card.id) || null;
       const el = createCardElement(card, card.id, count);
       attachTap(el, () => {
-        animateCardExit(el, "left");
+        const spawnGhost = prepareCardExit(el, "left");
         addToDeck(card.id);
+        if (spawnGhost) spawnGhost(collectionGrid);
       });
       collectionGrid.appendChild(el);
     }
