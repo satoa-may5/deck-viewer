@@ -707,6 +707,96 @@ modalSaveBtn.addEventListener("click", async () => {
   }
 });
 
+// ---- Auto-fill card info (type/color/cost) ----
+//
+// Runs as a background job on the server (see server.js /api/pools/:id/auto-fill-info);
+// this modal only starts it and can be closed immediately after — completion is
+// reported globally via card-info-jobs.js's toast, independent of whether this
+// page is still open. The button itself shows a persistent completion mark
+// (green + checkmark) until the modal is opened again, tracked per-pool in
+// localStorage since the server only remembers the single latest job per pool.
+
+const autoFillBtn = document.getElementById("auto-fill-info-btn");
+const autoFillModal = document.getElementById("auto-fill-modal");
+const autoFillOverwriteCheckbox = document.getElementById("auto-fill-overwrite-checkbox");
+const autoFillRunBtn = document.getElementById("auto-fill-run-btn");
+const autoFillStatus = document.getElementById("auto-fill-status");
+
+const AUTO_FILL_SEEN_KEY_PREFIX = "deck-viewer-seen-card-info-job:";
+let lastAutoFillJobId = null;
+let lastAutoFillJobStatus = null;
+
+function setAutoFillStatus(message, kind) {
+  autoFillStatus.textContent = message;
+  autoFillStatus.className = `status-message ${kind || ""}`;
+}
+
+function updateAutoFillButtonState() {
+  if (!poolId) return;
+  const job = getCardInfoJob(poolId);
+  const seenJobId = localStorage.getItem(AUTO_FILL_SEEN_KEY_PREFIX + poolId);
+  const isUnseenCompletion = Boolean(
+    job && (job.status === "done" || job.status === "error") && job.id !== seenJobId
+  );
+  autoFillBtn.classList.toggle("auto-fill-done", isUnseenCompletion);
+  autoFillBtn.textContent = isUnseenCompletion
+    ? "カードの情報を自動取得する ✓"
+    : "カードの情報を自動取得する";
+}
+
+function markAutoFillSeen() {
+  if (!poolId) return;
+  const job = getCardInfoJob(poolId);
+  if (job) localStorage.setItem(AUTO_FILL_SEEN_KEY_PREFIX + poolId, job.id);
+  updateAutoFillButtonState();
+}
+
+document.addEventListener("card-info-jobs-updated", () => {
+  updateAutoFillButtonState();
+  const job = getCardInfoJob(poolId);
+  if (!job) return;
+  if (job.id !== lastAutoFillJobId) {
+    lastAutoFillJobId = job.id;
+    lastAutoFillJobStatus = job.status;
+  } else if (job.status !== lastAutoFillJobStatus) {
+    lastAutoFillJobStatus = job.status;
+    // Refresh so newly-detected type/color/cost show up without a manual reload.
+    if (job.status === "done") renderCards();
+  }
+});
+
+function openAutoFillModal() {
+  markAutoFillSeen();
+  autoFillOverwriteCheckbox.checked = false;
+  setAutoFillStatus("", "");
+  autoFillModal.hidden = false;
+}
+
+function closeAutoFillModal() {
+  autoFillModal.hidden = true;
+}
+
+autoFillBtn.addEventListener("click", openAutoFillModal);
+document.getElementById("auto-fill-close-btn").addEventListener("click", closeAutoFillModal);
+bindModalDismissal(autoFillModal, { onCancel: closeAutoFillModal });
+
+autoFillRunBtn.addEventListener("click", async () => {
+  if (!poolId) return;
+  autoFillRunBtn.disabled = true;
+  setAutoFillStatus("開始しています...", "");
+  try {
+    await Api.startAutoFillInfo(poolId, autoFillOverwriteCheckbox.checked);
+    setAutoFillStatus(
+      "実行を開始しました。このポップアップを閉じたり他の画面に移動しても処理は続きます。完了すると通知が表示されます。",
+      "success"
+    );
+  } catch (err) {
+    setAutoFillStatus(err.message, "error");
+  } finally {
+    autoFillRunBtn.disabled = false;
+  }
+});
+
 async function init() {
   updateViewToggleUI();
 

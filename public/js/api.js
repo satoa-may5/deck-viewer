@@ -98,6 +98,17 @@ const Api = {
     });
   },
 
+  async startAutoFillInfo(poolId, overwrite) {
+    const res = await fetch(`/api/pools/${encodeURIComponent(poolId)}/auto-fill-info`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ overwrite }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "実行に失敗しました");
+    return data;
+  },
+
   async getPoolExports() {
     const res = await fetch("/api/pool-exports");
     return res.json();

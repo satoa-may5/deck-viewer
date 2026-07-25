@@ -1,5 +1,7 @@
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
+const { spawn, execFileSync } = require("child_process");
 const express = require("express");
 const multer = require("multer");
 
@@ -23,6 +25,12 @@ const POOLS_FILE = path.join(DATA_DIR, "cardpools.json");
 // read source at runtime for whoever downloads and runs the exe; there is no
 // network fetch or git operation involved on their end at all.
 const EXPORTS_DIR = path.join(ASSETS_ROOT, "pool-exports");
+// Card-info auto-detection shells out to a Python+OpenCV script (see
+// tools/classify_cards.py) -- read-only content, same bundling story as
+// public/ and pool-exports/. Unlike those, though, the feature also needs a
+// working Python+OpenCV *interpreter* on whatever machine runs the server,
+// which most exe recipients won't have; see findPython() below.
+const CLASSIFY_SCRIPT = path.join(ASSETS_ROOT, "tools", "classify_cards.py");
 
 for (const dir of [DATA_DIR, DECKS_DIR, IMAGES_DIR]) {
   fs.mkdirSync(dir, { recursive: true });
@@ -508,6 +516,213 @@ app.delete("/api/cards/:id", (req, res) => {
   const file = path.join(IMAGES_DIR, `${card.id}.${card.imageExt}`);
   if (fs.existsSync(file)) fs.unlinkSync(file);
   writeCards(cards.filter((c) => c.id !== req.params.id));
+  res.status(204).end();
+});
+
+// ---- Card info auto-detection ----
+//
+// Classifies each card's type/color/cost from its image via
+// tools/classify_cards.py (template matching against tools/cost-templates/).
+// This can take a while over a whole pool, so it runs as a background job:
+// the request returns immediately with a job id, and the frontend polls
+// GET /api/card-info-jobs for status/results across page navigations.
+//
+// Dev-machine only: needs Python 3 with OpenCV installed and importable,
+// which most people who just download the packaged exe will not have.
+// findPython() probes a short list of candidates once and caches the
+// result; if none work, the endpoint fails with a clear explanation rather
+// than silently doing nothing.
+
+const PYTHON_CANDIDATES = [
+  { cmd: "py", args: ["-3.13"] },
+  { cmd: "python", args: [] },
+  { cmd: "python3", args: [] },
+];
+let cachedPython; // undefined = not checked yet, false = none found
+
+function findPython() {
+  if (cachedPython !== undefined) return cachedPython;
+  for (const candidate of PYTHON_CANDIDATES) {
+    try {
+      execFileSync(candidate.cmd, [...candidate.args, "-c", "import cv2"], { stdio: "ignore" });
+      cachedPython = candidate;
+      return cachedPython;
+    } catch (err) {
+      // try the next candidate
+    }
+  }
+  cachedPython = false;
+  return cachedPython;
+}
+
+// poolId -> job. One job per pool at a time; only ever the latest job for
+// that pool is kept (starting a new one replaces it).
+const cardInfoJobs = new Map();
+
+// Parallel/foil printings (name ending in "_p<N>", the convention used by
+// both manifest import and make_manifests' own export) render the cost
+// badge in a completely different style -- often a metallic/inverted
+// digit -- that the template library (built from flat, non-foil renders)
+// doesn't represent. Rather than classify them directly and risk a wrong
+// read, they inherit type/color/cost from their same-pool non-parallel
+// base card (same name with the suffix stripped) when one exists.
+const PARALLEL_SUFFIX_RE = /^(.*)_p\d+$/;
+
+app.post("/api/pools/:id/auto-fill-info", (req, res) => {
+  const pool = readPools().find((p) => p.id === req.params.id);
+  if (!pool) return res.status(404).json({ error: "カードプールが見つかりません" });
+
+  const existingJob = cardInfoJobs.get(pool.id);
+  if (existingJob && existingJob.status === "running") {
+    return res.status(409).json({ error: "このカードプールは既に処理中です" });
+  }
+
+  const poolCards = readCards().filter((c) => c.poolId === pool.id && c.imageExt);
+  if (poolCards.length === 0) {
+    return res.status(400).json({ error: "画像付きのカードがありません" });
+  }
+
+  const python = findPython();
+  if (!python) {
+    return res.status(500).json({
+      error:
+        "Python(OpenCV導入済み)が見つかりませんでした。この機能は開発マシン向けです。" +
+        "「py -3.13」または「python」でcv2をimportできる環境が必要です。",
+    });
+  }
+
+  const job = {
+    id: `job-${Date.now()}`,
+    poolId: pool.id,
+    poolName: pool.name,
+    status: "running",
+    overwrite: Boolean(req.body && req.body.overwrite),
+    startedAt: new Date().toISOString(),
+    finishedAt: null,
+    notified: false,
+    summary: null,
+    error: null,
+  };
+  cardInfoJobs.set(pool.id, job);
+  res.status(202).json(job);
+
+  runAutoFillInfoJob(job, python, poolCards).catch((err) => {
+    job.status = "error";
+    job.error = err && err.message ? err.message : String(err);
+    job.finishedAt = new Date().toISOString();
+  });
+});
+
+async function runAutoFillInfoJob(job, python, poolCards) {
+  const byName = new Map(poolCards.map((c) => [c.name, c]));
+  const directCards = [];
+  const inheritPairs = []; // [card, baseCard]
+  for (const card of poolCards) {
+    const m = PARALLEL_SUFFIX_RE.exec(card.name || "");
+    const base = m ? byName.get(m[1]) : null;
+    if (base) {
+      inheritPairs.push([card, base]);
+    } else {
+      directCards.push(card);
+    }
+  }
+
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "deck-viewer-classify-"));
+  const requestFile = path.join(tmpDir, "request.json");
+  const responseFile = path.join(tmpDir, "response.json");
+  try {
+    const request = directCards.map((c) => ({
+      id: c.id,
+      path: path.join(IMAGES_DIR, `${c.id}.${c.imageExt}`),
+    }));
+    fs.writeFileSync(requestFile, JSON.stringify(request));
+
+    await new Promise((resolve, reject) => {
+      const child = spawn(python.cmd, [...python.args, CLASSIFY_SCRIPT, requestFile, responseFile]);
+      let stderr = "";
+      child.stderr.on("data", (chunk) => {
+        stderr += chunk;
+      });
+      child.on("error", reject);
+      child.on("close", (code) => {
+        if (code !== 0) reject(new Error(`classify_cards.py failed (code ${code}): ${stderr.slice(-500)}`));
+        else resolve();
+      });
+    });
+
+    const results = JSON.parse(fs.readFileSync(responseFile, "utf8"));
+
+    const cards = readCards();
+    const cardsById = new Map(cards.map((c) => [c.id, c]));
+    let updated = 0;
+    let skipped = 0;
+
+    const applyResult = (card, info) => {
+      const target = cardsById.get(card.id);
+      if (!info || !target) {
+        skipped++;
+        return;
+      }
+      const isEmpty = (v) => v === "" || v === null || v === undefined;
+      const canWrite = (field) => job.overwrite || isEmpty(target[field]);
+      let changed = false;
+      if (canWrite("type") && info.type) {
+        target.type = info.type;
+        changed = true;
+      }
+      if (canWrite("color") && info.color) {
+        target.color = info.color;
+        changed = true;
+      }
+      if (canWrite("cost") && !isEmpty(info.cost)) {
+        target.cost = info.cost;
+        changed = true;
+      }
+      if (changed) updated++;
+      else skipped++;
+    };
+
+    for (const card of directCards) {
+      applyResult(card, results[card.id]);
+    }
+    for (const [card, base] of inheritPairs) {
+      const baseTarget = cardsById.get(base.id);
+      const info =
+        results[base.id] ||
+        (baseTarget && (baseTarget.type || baseTarget.color || !isEmptyValue(baseTarget.cost))
+          ? { type: baseTarget.type, color: baseTarget.color, cost: baseTarget.cost }
+          : null);
+      applyResult(card, info);
+    }
+
+    writeCards(cards);
+
+    job.status = "done";
+    job.summary = {
+      total: poolCards.length,
+      classified: directCards.filter((c) => results[c.id]).length,
+      inherited: inheritPairs.length,
+      updated,
+      skipped,
+    };
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    job.finishedAt = new Date().toISOString();
+  }
+}
+
+function isEmptyValue(v) {
+  return v === "" || v === null || v === undefined;
+}
+
+app.get("/api/card-info-jobs", (req, res) => {
+  res.json([...cardInfoJobs.values()]);
+});
+
+app.post("/api/card-info-jobs/:jobId/ack", (req, res) => {
+  const job = [...cardInfoJobs.values()].find((j) => j.id === req.params.jobId);
+  if (!job) return res.status(404).json({ error: "ジョブが見つかりません" });
+  job.notified = true;
   res.status(204).end();
 });
 
