@@ -583,7 +583,6 @@ app.post("/api/pools/:id/auto-fill-info", (req, res) => {
     overwrite: Boolean(req.body && req.body.overwrite),
     startedAt: new Date().toISOString(),
     finishedAt: null,
-    notified: false,
     progress: { current: 0, total: poolCards.length },
     summary: null,
     error: null,
@@ -596,15 +595,6 @@ app.post("/api/pools/:id/auto-fill-info", (req, res) => {
     job.error = err && err.message ? err.message : String(err);
     job.finishedAt = new Date().toISOString();
   });
-});
-
-app.post("/api/pools/:id/auto-fill-info/cancel", (req, res) => {
-  const job = cardInfoJobs.get(req.params.id);
-  if (!job || job.status !== "running") {
-    return res.status(404).json({ error: "実行中のジョブが見つかりません" });
-  }
-  job.cancelRequested = true;
-  res.status(204).end();
 });
 
 function isEmptyValue(v) {
@@ -641,16 +631,9 @@ async function runAutoFillInfoJob(job, poolCards) {
   const templates = await loadCardInfoTemplates();
   const results = {};
   for (const card of directCards) {
-    if (job.cancelRequested) break;
     const info = await classifyImage(path.join(IMAGES_DIR, `${card.id}.${card.imageExt}`), templates);
     if (info) results[card.id] = info;
     job.progress.current++;
-  }
-
-  if (job.cancelRequested) {
-    job.status = "cancelled";
-    job.finishedAt = new Date().toISOString();
-    return;
   }
 
   const cards = readCards();
@@ -718,13 +701,6 @@ async function runAutoFillInfoJob(job, poolCards) {
 
 app.get("/api/card-info-jobs", (req, res) => {
   res.json([...cardInfoJobs.values()]);
-});
-
-app.post("/api/card-info-jobs/:jobId/ack", (req, res) => {
-  const job = [...cardInfoJobs.values()].find((j) => j.id === req.params.jobId);
-  if (!job) return res.status(404).json({ error: "ジョブが見つかりません" });
-  job.notified = true;
-  res.status(204).end();
 });
 
 // ---- Decks ----

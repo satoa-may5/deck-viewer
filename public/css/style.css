@@ -1894,6 +1894,9 @@ button {
 
 .toast {
   pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   max-width: min(420px, calc(100vw - 32px));
   width: max-content;
   padding: 12px 16px;
@@ -1906,6 +1909,23 @@ button {
   opacity: 0;
   transform: translateY(8px);
   transition: opacity 0.2s var(--ease, ease), transform 0.2s var(--ease, ease);
+}
+
+.toast-action-btn {
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius-md, 12px);
+  background: transparent;
+  color: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.toast-action-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .toast.show {
@@ -1948,19 +1968,38 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px 0;
+  gap: 8px;
+  padding: 14px 16px;
 }
 
 .auto-fill-panel-header h3 {
   margin: 0;
   font-size: 0.98rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auto-fill-panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.auto-fill-panel.collapsed .auto-fill-panel-header {
+  cursor: pointer;
+}
+
+.auto-fill-panel.collapsed .auto-fill-panel-body {
+  display: none;
 }
 
 .auto-fill-panel-body {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 12px 16px 16px;
+  padding: 0 16px 16px;
 }
 
 .auto-fill-panel-body .crop-hint {

@@ -109,10 +109,6 @@ const Api = {
     return data;
   },
 
-  async cancelAutoFillInfo(poolId) {
-    await fetch(`/api/pools/${encodeURIComponent(poolId)}/auto-fill-info/cancel`, { method: "POST" });
-  },
-
   async getPoolExports() {
     const res = await fetch("/api/pool-exports");
     return res.json();

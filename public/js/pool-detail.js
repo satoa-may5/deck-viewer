@@ -254,6 +254,40 @@ function updateCostSliderUI() {
   filterCostMaxInput.value = filterState.costMax;
 }
 
+// When the two thumbs land on the same value, they visually overlap, but
+// only whichever <input> is on top in paint order can actually receive the
+// next click/drag there — with a fixed stacking order the other thumb
+// becomes permanently ungrabbable at that position (can only ever move the
+// topmost one away, never bring it back). Continuously reassigning z-index
+// to whichever thumb is closer to the pointer, on every hover/move, means
+// the correct one is already on top by the time an actual click/drag lands
+// (mousemove fires before mousedown for a real click), instead of it being
+// fixed by DOM order.
+const filterCostSliderWrap = filterCostMinInput.closest(".range-slider-wrap");
+
+function prioritizeCostThumbNear(clientX) {
+  const rect = filterCostSliderWrap.getBoundingClientRect();
+  const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  const pointerValue = COST_RANGE_MIN + pct * (COST_RANGE_MAX - COST_RANGE_MIN);
+  const minVal = Number(filterCostMinInput.value);
+  const maxVal = Number(filterCostMaxInput.value);
+  let minIsCloser;
+  if (minVal === maxVal) {
+    // Exactly overlapping: equidistant from both, so "closer" can't
+    // disambiguate at all -- use which side of the tied value the pointer
+    // is on instead (shrinking further left implies min, growing further
+    // right implies max).
+    minIsCloser = pointerValue <= minVal;
+  } else {
+    minIsCloser = Math.abs(pointerValue - minVal) < Math.abs(pointerValue - maxVal);
+  }
+  filterCostMinInput.style.zIndex = minIsCloser ? 3 : 2;
+  filterCostMaxInput.style.zIndex = minIsCloser ? 2 : 3;
+}
+
+filterCostSliderWrap.addEventListener("pointermove", (e) => prioritizeCostThumbNear(e.clientX));
+filterCostSliderWrap.addEventListener("pointerdown", (e) => prioritizeCostThumbNear(e.clientX));
+
 filterCostMinInput.addEventListener("input", () => {
   let value = Number(filterCostMinInput.value);
   if (value > filterState.costMax) value = filterState.costMax;
@@ -724,124 +758,32 @@ modalSaveBtn.addEventListener("click", async () => {
 
 // ---- Auto-fill card info (type/color/cost) ----
 //
-// Runs as a background job on the server (see server.js /api/pools/:id/auto-fill-info);
-// the panel only starts it and can be closed immediately after — completion is
-// reported globally via card-info-jobs.js's toast, independent of whether this
-// page is still open. The button itself shows a persistent completion mark
-// (green + checkmark) until the panel is opened again, tracked per-pool in
-// localStorage since the server only remembers the single latest job per pool.
-// Opening the panel while that mark is showing goes straight to the
-// completion view (summary + any uncertain cards) instead of the input form.
+// The actual panel (form/running/complete views) is a single shared,
+// site-wide component owned by card-info-jobs.js — it has to be, since a
+// running or unconfirmed job needs to stay visible in the corner across page
+// navigations, not just while this specific page is open. This page only
+// owns the trigger button (its green-checkmark "unseen completion" state,
+// specifically for THIS pool) and refreshing the card list once THIS pool's
+// job finishes, since only pool-detail.js has renderCards()/latestCards.
 
 const autoFillBtn = document.getElementById("auto-fill-info-btn");
-const autoFillPanel = document.getElementById("auto-fill-panel");
-const autoFillFormView = document.getElementById("auto-fill-form-view");
-const autoFillCompleteView = document.getElementById("auto-fill-complete-view");
-const autoFillOverwriteCheckbox = document.getElementById("auto-fill-overwrite-checkbox");
-const autoFillRunBtn = document.getElementById("auto-fill-run-btn");
-const autoFillCancelBtn = document.getElementById("auto-fill-cancel-btn");
-const autoFillStatus = document.getElementById("auto-fill-status");
-const autoFillProgress = document.getElementById("auto-fill-progress");
-const autoFillProgressFill = document.getElementById("auto-fill-progress-fill");
-const autoFillProgressLabel = document.getElementById("auto-fill-progress-label");
-const autoFillCompleteSummary = document.getElementById("auto-fill-complete-summary");
-const autoFillUncertainHint = document.getElementById("auto-fill-uncertain-hint");
-const autoFillUncertainList = document.getElementById("auto-fill-uncertain-list");
-const autoFillRerunBtn = document.getElementById("auto-fill-rerun-btn");
-const autoFillDoneBtn = document.getElementById("auto-fill-done-btn");
-
-const AUTO_FILL_SEEN_KEY_PREFIX = "deck-viewer-seen-card-info-job:";
 let lastAutoFillJobId = null;
 let lastAutoFillJobStatus = null;
 
-function setAutoFillStatus(message, kind) {
-  autoFillStatus.textContent = message;
-  autoFillStatus.className = `status-message ${kind || ""}`;
-}
-
-function isAutoFillCompletionUnseen() {
-  if (!poolId) return false;
-  const job = getCardInfoJob(poolId);
-  const seenJobId = localStorage.getItem(AUTO_FILL_SEEN_KEY_PREFIX + poolId);
-  return Boolean(job && (job.status === "done" || job.status === "error") && job.id !== seenJobId);
-}
-
 function updateAutoFillButtonState() {
   if (!poolId) return;
-  const isUnseenCompletion = isAutoFillCompletionUnseen();
+  const job = getCardInfoJob(poolId);
+  const isUnseenCompletion = Boolean(
+    job && (job.status === "done" || job.status === "error") && !isJobConfirmed(job)
+  );
   autoFillBtn.classList.toggle("auto-fill-done", isUnseenCompletion);
   autoFillBtn.textContent = isUnseenCompletion
     ? "カードの情報を自動取得する ✓"
     : "カードの情報を自動取得する";
 }
 
-function markAutoFillSeen() {
-  if (!poolId) return;
-  const job = getCardInfoJob(poolId);
-  if (job) localStorage.setItem(AUTO_FILL_SEEN_KEY_PREFIX + poolId, job.id);
-  updateAutoFillButtonState();
-}
-
-function updateAutoFillProgressUI() {
-  const job = getCardInfoJob(poolId);
-  const running = Boolean(job && job.status === "running");
-  autoFillProgress.hidden = !running;
-  autoFillRunBtn.hidden = running;
-  if (running && job.progress) {
-    const pct = job.progress.total > 0 ? (job.progress.current / job.progress.total) * 100 : 0;
-    autoFillProgressFill.style.width = `${pct}%`;
-    autoFillProgressLabel.textContent = `${job.progress.current}/${job.progress.total}`;
-  }
-}
-
-async function populateAutoFillCompleteView() {
-  const job = getCardInfoJob(poolId);
-  if (job && job.status === "done" && job.summary) {
-    autoFillCompleteSummary.textContent = `完了しました(${job.summary.updated}件更新)`;
-    autoFillCompleteSummary.className = "status-message success";
-  } else if (job && job.status === "error") {
-    autoFillCompleteSummary.textContent = `処理に失敗しました: ${job.error || ""}`;
-    autoFillCompleteSummary.className = "status-message error";
-  } else if (job && job.status === "cancelled") {
-    autoFillCompleteSummary.textContent = "キャンセルしました";
-    autoFillCompleteSummary.className = "status-message";
-  } else {
-    autoFillCompleteSummary.textContent = "";
-    autoFillCompleteSummary.className = "status-message";
-  }
-
-  const cards = poolId ? await Api.getCards(poolId) : [];
-  const uncertainCards = cards.filter((c) => c.infoUncertain);
-  autoFillUncertainHint.hidden = uncertainCards.length === 0;
-  autoFillUncertainList.innerHTML = "";
-  for (const card of uncertainCards) {
-    const item = document.createElement("div");
-    item.className = "auto-fill-uncertain-item";
-    const img = document.createElement("img");
-    img.src = Api.cardImageUrl(card);
-    img.alt = displayName(card);
-    img.draggable = false;
-    const name = document.createElement("span");
-    name.textContent = displayName(card);
-    item.appendChild(img);
-    item.appendChild(name);
-    autoFillUncertainList.appendChild(item);
-  }
-}
-
-function showAutoFillFormView() {
-  autoFillFormView.hidden = false;
-  autoFillCompleteView.hidden = true;
-}
-
-function showAutoFillCompleteView() {
-  autoFillFormView.hidden = true;
-  autoFillCompleteView.hidden = false;
-}
-
 document.addEventListener("card-info-jobs-updated", () => {
   updateAutoFillButtonState();
-  if (!autoFillPanel.hidden) updateAutoFillProgressUI();
   const job = getCardInfoJob(poolId);
   if (!job) return;
 
@@ -854,77 +796,14 @@ document.addEventListener("card-info-jobs-updated", () => {
   lastAutoFillJobId = job.id;
   lastAutoFillJobStatus = job.status;
 
-  if (statusChanged && (job.status === "done" || job.status === "error" || job.status === "cancelled")) {
+  if (statusChanged && (job.status === "done" || job.status === "error")) {
     renderCards(); // pick up newly-detected type/color/cost without a manual reload
-    if (!autoFillPanel.hidden) {
-      populateAutoFillCompleteView();
-      showAutoFillCompleteView();
-    }
   }
 });
 
-function openAutoFillPanel() {
-  const isUnseenCompletion = isAutoFillCompletionUnseen();
-  markAutoFillSeen();
-  if (isUnseenCompletion) {
-    populateAutoFillCompleteView();
-    showAutoFillCompleteView();
-  } else {
-    autoFillOverwriteCheckbox.checked = false;
-    setAutoFillStatus("", "");
-    showAutoFillFormView();
-    updateAutoFillProgressUI();
-  }
-  autoFillPanel.hidden = false;
-}
-
-function closeAutoFillPanel() {
-  autoFillPanel.hidden = true;
-}
-
-autoFillBtn.addEventListener("click", openAutoFillPanel);
-document.getElementById("auto-fill-close-btn").addEventListener("click", closeAutoFillPanel);
-bindModalDismissal(autoFillPanel, { onCancel: closeAutoFillPanel });
-
-autoFillCancelBtn.addEventListener("click", async () => {
-  const job = getCardInfoJob(poolId);
-  if (job && job.status === "running") {
-    autoFillCancelBtn.disabled = true;
-    try {
-      await Api.cancelAutoFillInfo(poolId);
-    } finally {
-      autoFillCancelBtn.disabled = false;
-    }
-  } else {
-    closeAutoFillPanel();
-  }
-});
-
-autoFillRunBtn.addEventListener("click", async () => {
-  if (!poolId) return;
-  autoFillRunBtn.disabled = true;
-  setAutoFillStatus("開始しています...", "");
-  try {
-    await Api.startAutoFillInfo(poolId, autoFillOverwriteCheckbox.checked);
-    setAutoFillStatus("", "");
-    updateAutoFillProgressUI();
-  } catch (err) {
-    setAutoFillStatus(err.message, "error");
-  } finally {
-    autoFillRunBtn.disabled = false;
-  }
-});
-
-autoFillRerunBtn.addEventListener("click", () => {
-  autoFillOverwriteCheckbox.checked = false;
-  setAutoFillStatus("", "");
-  showAutoFillFormView();
-  updateAutoFillProgressUI();
-});
-
-autoFillDoneBtn.addEventListener("click", () => {
-  markAutoFillSeen();
-  closeAutoFillPanel();
+autoFillBtn.addEventListener("click", () => {
+  if (!poolId || !currentPool) return;
+  requestAutoFillPanel(poolId, currentPool.name);
 });
 
 async function init() {

@@ -233,6 +233,36 @@ function updateCostSliderUI() {
   filterCostMaxInput.value = filterState.costMax;
 }
 
+// See the identical block in pool-detail.js for why: overlapping thumbs are
+// only ever grabbable on whichever <input> paint order currently favors,
+// which without this is fixed and permanently strands the other one at that
+// value. Continuously re-prioritizing by pointer proximity on hover/move
+// means the right one is already on top before an actual click/drag lands.
+const filterCostSliderWrap = filterCostMinInput.closest(".range-slider-wrap");
+
+function prioritizeCostThumbNear(clientX) {
+  const rect = filterCostSliderWrap.getBoundingClientRect();
+  const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  const pointerValue = COST_RANGE_MIN + pct * (COST_RANGE_MAX - COST_RANGE_MIN);
+  const minVal = Number(filterCostMinInput.value);
+  const maxVal = Number(filterCostMaxInput.value);
+  let minIsCloser;
+  if (minVal === maxVal) {
+    // Exactly overlapping: equidistant from both, so "closer" can't
+    // disambiguate at all -- use which side of the tied value the pointer
+    // is on instead (shrinking further left implies min, growing further
+    // right implies max).
+    minIsCloser = pointerValue <= minVal;
+  } else {
+    minIsCloser = Math.abs(pointerValue - minVal) < Math.abs(pointerValue - maxVal);
+  }
+  filterCostMinInput.style.zIndex = minIsCloser ? 3 : 2;
+  filterCostMaxInput.style.zIndex = minIsCloser ? 2 : 3;
+}
+
+filterCostSliderWrap.addEventListener("pointermove", (e) => prioritizeCostThumbNear(e.clientX));
+filterCostSliderWrap.addEventListener("pointerdown", (e) => prioritizeCostThumbNear(e.clientX));
+
 filterCostMinInput.addEventListener("input", () => {
   let value = Number(filterCostMinInput.value);
   if (value > filterState.costMax) value = filterState.costMax;
