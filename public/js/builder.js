@@ -19,6 +19,15 @@ function attachTap(el, action) {
     downY = e.clientY;
   });
   el.addEventListener("pointerup", (e) => {
+    // Dragging the card out and releasing it back near its starting point
+    // (e.g. a reorder that ends up where it began) has a small net
+    // displacement too, so checking distance alone would misread it as a
+    // tap. makeSortable() adds this class the moment a real drag begins
+    // (independent of net displacement) and only removes it in its own
+    // pointerup handler, which — thanks to normal event bubble order —
+    // fires after this element-level listener, so the class is still
+    // present here for the whole gesture if a drag happened.
+    if (el.classList.contains("dragging")) return;
     const dx = e.clientX - downX;
     const dy = e.clientY - downY;
     // Only a real tap/click triggers add-remove — anything that moved more than
