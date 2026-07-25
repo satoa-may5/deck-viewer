@@ -816,13 +816,25 @@ function setCalibrationStatus(message, kind) {
   calibrationStatus.className = `status-message ${kind || ""}`;
 }
 
+// 103mm -> "10cm3mm" のように読みやすい単位で表示するためのフォーマッタ。
+function formatCmMm(mm) {
+  const rounded = Math.round(mm * 10) / 10;
+  const cm = Math.floor(rounded / 10);
+  const remMm = Math.round((rounded - cm * 10) * 10) / 10;
+  const remStr = Number.isInteger(remMm) ? String(remMm) : remMm.toFixed(1);
+  return `${cm}cm${remStr}mm`;
+}
+
 function refreshCalibrationDisplay() {
   const { scaleX, scaleY } = getCalibration();
   if (scaleX === 1 && scaleY === 1) {
     setCalibrationStatus("現在、補正はかかっていません(等倍)。", "");
   } else {
+    const measuredW = scaleX * NOMINAL_CAL_SIZE_MM;
+    const measuredH = scaleY * NOMINAL_CAL_SIZE_MM;
     setCalibrationStatus(
-      `現在の補正: 横${(scaleX * 100).toFixed(1)}% / 縦${(scaleY * 100).toFixed(1)}%`,
+      `現在の補正: 横${(scaleX * 100).toFixed(1)}%(${formatCmMm(measuredW)}) / ` +
+        `縦${(scaleY * 100).toFixed(1)}%(${formatCmMm(measuredH)})`,
       "success"
     );
   }
