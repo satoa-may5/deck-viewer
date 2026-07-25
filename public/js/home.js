@@ -418,6 +418,40 @@ async function renderPools() {
   }
 }
 
+// Deleting a pool cascades to delete its cards too, so any deck that has one
+// of those cards in its own card list (not just decks referencing the pool)
+// would end up with dangling card references. Look that up so the delete
+// confirmation can warn about which decks are affected before it happens.
+async function findDecksUsingPool(poolId) {
+  // GET /api/decks only returns list-view summaries (no `cards` array), so
+  // each deck's full record has to be fetched individually to check its
+  // actual card references.
+  const [poolCards, deckSummaries] = await Promise.all([Api.getCards(poolId), Api.getDecks()]);
+  const poolCardIds = new Set(poolCards.map((c) => c.id));
+  const fullDecks = await Promise.all(deckSummaries.map((d) => Api.getDeck(d.id)));
+  return fullDecks
+    .filter((deck) => deck && deck.cards.some((entry) => poolCardIds.has(entry.cardId)))
+    .map((deck) => deck.name);
+}
+
+async function buildPoolDeleteWarning(pool) {
+  const lines = [
+    pool.cardCount > 0
+      ? `「${pool.name}」を削除します。プール内の${pool.cardCount}枚のカードも一緒に削除されます。`
+      : `「${pool.name}」を削除します。`,
+  ];
+  const affectedDeckNames = await findDecksUsingPool(pool.id);
+  if (affectedDeckNames.length > 0) {
+    lines.push(
+      "このカードプールを削除すると、以下のデッキからカードの情報が失われます。よろしいですか?"
+    );
+    for (const name of affectedDeckNames) lines.push(`・${name}`);
+  } else {
+    lines.push("よろしいですか?");
+  }
+  return lines.join("\n");
+}
+
 function createPoolRow(pool) {
   const row = document.createElement("div");
   row.className = "deck-row";
@@ -463,11 +497,7 @@ function createPoolRow(pool) {
   deleteBtn.textContent = "🗑";
   deleteBtn.addEventListener("click", async (e) => {
     e.stopPropagation();
-    const warning =
-      pool.cardCount > 0
-        ? `「${pool.name}」を削除します。プール内の${pool.cardCount}枚のカードも一緒に削除されます。よろしいですか?`
-        : `「${pool.name}」を削除します。よろしいですか?`;
-    if (!(await showConfirm(warning))) return;
+    if (!(await showConfirm(await buildPoolDeleteWarning(pool)))) return;
     await Api.deletePool(pool.id);
     await renderPools();
   });
@@ -532,11 +562,7 @@ function createPoolGridItem(pool) {
   deleteBtn.title = "削除";
   deleteBtn.textContent = "🗑";
   deleteBtn.addEventListener("click", async () => {
-    const warning =
-      pool.cardCount > 0
-        ? `「${pool.name}」を削除します。プール内の${pool.cardCount}枚のカードも一緒に削除されます。よろしいですか?`
-        : `「${pool.name}」を削除します。よろしいですか?`;
-    if (!(await showConfirm(warning))) return;
+    if (!(await showConfirm(await buildPoolDeleteWarning(pool)))) return;
     await Api.deletePool(pool.id);
     await renderPools();
   });
