@@ -233,35 +233,76 @@ function updateCostSliderUI() {
   filterCostMaxInput.value = filterState.costMax;
 }
 
-// See the identical block in pool-detail.js for why: overlapping thumbs are
-// only ever grabbable on whichever <input> paint order currently favors,
-// which without this is fixed and permanently strands the other one at that
-// value. Continuously re-prioritizing by pointer proximity on hover/move
-// means the right one is already on top before an actual click/drag lands.
+// See the identical block in pool-detail.js for why: two overlapping native
+// range inputs can only ever hand a click/drag to whichever paint order
+// currently favors, which without this permanently strands the other thumb
+// once both land on the same value, no matter which side of it you grab.
+// The wrapper drives the whole interaction itself instead. When the thumbs
+// aren't tied, pointerdown commits to the closer one immediately; when they
+// ARE tied, committing immediately backfires (grabbing exactly on the tied
+// pixel always resolves to the same thumb regardless of which way you then
+// drag, since no movement has happened yet to reveal intent), so it stays
+// undecided until the first move that actually goes to a different value,
+// and that direction picks the thumb.
 const filterCostSliderWrap = filterCostMinInput.closest(".range-slider-wrap");
+let draggingCostThumb = null; // "min" | "max" | null
+let costDragTiedValue = null; // set while a down-on-tied-thumbs drag hasn't picked a direction yet
 
-function prioritizeCostThumbNear(clientX) {
+function costValueFromClientX(clientX) {
   const rect = filterCostSliderWrap.getBoundingClientRect();
   const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-  const pointerValue = COST_RANGE_MIN + pct * (COST_RANGE_MAX - COST_RANGE_MIN);
-  const minVal = Number(filterCostMinInput.value);
-  const maxVal = Number(filterCostMaxInput.value);
-  let minIsCloser;
-  if (minVal === maxVal) {
-    // Exactly overlapping: equidistant from both, so "closer" can't
-    // disambiguate at all -- use which side of the tied value the pointer
-    // is on instead (shrinking further left implies min, growing further
-    // right implies max).
-    minIsCloser = pointerValue <= minVal;
-  } else {
-    minIsCloser = Math.abs(pointerValue - minVal) < Math.abs(pointerValue - maxVal);
-  }
-  filterCostMinInput.style.zIndex = minIsCloser ? 3 : 2;
-  filterCostMaxInput.style.zIndex = minIsCloser ? 2 : 3;
+  return Math.round(COST_RANGE_MIN + pct * (COST_RANGE_MAX - COST_RANGE_MIN));
 }
 
-filterCostSliderWrap.addEventListener("pointermove", (e) => prioritizeCostThumbNear(e.clientX));
-filterCostSliderWrap.addEventListener("pointerdown", (e) => prioritizeCostThumbNear(e.clientX));
+function pickCostThumb(clientX) {
+  const pointerValue = costValueFromClientX(clientX);
+  const minVal = Number(filterCostMinInput.value);
+  const maxVal = Number(filterCostMaxInput.value);
+  if (minVal === maxVal) return pointerValue <= minVal ? "min" : "max";
+  return Math.abs(pointerValue - minVal) < Math.abs(pointerValue - maxVal) ? "min" : "max";
+}
+
+function moveCostThumb(clientX) {
+  const input = draggingCostThumb === "min" ? filterCostMinInput : filterCostMaxInput;
+  input.value = costValueFromClientX(clientX);
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+filterCostSliderWrap.addEventListener("pointerdown", (e) => {
+  const minVal = Number(filterCostMinInput.value);
+  const maxVal = Number(filterCostMaxInput.value);
+  if (minVal === maxVal) {
+    draggingCostThumb = null;
+    costDragTiedValue = minVal;
+  } else {
+    draggingCostThumb = pickCostThumb(e.clientX);
+    costDragTiedValue = null;
+    moveCostThumb(e.clientX);
+  }
+  filterCostSliderWrap.setPointerCapture(e.pointerId);
+});
+filterCostSliderWrap.addEventListener("pointermove", (e) => {
+  if (draggingCostThumb) {
+    moveCostThumb(e.clientX);
+  } else if (costDragTiedValue !== null) {
+    const value = costValueFromClientX(e.clientX);
+    if (value < costDragTiedValue) draggingCostThumb = "min";
+    else if (value > costDragTiedValue) draggingCostThumb = "max";
+    if (draggingCostThumb) moveCostThumb(e.clientX);
+  }
+});
+filterCostSliderWrap.addEventListener("pointerup", (e) => {
+  if (!draggingCostThumb && costDragTiedValue !== null) {
+    draggingCostThumb = pickCostThumb(e.clientX);
+    moveCostThumb(e.clientX);
+  }
+  draggingCostThumb = null;
+  costDragTiedValue = null;
+});
+filterCostSliderWrap.addEventListener("pointercancel", () => {
+  draggingCostThumb = null;
+  costDragTiedValue = null;
+});
 
 filterCostMinInput.addEventListener("input", () => {
   let value = Number(filterCostMinInput.value);

@@ -98,7 +98,7 @@ const AUTO_FILL_PANEL_HTML = `
     <div class="auto-fill-panel-header" id="auto-fill-panel-header">
       <h3 id="auto-fill-panel-title">カードの情報を自動取得する</h3>
       <div class="auto-fill-panel-header-actions">
-        <button type="button" class="icon-btn" id="auto-fill-fold-btn" title="折りたたむ" hidden>▾</button>
+        <button type="button" class="icon-btn" id="auto-fill-dock-btn" title="右端に格納" hidden>▸</button>
         <button type="button" class="icon-btn" id="auto-fill-close-btn">✕</button>
       </div>
     </div>
@@ -132,10 +132,11 @@ const AUTO_FILL_PANEL_HTML = `
       </div>
     </div>
   </div>
+  <button type="button" class="auto-fill-dock-tab" id="auto-fill-dock-tab" title="カードの情報を自動取得する" hidden>◂</button>
 `;
 
 let autoFillPanelEl = null;
-let autoFillHeaderEl, autoFillTitleEl, autoFillFoldBtn, autoFillCloseBtn;
+let autoFillHeaderEl, autoFillTitleEl, autoFillDockBtn, autoFillCloseBtn, autoFillDockTab;
 let autoFillFormView, autoFillRunningView, autoFillCompleteView;
 let autoFillOverwriteCheckbox, autoFillRunBtn, autoFillStatus;
 let autoFillProgress, autoFillProgressFill, autoFillProgressLabel;
@@ -144,7 +145,7 @@ let autoFillCompleteSummary, autoFillUncertainHint, autoFillUncertainList, autoF
 let autoFillCurrentPoolId = null;
 let autoFillCurrentPoolName = "";
 let autoFillMode = "hidden"; // "hidden" | "form" | "running" | "complete"
-let autoFillCollapsed = false;
+let autoFillDocked = false;
 let autoFillKnownJobId = null; // last job id we've already reacted to, to tell "still the same job" from "newly discovered via poll on a different page"
 
 function setAutoFillStatus(message, kind) {
@@ -152,20 +153,17 @@ function setAutoFillStatus(message, kind) {
   autoFillStatus.className = `status-message ${kind || ""}`;
 }
 
-function setAutoFillCollapsed(collapsed) {
-  autoFillCollapsed = collapsed;
-  autoFillPanelEl.classList.toggle("collapsed", collapsed);
-  autoFillFoldBtn.textContent = collapsed ? "▸" : "▾";
+// "Docked" slides the whole panel out past the right edge of the screen
+// (rather than collapsing it in place), leaving only a small tab visible at
+// the edge to bring it back.
+function setAutoFillDocked(docked) {
+  autoFillDocked = docked;
+  autoFillPanelEl.classList.toggle("docked", docked);
+  autoFillDockTab.hidden = !docked;
 }
 
 function updateAutoFillTitle() {
-  if (autoFillMode === "running") {
-    autoFillTitleEl.textContent = `${autoFillCurrentPoolName}: 実行中...`;
-  } else if (autoFillMode === "complete") {
-    autoFillTitleEl.textContent = `${autoFillCurrentPoolName}: 完了しました`;
-  } else {
-    autoFillTitleEl.textContent = "カードの情報を自動取得する";
-  }
+  autoFillTitleEl.textContent = autoFillCurrentPoolName || "カードの情報を自動取得する";
 }
 
 function showAutoFillMode(mode) {
@@ -173,12 +171,12 @@ function showAutoFillMode(mode) {
   autoFillFormView.hidden = mode !== "form";
   autoFillRunningView.hidden = mode !== "running";
   autoFillCompleteView.hidden = mode !== "complete";
-  // No way to dismiss mid-run -- it always finishes; foldable instead so it's
-  // less intrusive while staying visible. The form is a one-off dialog (✕
+  // No way to dismiss mid-run -- it always finishes; dockable instead so it's
+  // less intrusive while staying reachable. The form is a one-off dialog (✕
   // closes it outright), and the complete view can still be closed without
   // confirming via ✕ (button state stays "unconfirmed" until 完了 is clicked).
   autoFillCloseBtn.hidden = mode === "running";
-  autoFillFoldBtn.hidden = mode === "form";
+  autoFillDockBtn.hidden = mode === "form";
   autoFillPanelEl.hidden = mode === "hidden";
   updateAutoFillTitle();
 }
@@ -235,13 +233,14 @@ function ensureAutoFillPanel() {
   if (autoFillPanelEl) return;
   const wrapper = document.createElement("div");
   wrapper.innerHTML = AUTO_FILL_PANEL_HTML.trim();
-  document.body.appendChild(wrapper.firstElementChild);
+  while (wrapper.firstElementChild) document.body.appendChild(wrapper.firstElementChild);
 
   autoFillPanelEl = document.getElementById("auto-fill-panel");
   autoFillHeaderEl = document.getElementById("auto-fill-panel-header");
   autoFillTitleEl = document.getElementById("auto-fill-panel-title");
-  autoFillFoldBtn = document.getElementById("auto-fill-fold-btn");
+  autoFillDockBtn = document.getElementById("auto-fill-dock-btn");
   autoFillCloseBtn = document.getElementById("auto-fill-close-btn");
+  autoFillDockTab = document.getElementById("auto-fill-dock-tab");
   autoFillFormView = document.getElementById("auto-fill-form-view");
   autoFillRunningView = document.getElementById("auto-fill-running-view");
   autoFillCompleteView = document.getElementById("auto-fill-complete-view");
@@ -257,14 +256,11 @@ function ensureAutoFillPanel() {
   autoFillRerunBtn = document.getElementById("auto-fill-rerun-btn");
   autoFillDoneBtn = document.getElementById("auto-fill-done-btn");
 
-  autoFillFoldBtn.addEventListener("click", (e) => {
+  autoFillDockBtn.addEventListener("click", (e) => {
     e.stopPropagation();
-    setAutoFillCollapsed(!autoFillCollapsed);
+    setAutoFillDocked(true);
   });
-  autoFillHeaderEl.addEventListener("click", (e) => {
-    if (e.target === autoFillFoldBtn || e.target === autoFillCloseBtn) return;
-    if (autoFillCollapsed) setAutoFillCollapsed(false);
-  });
+  autoFillDockTab.addEventListener("click", () => setAutoFillDocked(false));
   autoFillCloseBtn.addEventListener("click", closeAutoFillPanel);
   bindModalDismissal(autoFillPanelEl, { onCancel: closeAutoFillPanel });
 
@@ -301,7 +297,7 @@ function openAutoFillFor(poolId, poolName) {
   ensureAutoFillPanel();
   autoFillCurrentPoolId = poolId;
   autoFillCurrentPoolName = poolName;
-  setAutoFillCollapsed(false);
+  setAutoFillDocked(false);
 
   const job = getCardInfoJob(poolId);
   if (job) autoFillKnownJobId = job.id;
@@ -363,13 +359,13 @@ function syncAutoFillPanelWithServerState() {
 
   if (relevantJob.status === "running") {
     if (autoFillMode !== "running") showAutoFillMode("running");
-    if (isNewlyDiscovered) setAutoFillCollapsed(true); // don't barge in expanded on an unrelated page
+    if (isNewlyDiscovered) setAutoFillDocked(true); // don't barge in expanded on an unrelated page
     updateAutoFillProgress(relevantJob);
   } else {
     if (autoFillMode !== "complete" || isNewlyDiscovered) {
       populateAutoFillCompleteView();
       showAutoFillMode("complete");
-      if (isNewlyDiscovered) setAutoFillCollapsed(true);
+      if (isNewlyDiscovered) setAutoFillDocked(true);
     }
   }
   updateAutoFillTitle();

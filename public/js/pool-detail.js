@@ -254,39 +254,85 @@ function updateCostSliderUI() {
   filterCostMaxInput.value = filterState.costMax;
 }
 
-// When the two thumbs land on the same value, they visually overlap, but
-// only whichever <input> is on top in paint order can actually receive the
-// next click/drag there — with a fixed stacking order the other thumb
-// becomes permanently ungrabbable at that position (can only ever move the
-// topmost one away, never bring it back). Continuously reassigning z-index
-// to whichever thumb is closer to the pointer, on every hover/move, means
-// the correct one is already on top by the time an actual click/drag lands
-// (mousemove fires before mousedown for a real click), instead of it being
-// fixed by DOM order.
+// Two overlapping native <input type="range"> elements can only ever hand a
+// click/drag to whichever one paint order currently favors -- when both
+// thumbs land on the same value, that's a single fixed choice, so the other
+// thumb becomes ungrabbable at that position no matter which side of it you
+// grab. Rather than fight the browser's own thumb-drag hit-testing (which
+// resolves at the moment of the native pointerdown, too early to react to),
+// the wrapper drives the whole interaction itself. When the thumbs aren't
+// tied, pointerdown can commit to the closer one immediately. When they ARE
+// tied, though, committing immediately backfires: picking by which side of
+// the tied value the down-point falls on means grabbing *exactly on* the
+// tied pixel always resolves to the same thumb regardless of which way you
+// then drag, since no movement has happened yet to reveal intent -- so
+// dragging right from dead center could still only ever pull min (which
+// immediately re-clamps to max and looks like nothing moved). Instead, a
+// down on a tied pair stays undecided until the first move that actually
+// goes to a different value, and *that* direction picks the thumb -- so
+// grabbing the exact overlap point and dragging either way works.
 const filterCostSliderWrap = filterCostMinInput.closest(".range-slider-wrap");
+let draggingCostThumb = null; // "min" | "max" | null
+let costDragTiedValue = null; // set while a down-on-tied-thumbs drag hasn't picked a direction yet
 
-function prioritizeCostThumbNear(clientX) {
+function costValueFromClientX(clientX) {
   const rect = filterCostSliderWrap.getBoundingClientRect();
   const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-  const pointerValue = COST_RANGE_MIN + pct * (COST_RANGE_MAX - COST_RANGE_MIN);
-  const minVal = Number(filterCostMinInput.value);
-  const maxVal = Number(filterCostMaxInput.value);
-  let minIsCloser;
-  if (minVal === maxVal) {
-    // Exactly overlapping: equidistant from both, so "closer" can't
-    // disambiguate at all -- use which side of the tied value the pointer
-    // is on instead (shrinking further left implies min, growing further
-    // right implies max).
-    minIsCloser = pointerValue <= minVal;
-  } else {
-    minIsCloser = Math.abs(pointerValue - minVal) < Math.abs(pointerValue - maxVal);
-  }
-  filterCostMinInput.style.zIndex = minIsCloser ? 3 : 2;
-  filterCostMaxInput.style.zIndex = minIsCloser ? 2 : 3;
+  return Math.round(COST_RANGE_MIN + pct * (COST_RANGE_MAX - COST_RANGE_MIN));
 }
 
-filterCostSliderWrap.addEventListener("pointermove", (e) => prioritizeCostThumbNear(e.clientX));
-filterCostSliderWrap.addEventListener("pointerdown", (e) => prioritizeCostThumbNear(e.clientX));
+function pickCostThumb(clientX) {
+  const pointerValue = costValueFromClientX(clientX);
+  const minVal = Number(filterCostMinInput.value);
+  const maxVal = Number(filterCostMaxInput.value);
+  if (minVal === maxVal) return pointerValue <= minVal ? "min" : "max";
+  return Math.abs(pointerValue - minVal) < Math.abs(pointerValue - maxVal) ? "min" : "max";
+}
+
+function moveCostThumb(clientX) {
+  const input = draggingCostThumb === "min" ? filterCostMinInput : filterCostMaxInput;
+  input.value = costValueFromClientX(clientX);
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+filterCostSliderWrap.addEventListener("pointerdown", (e) => {
+  const minVal = Number(filterCostMinInput.value);
+  const maxVal = Number(filterCostMaxInput.value);
+  if (minVal === maxVal) {
+    draggingCostThumb = null;
+    costDragTiedValue = minVal;
+  } else {
+    draggingCostThumb = pickCostThumb(e.clientX);
+    costDragTiedValue = null;
+    moveCostThumb(e.clientX);
+  }
+  filterCostSliderWrap.setPointerCapture(e.pointerId);
+});
+filterCostSliderWrap.addEventListener("pointermove", (e) => {
+  if (draggingCostThumb) {
+    moveCostThumb(e.clientX);
+  } else if (costDragTiedValue !== null) {
+    const value = costValueFromClientX(e.clientX);
+    if (value < costDragTiedValue) draggingCostThumb = "min";
+    else if (value > costDragTiedValue) draggingCostThumb = "max";
+    if (draggingCostThumb) moveCostThumb(e.clientX);
+  }
+});
+filterCostSliderWrap.addEventListener("pointerup", (e) => {
+  // A plain click (no drag) on a tied pair never resolved a direction above
+  // -- fall back to the down-position tie-break so a simple click-to-jump
+  // still does something.
+  if (!draggingCostThumb && costDragTiedValue !== null) {
+    draggingCostThumb = pickCostThumb(e.clientX);
+    moveCostThumb(e.clientX);
+  }
+  draggingCostThumb = null;
+  costDragTiedValue = null;
+});
+filterCostSliderWrap.addEventListener("pointercancel", () => {
+  draggingCostThumb = null;
+  costDragTiedValue = null;
+});
 
 filterCostMinInput.addEventListener("input", () => {
   let value = Number(filterCostMinInput.value);

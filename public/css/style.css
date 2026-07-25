@@ -1483,6 +1483,8 @@ button {
   position: relative;
   height: 24px;
   margin: 4px 2px 0;
+  cursor: pointer;
+  touch-action: none;
 }
 
 .range-slider-track {
@@ -1527,6 +1529,9 @@ button {
   height: 4px;
 }
 
+/* Purely visual now -- the wrapper's own pointerdown/move/up handlers drive
+   both thumbs directly (see updateCostSliderUI's neighboring JS), so nothing
+   here needs to receive pointer events itself. */
 .range-slider-wrap input[type="range"]::-webkit-slider-thumb {
   appearance: none;
   -webkit-appearance: none;
@@ -1536,8 +1541,7 @@ button {
   background: var(--accent);
   border: 2px solid var(--surface);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
-  cursor: pointer;
-  pointer-events: auto;
+  pointer-events: none;
   /* WebKit centers the thumb on top of the (4px) runnable-track's top edge
      by default, not its vertical center — this offsets it up by half the
      difference so the 16px thumb's center lands exactly on the track's. */
@@ -1551,8 +1555,7 @@ button {
   background: var(--accent);
   border: 2px solid var(--surface);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
-  cursor: pointer;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .range-slider-labels {
@@ -1962,6 +1965,29 @@ button {
   box-shadow: var(--shadow-lg);
   max-height: calc(100vh - 32px);
   overflow-y: auto;
+  transition: transform 0.25s var(--ease);
+}
+
+/* "Docked" slides the whole panel out past the right edge instead of
+   collapsing it in place -- only the separate tab below stays reachable. */
+.auto-fill-panel.docked {
+  transform: translateX(120%);
+}
+
+.auto-fill-dock-tab {
+  position: fixed;
+  right: 0;
+  bottom: 32px;
+  z-index: 150;
+  width: 26px;
+  height: 44px;
+  border: none;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  background: var(--accent);
+  color: #fff;
+  box-shadow: var(--shadow-md);
+  font-size: 1rem;
+  cursor: pointer;
 }
 
 .auto-fill-panel-header {
@@ -1985,14 +2011,6 @@ button {
   align-items: center;
   gap: 2px;
   flex-shrink: 0;
-}
-
-.auto-fill-panel.collapsed .auto-fill-panel-header {
-  cursor: pointer;
-}
-
-.auto-fill-panel.collapsed .auto-fill-panel-body {
-  display: none;
 }
 
 .auto-fill-panel-body {
