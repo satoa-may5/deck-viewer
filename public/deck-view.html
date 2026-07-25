@@ -52,18 +52,18 @@
       <div class="modal-body-vertical">
         <p class="crop-hint">
           プリンターや設定によって、実際に印刷される大きさは基準値からずれることがあります。
-          「調整用シートを印刷」で四角形を印刷し、その横幅・縦幅を定規で実測して入力・保存すると、
-          以降の印刷でカードが正確に63mm×88mmになるよう自動調整します。
+          「調整用シートを印刷」で横線・縦線(それぞれ100mm)を印刷し、その長さを定規で実測して
+          入力・保存すると、以降の印刷でカードが正確に63mm×88mmになるよう自動調整します。
         </p>
         <button type="button" class="btn" id="print-calibration-sheet-btn">調整用シートを印刷</button>
         <div class="field-row">
           <div class="field">
-            <label for="cal-measured-w">実測した横幅(mm) ※基準100mm</label>
+            <label for="cal-measured-w">実測した横線の長さ(mm) ※基準100mm</label>
             <input type="number" id="cal-measured-w" step="0.1" min="1" placeholder="100" />
           </div>
           <div class="field">
-            <label for="cal-measured-h">実測した縦幅(mm) ※基準150mm</label>
-            <input type="number" id="cal-measured-h" step="0.1" min="1" placeholder="150" />
+            <label for="cal-measured-h">実測した縦線の長さ(mm) ※基準100mm</label>
+            <input type="number" id="cal-measured-h" step="0.1" min="1" placeholder="100" />
           </div>
         </div>
         <div class="nav-links">

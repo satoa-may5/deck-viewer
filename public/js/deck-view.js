@@ -587,8 +587,10 @@ function renderPrintPage(pageCardIds, cardW, cardH) {
 // resulting scale factors — applied to shrink/grow the card size so future
 // prints come out at the true 63x88mm on their specific setup.
 const CALIBRATION_KEY = "deck-viewer-print-calibration";
-const NOMINAL_CAL_W_MM = 100;
-const NOMINAL_CAL_H_MM = 150;
+// 定規で測りやすいよう、150mmを超えない正方形(一辺100mm)にしている。
+const NOMINAL_CAL_SIZE_MM = 100;
+// 横線・縦線を角でくっつけず離して見せるための隙間(px)。線自体の長さには影響しない。
+const CAL_LINE_GAP = 60;
 
 function getCalibration() {
   try {
@@ -611,8 +613,7 @@ function getCorrectedCardSize() {
 }
 
 function printCalibrationSheet() {
-  const calW = Math.round((NOMINAL_CAL_W_MM * PRINT_DPI) / 25.4);
-  const calH = Math.round((NOMINAL_CAL_H_MM * PRINT_DPI) / 25.4);
+  const calSize = Math.round((NOMINAL_CAL_SIZE_MM * PRINT_DPI) / 25.4);
 
   const pageCanvas = document.createElement("canvas");
   pageCanvas.width = PRINT_PAGE_W;
@@ -621,30 +622,54 @@ function printCalibrationSheet() {
   pctx.fillStyle = "#ffffff";
   pctx.fillRect(0, 0, PRINT_PAGE_W, PRINT_PAGE_H);
 
-  const x = (PRINT_PAGE_W - calW) / 2;
-  const y = (PRINT_PAGE_H - calH) / 2;
+  // Two independent line segments (not a joined rectangle corner): a
+  // horizontal one along the top and a vertical one along the left, each
+  // exactly calSize px long but offset by CAL_LINE_GAP so their near ends
+  // don't touch. The gap only shifts each line's position, not its length,
+  // so the printed line length still reflects the true 100mm nominal size.
+  const totalW = calSize + CAL_LINE_GAP;
+  const totalH = calSize + CAL_LINE_GAP;
+  const x0 = (PRINT_PAGE_W - totalW) / 2;
+  const y0 = (PRINT_PAGE_H - totalH) / 2;
+
+  const hLineY = y0;
+  const hLineX1 = x0 + CAL_LINE_GAP;
+  const hLineX2 = hLineX1 + calSize;
+
+  const vLineX = x0;
+  const vLineY1 = y0 + CAL_LINE_GAP;
+  const vLineY2 = vLineY1 + calSize;
+
   pctx.strokeStyle = "#000000";
   pctx.lineWidth = 3;
-  pctx.strokeRect(x, y, calW, calH);
+  pctx.beginPath();
+  pctx.moveTo(hLineX1, hLineY);
+  pctx.lineTo(hLineX2, hLineY);
+  pctx.stroke();
+  pctx.beginPath();
+  pctx.moveTo(vLineX, vLineY1);
+  pctx.lineTo(vLineX, vLineY2);
+  pctx.stroke();
 
   pctx.fillStyle = "#000000";
   pctx.textAlign = "center";
   pctx.font = "36px sans-serif";
   pctx.textBaseline = "bottom";
-  pctx.fillText(`横 ${NOMINAL_CAL_W_MM}mm`, x + calW / 2, y - 12);
+  pctx.fillText(`横 ${NOMINAL_CAL_SIZE_MM}mm`, (hLineX1 + hLineX2) / 2, hLineY - 12);
   pctx.save();
-  pctx.translate(x - 12, y + calH / 2);
+  pctx.translate(vLineX - 12, (vLineY1 + vLineY2) / 2);
   pctx.rotate(-Math.PI / 2);
   pctx.textBaseline = "bottom";
-  pctx.fillText(`縦 ${NOMINAL_CAL_H_MM}mm`, 0, 0);
+  pctx.fillText(`縦 ${NOMINAL_CAL_SIZE_MM}mm`, 0, 0);
   pctx.restore();
 
+  pctx.textAlign = "center";
   pctx.textBaseline = "top";
   pctx.font = "28px sans-serif";
   pctx.fillText(
-    "この四角形の横幅・縦幅を定規で測り、「印刷サイズを調整」画面に入力してください",
+    "上の横線・左の縦線それぞれの長さを定規で測り、「印刷サイズを調整」画面に入力してください",
     PRINT_PAGE_W / 2,
-    y + calH + 30
+    y0 + totalH + 30
   );
 
   const imageData = pctx.getImageData(0, 0, PRINT_PAGE_W, PRINT_PAGE_H);
@@ -827,8 +852,8 @@ document.getElementById("calibration-save-btn").addEventListener("click", () => 
     setCalibrationStatus("実測した横幅・縦幅を入力してください", "error");
     return;
   }
-  const scaleX = measuredW / NOMINAL_CAL_W_MM;
-  const scaleY = measuredH / NOMINAL_CAL_H_MM;
+  const scaleX = measuredW / NOMINAL_CAL_SIZE_MM;
+  const scaleY = measuredH / NOMINAL_CAL_SIZE_MM;
   localStorage.setItem(CALIBRATION_KEY, JSON.stringify({ scaleX, scaleY }));
   refreshCalibrationDisplay();
 });
