@@ -443,6 +443,7 @@ async function buildPoolDeleteWarning(pool) {
   const affectedDeckNames = await findDecksUsingPool(pool.id);
   if (affectedDeckNames.length > 0) {
     lines.push(
+      "",
       "このカードプールを削除すると、以下のデッキからカードの情報が失われます。よろしいですか?"
     );
     for (const name of affectedDeckNames) lines.push(`・${name}`);
