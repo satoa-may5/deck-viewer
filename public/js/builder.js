@@ -292,7 +292,8 @@ filterClearBtn.addEventListener("click", () => {
 
 function cardMatchesFilters(card) {
   if (filterState.types.size > 0 && !filterState.types.has(card.type)) return false;
-  if (filterState.colors.size > 0 && !filterState.colors.has(card.color)) return false;
+  // "全て"(ALL/colorless) cards match every color filter, not just an "全て" pill.
+  if (filterState.colors.size > 0 && card.color !== "全て" && !filterState.colors.has(card.color)) return false;
   if (filterState.costMin > COST_RANGE_MIN || filterState.costMax < COST_RANGE_MAX) {
     if (card.cost === null || card.cost === undefined) return false;
     if (card.cost < filterState.costMin || card.cost > filterState.costMax) return false;

@@ -460,6 +460,11 @@ app.patch("/api/cards/:id", (req, res) => {
   if (req.body.type !== undefined) {
     card.type = normalizeCardType(req.body.type);
   }
+  // A manual edit to any auto-detected field counts as the user having
+  // reviewed it, so the "自動取得の結果が怪しい" warning mark no longer applies.
+  if (req.body.type !== undefined || req.body.color !== undefined || req.body.cost !== undefined) {
+    card.infoUncertain = false;
+  }
   writeCards(cards);
   res.json(card);
 });
@@ -579,6 +584,7 @@ app.post("/api/pools/:id/auto-fill-info", (req, res) => {
     startedAt: new Date().toISOString(),
     finishedAt: null,
     notified: false,
+    progress: { current: 0, total: poolCards.length },
     summary: null,
     error: null,
   };
@@ -592,9 +598,26 @@ app.post("/api/pools/:id/auto-fill-info", (req, res) => {
   });
 });
 
+app.post("/api/pools/:id/auto-fill-info/cancel", (req, res) => {
+  const job = cardInfoJobs.get(req.params.id);
+  if (!job || job.status !== "running") {
+    return res.status(404).json({ error: "実行中のジョブが見つかりません" });
+  }
+  job.cancelRequested = true;
+  res.status(204).end();
+});
+
 function isEmptyValue(v) {
   return v === "" || v === null || v === undefined;
 }
+
+// A classification is flagged uncertain (surfaced as a warning mark in the
+// UI) when its cost match's raw correlation score falls below this. Picked
+// empirically against 1028 real cards: confidently-correct matches scored
+// ~0.55-0.85, while the one genuine unfixable case (a cost value with no
+// template in any color) scored 0.42-0.45 -- 0.5 sits cleanly in the gap
+// with zero false positives in that test set.
+const COST_CONFIDENCE_THRESHOLD = 0.5;
 
 async function runAutoFillInfoJob(job, poolCards) {
   const byCode = new Map(); // code -> non-parallel base card
@@ -618,14 +641,23 @@ async function runAutoFillInfoJob(job, poolCards) {
   const templates = await loadCardInfoTemplates();
   const results = {};
   for (const card of directCards) {
+    if (job.cancelRequested) break;
     const info = await classifyImage(path.join(IMAGES_DIR, `${card.id}.${card.imageExt}`), templates);
     if (info) results[card.id] = info;
+    job.progress.current++;
+  }
+
+  if (job.cancelRequested) {
+    job.status = "cancelled";
+    job.finishedAt = new Date().toISOString();
+    return;
   }
 
   const cards = readCards();
   const cardsById = new Map(cards.map((c) => [c.id, c]));
   let updated = 0;
   let skipped = 0;
+  let uncertain = 0;
 
   const applyResult = (card, info) => {
     const target = cardsById.get(card.id);
@@ -647,6 +679,12 @@ async function runAutoFillInfoJob(job, poolCards) {
       target.cost = info.cost;
       changed = true;
     }
+    const isUncertain = typeof info.costConfidence === "number" && info.costConfidence < COST_CONFIDENCE_THRESHOLD;
+    if (target.infoUncertain !== isUncertain) {
+      target.infoUncertain = isUncertain;
+      changed = true;
+    }
+    if (isUncertain) uncertain++;
     if (changed) updated++;
     else skipped++;
   };
@@ -659,7 +697,7 @@ async function runAutoFillInfoJob(job, poolCards) {
     const info =
       results[base.id] ||
       (baseTarget && (baseTarget.type || baseTarget.color || !isEmptyValue(baseTarget.cost))
-        ? { type: baseTarget.type, color: baseTarget.color, cost: baseTarget.cost }
+        ? { type: baseTarget.type, color: baseTarget.color, cost: baseTarget.cost, costConfidence: baseTarget.infoUncertain ? 0 : 1 }
         : null);
     applyResult(card, info);
   }
@@ -674,6 +712,7 @@ async function runAutoFillInfoJob(job, poolCards) {
     inherited: inheritPairs.length,
     updated,
     skipped,
+    uncertain,
   };
 }
 

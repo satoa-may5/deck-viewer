@@ -1894,7 +1894,8 @@ button {
 
 .toast {
   pointer-events: auto;
-  max-width: 320px;
+  max-width: min(420px, calc(100vw - 32px));
+  width: max-content;
   padding: 12px 16px;
   background: var(--text);
   color: var(--surface);
@@ -1923,4 +1924,115 @@ button {
   background: var(--success);
   color: #fff;
   border-color: var(--success);
+}
+
+/* ---- Auto-fill-info floating panel (pool-detail.js) ---- */
+/* Deliberately not the standard centered .modal-overlay: a compact panel
+   anchored to the corner so it doesn't block the card list behind it while
+   a background job runs. */
+
+.auto-fill-panel {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 150;
+  width: min(320px, calc(100vw - 32px));
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+.auto-fill-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 0;
+}
+
+.auto-fill-panel-header h3 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.auto-fill-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 16px;
+}
+
+.auto-fill-panel-body .crop-hint {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.auto-fill-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.auto-fill-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auto-fill-progress-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.auto-fill-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width 0.2s var(--ease);
+}
+
+#auto-fill-progress-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.auto-fill-uncertain-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.auto-fill-uncertain-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+}
+
+.auto-fill-uncertain-item img {
+  width: 28px;
+  height: 39px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* ---- Auto-fill uncertain warning mark (pool-detail.js) ---- */
+
+.uncertain-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 1.1rem;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
 }

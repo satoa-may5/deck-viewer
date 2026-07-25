@@ -148,23 +148,42 @@
 
     <input type="file" id="modal-file-input" accept="image/png,image/jpeg" capture="environment" hidden />
 
-    <div class="modal-overlay" id="auto-fill-modal" hidden>
-      <div class="modal-card">
-        <div class="modal-header">
-          <h2>カードの情報を自動取得する</h2>
-          <button type="button" class="icon-btn" id="auto-fill-close-btn">✕</button>
+    <div class="auto-fill-panel" id="auto-fill-panel" hidden>
+      <div class="auto-fill-panel-header">
+        <h3>カードの情報を自動取得する</h3>
+        <button type="button" class="icon-btn" id="auto-fill-close-btn">✕</button>
+      </div>
+
+      <div class="auto-fill-panel-body" id="auto-fill-form-view">
+        <p class="crop-hint">
+          全カードの画像からタイプ・色・必要エナジーを自動で読み取ります。閉じたり他の画面に
+          移動しても処理は続き、完了すると通知が表示されます。
+        </p>
+        <label class="filter-checkbox">
+          <input type="checkbox" id="auto-fill-overwrite-checkbox" /> 既にある情報を上書きする
+        </label>
+        <div class="auto-fill-progress" id="auto-fill-progress" hidden>
+          <div class="auto-fill-progress-track">
+            <div class="auto-fill-progress-fill" id="auto-fill-progress-fill"></div>
+          </div>
+          <span id="auto-fill-progress-label"></span>
         </div>
-        <div class="modal-body-vertical">
-          <p class="crop-hint">
-            このカードプール内の全カードの画像から、タイプ・色・必要エナジーを自動で読み取って
-            登録します。処理には時間がかかりますが、このポップアップを閉じたり他の画面に移動しても
-            処理はバックグラウンドで続きます。完了すると通知が表示されます。
-          </p>
-          <label class="filter-checkbox">
-            <input type="checkbox" id="auto-fill-overwrite-checkbox" /> 既にある情報を上書きする
-          </label>
+        <div id="auto-fill-status" class="status-message"></div>
+        <div class="auto-fill-actions">
+          <button type="button" class="btn" id="auto-fill-cancel-btn">キャンセル</button>
           <button type="button" class="btn primary" id="auto-fill-run-btn">実行</button>
-          <div id="auto-fill-status" class="status-message"></div>
+        </div>
+      </div>
+
+      <div class="auto-fill-panel-body" id="auto-fill-complete-view" hidden>
+        <p id="auto-fill-complete-summary" class="status-message"></p>
+        <p class="crop-hint" id="auto-fill-uncertain-hint" hidden>
+          以下のカードは自動取得に問題がある可能性があります:
+        </p>
+        <div id="auto-fill-uncertain-list" class="auto-fill-uncertain-list"></div>
+        <div class="auto-fill-actions">
+          <button type="button" class="btn" id="auto-fill-rerun-btn">再度実行する</button>
+          <button type="button" class="btn primary" id="auto-fill-done-btn">完了</button>
         </div>
       </div>
     </div>
