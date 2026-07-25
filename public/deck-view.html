@@ -21,7 +21,6 @@
 
     <div class="export-controls">
       <div class="export-align-group">
-        <span class="export-align-label">最終行の並び</span>
         <button type="button" class="filter-pill" id="align-center-btn" aria-pressed="true">中央揃え</button>
         <button type="button" class="filter-pill" id="align-left-btn" aria-pressed="false">左詰め</button>
       </div>
@@ -36,10 +35,12 @@
         <input type="checkbox" id="show-mana-checkbox" checked /> マナカーブを表示
       </label>
 
-      <button type="button" class="btn primary" id="download-btn">画像として保存</button>
-      <button type="button" class="btn" id="print-btn">このデッキを印刷</button>
-      <button type="button" class="btn" id="open-calibration-btn">印刷サイズを調整</button>
-      <span id="print-status" class="status-message"></span>
+      <div class="export-action-group">
+        <button type="button" class="btn primary" id="download-btn">画像として保存</button>
+        <button type="button" class="btn" id="print-btn">このデッキを印刷</button>
+        <button type="button" class="btn" id="open-calibration-btn">印刷サイズを調整</button>
+        <span id="print-status" class="status-message"></span>
+      </div>
     </div>
   </div>
 

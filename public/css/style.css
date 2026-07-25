@@ -1866,8 +1866,15 @@ button {
   gap: 6px;
 }
 
-.export-align-label {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--muted);
+.export-action-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+@media (max-width: 700px) {
+  .export-action-group {
+    margin-left: 0;
+  }
 }

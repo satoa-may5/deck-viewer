@@ -26,6 +26,32 @@ let showCardName = true;
 let showManaCurve = true;
 let rowAlign = "center"; // "center" | "left" — only affects an incomplete last row
 
+// Remember the user's display/output preferences across visits.
+const EXPORT_SETTINGS_KEY = "deck-viewer-export-settings";
+
+function loadExportSettings() {
+  try {
+    const raw = localStorage.getItem(EXPORT_SETTINGS_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed.showName === "boolean") showName = parsed.showName;
+    if (typeof parsed.showCardName === "boolean") showCardName = parsed.showCardName;
+    if (typeof parsed.showManaCurve === "boolean") showManaCurve = parsed.showManaCurve;
+    if (parsed.rowAlign === "center" || parsed.rowAlign === "left") rowAlign = parsed.rowAlign;
+  } catch (err) {
+    // ignore malformed value, keep defaults
+  }
+}
+
+function saveExportSettings() {
+  localStorage.setItem(
+    EXPORT_SETTINGS_KEY,
+    JSON.stringify({ showName, showCardName, showManaCurve, rowAlign })
+  );
+}
+
+loadExportSettings();
+
 let targetRects = []; // authoritative layout (hit-testing, hand-off to display positions)
 let displayPos = {}; // cardId -> {x, y} — current on-screen position, eased toward targetRects
 let labelHeightForLayout = 0;
@@ -797,8 +823,8 @@ async function printDeck() {
     await new Promise((resolve) => setTimeout(resolve, 400));
   }
 
-  printStatus.className = "status-message success";
-  printStatus.textContent = `完了(${pages.length}枚出力しました)`;
+  printStatus.className = "status-message";
+  printStatus.textContent = "";
   printBtn.disabled = false;
 }
 
@@ -879,36 +905,51 @@ document.getElementById("calibration-reset-btn").addEventListener("click", () =>
 
 const alignCenterBtn = document.getElementById("align-center-btn");
 const alignLeftBtn = document.getElementById("align-left-btn");
+const showNameCheckbox = document.getElementById("show-name-checkbox");
+const showCardNameCheckbox = document.getElementById("show-card-name-checkbox");
+const showManaCheckbox = document.getElementById("show-mana-checkbox");
 
 function updateAlignButtons() {
   alignCenterBtn.setAttribute("aria-pressed", String(rowAlign === "center"));
   alignLeftBtn.setAttribute("aria-pressed", String(rowAlign === "left"));
 }
 
+// Reflect whatever was loaded from localStorage (or the defaults) in the UI
+// before the first render, so the controls match what's about to be drawn.
+updateAlignButtons();
+showNameCheckbox.checked = showName;
+showCardNameCheckbox.checked = showCardName;
+showManaCheckbox.checked = showManaCurve;
+
 alignCenterBtn.addEventListener("click", () => {
   rowAlign = "center";
   updateAlignButtons();
+  saveExportSettings();
   updateLayout();
 });
 
 alignLeftBtn.addEventListener("click", () => {
   rowAlign = "left";
   updateAlignButtons();
+  saveExportSettings();
   updateLayout();
 });
 
-document.getElementById("show-name-checkbox").addEventListener("change", (e) => {
+showNameCheckbox.addEventListener("change", (e) => {
   showName = e.target.checked;
+  saveExportSettings();
   updateLayout();
 });
 
-document.getElementById("show-card-name-checkbox").addEventListener("change", (e) => {
+showCardNameCheckbox.addEventListener("change", (e) => {
   showCardName = e.target.checked;
+  saveExportSettings();
   updateLayout();
 });
 
-document.getElementById("show-mana-checkbox").addEventListener("change", (e) => {
+showManaCheckbox.addEventListener("change", (e) => {
   showManaCurve = e.target.checked;
+  saveExportSettings();
   updateLayout();
 });
 
