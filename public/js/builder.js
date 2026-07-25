@@ -367,6 +367,21 @@ function renderPanes() {
   }
 }
 
+makeSortable(deckGrid, {
+  itemSelector: ".card-item",
+  handleSelector: ".card-frame",
+  axis: "grid",
+  onReorder: (order) => {
+    const reordered = new Map();
+    for (const cardId of order) {
+      reordered.set(cardId, deckCounts.get(cardId));
+    }
+    deckCounts.clear();
+    for (const [cardId, count] of reordered) deckCounts.set(cardId, count);
+    renderPanes();
+  },
+});
+
 async function init() {
   const params = new URLSearchParams(location.search);
   deckId = params.get("id");

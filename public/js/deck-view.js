@@ -24,6 +24,7 @@ const ASPECT_H = 9;
 let showName = true;
 let showCardName = true;
 let showManaCurve = true;
+let rowAlign = "center"; // "center" | "left" — only affects an incomplete last row
 
 let targetRects = []; // authoritative layout (hit-testing, hand-off to display positions)
 let displayPos = {}; // cardId -> {x, y} — current on-screen position, eased toward targetRects
@@ -90,7 +91,9 @@ function buildTargetRects(areaX, areaY, areaW, areaH, labelHeight) {
     const endIdx = Math.min(startIdx + layout.cols, n);
     const itemsInRow = endIdx - startIdx;
     const rowW = itemsInRow * layout.cardW + GAP * (itemsInRow - 1);
-    const rowOffsetX = offsetX + (gridW - rowW) / 2;
+    // Full rows already span gridW exactly, so this only ever visibly moves
+    // an incomplete last row — center it under the grid, or flush it left.
+    const rowOffsetX = rowAlign === "left" ? offsetX : offsetX + (gridW - rowW) / 2;
     for (let col = 0; col < itemsInRow; col++) {
       const idx = startIdx + col;
       rects.push({
@@ -502,7 +505,226 @@ async function persistOrder() {
   });
 }
 
+// ---- Print (multi-page TIFF sheets for physically cutting out proxies) ----
+
+// 2067x2923 at these DPIs is A4 (210x297mm) almost exactly (250.0 DPI both
+// axes). A true 63x88mm card at that same 250 DPI is 620x866px — using
+// 600x838 (as originally suggested) would print at ~61x85mm, about 3%
+// smaller than a real card, so the corrected size is used here instead.
+const PRINT_PAGE_W = 2067;
+const PRINT_PAGE_H = 2923;
+const PRINT_DPI = 250;
+const PRINT_CARD_W = 620;
+const PRINT_CARD_H = 866;
+const PRINT_COLS = 3;
+const PRINT_ROWS = 3;
+const PRINT_PER_PAGE = PRINT_COLS * PRINT_ROWS;
+
+// Expands the deck into one entry per physical copy (a card with count 3
+// appears 3 times) — the point of printing is to cut out enough proxies to
+// actually build the deck, not just one of each card.
+function buildPrintList() {
+  const list = [];
+  for (const cardId of cardOrder) {
+    const count = cardCounts[cardId] || 0;
+    for (let i = 0; i < count; i++) list.push(cardId);
+  }
+  return list;
+}
+
+function waitForImage(img) {
+  if (img.complete) return Promise.resolve();
+  return new Promise((resolve) => {
+    img.addEventListener("load", resolve, { once: true });
+    img.addEventListener("error", resolve, { once: true });
+  });
+}
+
+async function ensureImagesLoaded(cardIds) {
+  const unique = [...new Set(cardIds)];
+  await Promise.all(
+    unique.map((id) => {
+      const card = cardById[id];
+      if (!card || !card.imageExt) return Promise.resolve();
+      return waitForImage(loadImage(card));
+    })
+  );
+}
+
+function renderPrintPage(pageCardIds) {
+  const pageCanvas = document.createElement("canvas");
+  pageCanvas.width = PRINT_PAGE_W;
+  pageCanvas.height = PRINT_PAGE_H;
+  const pctx = pageCanvas.getContext("2d");
+  pctx.fillStyle = "#ffffff";
+  pctx.fillRect(0, 0, PRINT_PAGE_W, PRINT_PAGE_H);
+
+  const gridW = PRINT_COLS * PRINT_CARD_W;
+  const gridH = PRINT_ROWS * PRINT_CARD_H;
+  const startX = (PRINT_PAGE_W - gridW) / 2;
+  const startY = (PRINT_PAGE_H - gridH) / 2;
+
+  pageCardIds.forEach((cardId, i) => {
+    const card = cardById[cardId];
+    if (!card || !card.imageExt) return;
+    const img = imageCache[cardId];
+    if (!img || !img.complete || !img.naturalWidth) return;
+    const row = Math.floor(i / PRINT_COLS);
+    const col = i % PRINT_COLS;
+    const x = startX + col * PRINT_CARD_W;
+    const y = startY + row * PRINT_CARD_H;
+    drawImageCover(pctx, img, x, y, PRINT_CARD_W, PRINT_CARD_H);
+  });
+
+  return pageCanvas;
+}
+
+// Browsers can only canvas.toBlob() to PNG/JPEG/WebP, never TIFF, so this
+// hand-writes a minimal uncompressed 8-bit RGB TIFF (single strip, no
+// compression) directly from a canvas's ImageData.
+function encodeTiff(width, height, rgbaData, dpi) {
+  const rgbByteCount = width * height * 3;
+  const headerSize = 8;
+  const entryCount = 12;
+  const ifdSize = 2 + entryCount * 12 + 4;
+  const bitsPerSampleOffset = headerSize + ifdSize;
+  const bitsPerSampleSize = 6; // 3 x SHORT
+  const xResOffset = bitsPerSampleOffset + bitsPerSampleSize;
+  const yResOffset = xResOffset + 8;
+  const stripOffset = yResOffset + 8;
+  const totalSize = stripOffset + rgbByteCount;
+
+  const buffer = new ArrayBuffer(totalSize);
+  const view = new DataView(buffer);
+  const bytes = new Uint8Array(buffer);
+  const LE = true;
+
+  view.setUint8(0, 0x49);
+  view.setUint8(1, 0x49); // "II" little-endian byte order
+  view.setUint16(2, 42, LE);
+  view.setUint32(4, headerSize, LE); // offset to first IFD
+
+  let p = headerSize;
+  view.setUint16(p, entryCount, LE);
+  p += 2;
+
+  function writeEntry(tag, type, count, valueOrOffset) {
+    view.setUint16(p, tag, LE);
+    p += 2;
+    view.setUint16(p, type, LE);
+    p += 2;
+    view.setUint32(p, count, LE);
+    p += 4;
+    view.setUint32(p, valueOrOffset, LE);
+    p += 4;
+  }
+
+  writeEntry(256, 4, 1, width); // ImageWidth (LONG)
+  writeEntry(257, 4, 1, height); // ImageLength (LONG)
+  writeEntry(258, 3, 3, bitsPerSampleOffset); // BitsPerSample (3x SHORT, external)
+  writeEntry(259, 3, 1, 1); // Compression = none
+  writeEntry(262, 3, 1, 2); // PhotometricInterpretation = RGB
+  writeEntry(273, 4, 1, stripOffset); // StripOffsets
+  writeEntry(277, 3, 1, 3); // SamplesPerPixel
+  writeEntry(278, 4, 1, height); // RowsPerStrip (single strip)
+  writeEntry(279, 4, 1, rgbByteCount); // StripByteCounts
+  writeEntry(282, 5, 1, xResOffset); // XResolution (RATIONAL, external)
+  writeEntry(283, 5, 1, yResOffset); // YResolution (RATIONAL, external)
+  writeEntry(296, 3, 1, 2); // ResolutionUnit = inches
+
+  view.setUint32(p, 0, LE); // next IFD offset (none)
+
+  view.setUint16(bitsPerSampleOffset, 8, LE);
+  view.setUint16(bitsPerSampleOffset + 2, 8, LE);
+  view.setUint16(bitsPerSampleOffset + 4, 8, LE);
+
+  view.setUint32(xResOffset, dpi, LE);
+  view.setUint32(xResOffset + 4, 1, LE);
+  view.setUint32(yResOffset, dpi, LE);
+  view.setUint32(yResOffset + 4, 1, LE);
+
+  let dst = stripOffset;
+  for (let i = 0; i < rgbaData.length; i += 4) {
+    bytes[dst++] = rgbaData[i];
+    bytes[dst++] = rgbaData[i + 1];
+    bytes[dst++] = rgbaData[i + 2];
+  }
+
+  return new Blob([buffer], { type: "image/tiff" });
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function printDeck() {
+  const printBtn = document.getElementById("print-btn");
+  const printStatus = document.getElementById("print-status");
+  if (!deck) return;
+
+  const fullList = buildPrintList();
+  if (fullList.length === 0) {
+    printStatus.textContent = "デッキにカードがありません";
+    printStatus.className = "status-message error";
+    return;
+  }
+
+  printBtn.disabled = true;
+  printStatus.className = "status-message";
+  printStatus.textContent = "画像を準備中...";
+  await ensureImagesLoaded(fullList);
+
+  const pages = [];
+  for (let i = 0; i < fullList.length; i += PRINT_PER_PAGE) {
+    pages.push(fullList.slice(i, i + PRINT_PER_PAGE));
+  }
+
+  for (let p = 0; p < pages.length; p++) {
+    printStatus.textContent = `出力中... (${p + 1}/${pages.length})`;
+    const pageCanvas = renderPrintPage(pages[p]);
+    const pctx = pageCanvas.getContext("2d");
+    const imageData = pctx.getImageData(0, 0, PRINT_PAGE_W, PRINT_PAGE_H);
+    const blob = encodeTiff(PRINT_PAGE_W, PRINT_PAGE_H, imageData.data, PRINT_DPI);
+    const pageNum = String(p + 1).padStart(2, "0");
+    downloadBlob(blob, `${deck.name}-${pageNum}.tif`);
+    // Small pause between triggered downloads so the browser doesn't treat
+    // them as a rapid-fire multi-download popup and block the later ones.
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+
+  printStatus.className = "status-message success";
+  printStatus.textContent = `完了(${pages.length}枚出力しました)`;
+  printBtn.disabled = false;
+}
+
+document.getElementById("print-btn").addEventListener("click", printDeck);
+
 // ---- Controls ----
+
+const alignCenterBtn = document.getElementById("align-center-btn");
+const alignLeftBtn = document.getElementById("align-left-btn");
+
+function updateAlignButtons() {
+  alignCenterBtn.setAttribute("aria-pressed", String(rowAlign === "center"));
+  alignLeftBtn.setAttribute("aria-pressed", String(rowAlign === "left"));
+}
+
+alignCenterBtn.addEventListener("click", () => {
+  rowAlign = "center";
+  updateAlignButtons();
+  updateLayout();
+});
+
+alignLeftBtn.addEventListener("click", () => {
+  rowAlign = "left";
+  updateAlignButtons();
+  updateLayout();
+});
 
 document.getElementById("show-name-checkbox").addEventListener("change", (e) => {
   showName = e.target.checked;

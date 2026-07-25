@@ -6,7 +6,7 @@
 function createCardElement(card, id, count, opts) {
   const item = document.createElement("div");
   item.className = "card-item";
-  item.dataset.cardId = id;
+  item.dataset.id = id;
 
   const frame = document.createElement("div");
   frame.className = "card-frame";

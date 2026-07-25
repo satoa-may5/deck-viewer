@@ -1853,3 +1853,15 @@ button {
     align-items: flex-start;
   }
 }
+
+.export-align-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.export-align-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+}
