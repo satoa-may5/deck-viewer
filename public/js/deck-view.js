@@ -786,6 +786,27 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
+// Print output is only ever exactly right if the user has calibrated for
+// their specific printer/driver; warn once (skippable) before the first
+// uncalibrated print of a session, rather than silently using the
+// uncorrected 620x866 fallback.
+const SKIP_CALIBRATION_WARNING_KEY = "deck-viewer-skip-calibration-warning";
+
+async function maybeWarnAboutMissingCalibration() {
+  const { scaleX, scaleY } = getCalibration();
+  if (scaleX !== 1 || scaleY !== 1) return true;
+  if (localStorage.getItem(SKIP_CALIBRATION_WARNING_KEY) === "true") return true;
+
+  const { confirmed, checked } = await showConfirm(
+    "印刷サイズの調整がまだ行われていません。プリンターや設定によっては、実際の印刷結果が" +
+      "63mm×88mmからずれることがあります。先に「印刷サイズを調整」で調整しておくことを" +
+      "おすすめします。\nこのまま印刷しますか?",
+    { confirmText: "このまま印刷する", cancelText: "キャンセル", danger: false, checkboxLabel: "次から表示しない" }
+  );
+  if (checked) localStorage.setItem(SKIP_CALIBRATION_WARNING_KEY, "true");
+  return confirmed;
+}
+
 async function printDeck() {
   const printBtn = document.getElementById("print-btn");
   const printStatus = document.getElementById("print-status");
@@ -797,6 +818,8 @@ async function printDeck() {
     printStatus.className = "status-message error";
     return;
   }
+
+  if (!(await maybeWarnAboutMissingCalibration())) return;
 
   printBtn.disabled = true;
   printStatus.className = "status-message";
@@ -811,7 +834,6 @@ async function printDeck() {
   const { w: cardW, h: cardH } = getCorrectedCardSize();
 
   for (let p = 0; p < pages.length; p++) {
-    printStatus.textContent = `出力中... (${p + 1}/${pages.length})`;
     const pageCanvas = renderPrintPage(pages[p], cardW, cardH);
     const pctx = pageCanvas.getContext("2d");
     const imageData = pctx.getImageData(0, 0, PRINT_PAGE_W, PRINT_PAGE_H);
