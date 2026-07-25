@@ -551,7 +551,7 @@ async function ensureImagesLoaded(cardIds) {
   );
 }
 
-function renderPrintPage(pageCardIds) {
+function renderPrintPage(pageCardIds, cardW, cardH) {
   const pageCanvas = document.createElement("canvas");
   pageCanvas.width = PRINT_PAGE_W;
   pageCanvas.height = PRINT_PAGE_H;
@@ -559,8 +559,8 @@ function renderPrintPage(pageCardIds) {
   pctx.fillStyle = "#ffffff";
   pctx.fillRect(0, 0, PRINT_PAGE_W, PRINT_PAGE_H);
 
-  const gridW = PRINT_COLS * PRINT_CARD_W;
-  const gridH = PRINT_ROWS * PRINT_CARD_H;
+  const gridW = PRINT_COLS * cardW;
+  const gridH = PRINT_ROWS * cardH;
   const startX = (PRINT_PAGE_W - gridW) / 2;
   const startY = (PRINT_PAGE_H - gridH) / 2;
 
@@ -571,12 +571,85 @@ function renderPrintPage(pageCardIds) {
     if (!img || !img.complete || !img.naturalWidth) return;
     const row = Math.floor(i / PRINT_COLS);
     const col = i % PRINT_COLS;
-    const x = startX + col * PRINT_CARD_W;
-    const y = startY + row * PRINT_CARD_H;
-    drawImageCover(pctx, img, x, y, PRINT_CARD_W, PRINT_CARD_H);
+    const x = startX + col * cardW;
+    const y = startY + row * cardH;
+    drawImageCover(pctx, img, x, y, cardW, cardH);
   });
 
   return pageCanvas;
+}
+
+// ---- Print size calibration ----
+// A printer's actual output size can drift from the theoretical 250 DPI
+// (driver scaling, "fit to page", margins, etc.), so instead of trusting
+// pixel math alone, the user can print a reference rectangle of a known
+// nominal size, measure the real printed result with a ruler, and save the
+// resulting scale factors — applied to shrink/grow the card size so future
+// prints come out at the true 63x88mm on their specific setup.
+const CALIBRATION_KEY = "deck-viewer-print-calibration";
+const NOMINAL_CAL_W_MM = 100;
+const NOMINAL_CAL_H_MM = 150;
+
+function getCalibration() {
+  try {
+    const raw = localStorage.getItem(CALIBRATION_KEY);
+    if (!raw) return { scaleX: 1, scaleY: 1 };
+    const parsed = JSON.parse(raw);
+    if (typeof parsed.scaleX === "number" && typeof parsed.scaleY === "number") return parsed;
+  } catch (err) {
+    // ignore malformed value, fall through to default
+  }
+  return { scaleX: 1, scaleY: 1 };
+}
+
+function getCorrectedCardSize() {
+  const { scaleX, scaleY } = getCalibration();
+  return {
+    w: PRINT_CARD_W / scaleX,
+    h: PRINT_CARD_H / scaleY,
+  };
+}
+
+function printCalibrationSheet() {
+  const calW = Math.round((NOMINAL_CAL_W_MM * PRINT_DPI) / 25.4);
+  const calH = Math.round((NOMINAL_CAL_H_MM * PRINT_DPI) / 25.4);
+
+  const pageCanvas = document.createElement("canvas");
+  pageCanvas.width = PRINT_PAGE_W;
+  pageCanvas.height = PRINT_PAGE_H;
+  const pctx = pageCanvas.getContext("2d");
+  pctx.fillStyle = "#ffffff";
+  pctx.fillRect(0, 0, PRINT_PAGE_W, PRINT_PAGE_H);
+
+  const x = (PRINT_PAGE_W - calW) / 2;
+  const y = (PRINT_PAGE_H - calH) / 2;
+  pctx.strokeStyle = "#000000";
+  pctx.lineWidth = 3;
+  pctx.strokeRect(x, y, calW, calH);
+
+  pctx.fillStyle = "#000000";
+  pctx.textAlign = "center";
+  pctx.font = "36px sans-serif";
+  pctx.textBaseline = "bottom";
+  pctx.fillText(`横 ${NOMINAL_CAL_W_MM}mm`, x + calW / 2, y - 12);
+  pctx.save();
+  pctx.translate(x - 12, y + calH / 2);
+  pctx.rotate(-Math.PI / 2);
+  pctx.textBaseline = "bottom";
+  pctx.fillText(`縦 ${NOMINAL_CAL_H_MM}mm`, 0, 0);
+  pctx.restore();
+
+  pctx.textBaseline = "top";
+  pctx.font = "28px sans-serif";
+  pctx.fillText(
+    "この四角形の横幅・縦幅を定規で測り、「印刷サイズを調整」画面に入力してください",
+    PRINT_PAGE_W / 2,
+    y + calH + 30
+  );
+
+  const imageData = pctx.getImageData(0, 0, PRINT_PAGE_W, PRINT_PAGE_H);
+  const blob = encodeTiff(PRINT_PAGE_W, PRINT_PAGE_H, imageData.data, PRINT_DPI);
+  downloadBlob(blob, "print-calibration.tif");
 }
 
 // Browsers can only canvas.toBlob() to PNG/JPEG/WebP, never TIFF, so this
@@ -684,9 +757,11 @@ async function printDeck() {
     pages.push(fullList.slice(i, i + PRINT_PER_PAGE));
   }
 
+  const { w: cardW, h: cardH } = getCorrectedCardSize();
+
   for (let p = 0; p < pages.length; p++) {
     printStatus.textContent = `出力中... (${p + 1}/${pages.length})`;
-    const pageCanvas = renderPrintPage(pages[p]);
+    const pageCanvas = renderPrintPage(pages[p], cardW, cardH);
     const pctx = pageCanvas.getContext("2d");
     const imageData = pctx.getImageData(0, 0, PRINT_PAGE_W, PRINT_PAGE_H);
     const blob = encodeTiff(PRINT_PAGE_W, PRINT_PAGE_H, imageData.data, PRINT_DPI);
@@ -703,6 +778,65 @@ async function printDeck() {
 }
 
 document.getElementById("print-btn").addEventListener("click", printDeck);
+
+// ---- Calibration modal ----
+
+const calibrationModal = document.getElementById("calibration-modal");
+const calMeasuredWInput = document.getElementById("cal-measured-w");
+const calMeasuredHInput = document.getElementById("cal-measured-h");
+const calibrationStatus = document.getElementById("calibration-status");
+
+function setCalibrationStatus(message, kind) {
+  calibrationStatus.textContent = message;
+  calibrationStatus.className = `status-message ${kind || ""}`;
+}
+
+function refreshCalibrationDisplay() {
+  const { scaleX, scaleY } = getCalibration();
+  if (scaleX === 1 && scaleY === 1) {
+    setCalibrationStatus("現在、補正はかかっていません(等倍)。", "");
+  } else {
+    setCalibrationStatus(
+      `現在の補正: 横${(scaleX * 100).toFixed(1)}% / 縦${(scaleY * 100).toFixed(1)}%`,
+      "success"
+    );
+  }
+  calMeasuredWInput.value = "";
+  calMeasuredHInput.value = "";
+}
+
+function openCalibrationModal() {
+  refreshCalibrationDisplay();
+  calibrationModal.hidden = false;
+}
+
+function closeCalibrationModal() {
+  calibrationModal.hidden = true;
+}
+
+document.getElementById("open-calibration-btn").addEventListener("click", openCalibrationModal);
+document.getElementById("calibration-close-btn").addEventListener("click", closeCalibrationModal);
+bindModalDismissal(calibrationModal, { onCancel: closeCalibrationModal });
+
+document.getElementById("print-calibration-sheet-btn").addEventListener("click", printCalibrationSheet);
+
+document.getElementById("calibration-save-btn").addEventListener("click", () => {
+  const measuredW = Number(calMeasuredWInput.value);
+  const measuredH = Number(calMeasuredHInput.value);
+  if (!measuredW || !measuredH || measuredW <= 0 || measuredH <= 0) {
+    setCalibrationStatus("実測した横幅・縦幅を入力してください", "error");
+    return;
+  }
+  const scaleX = measuredW / NOMINAL_CAL_W_MM;
+  const scaleY = measuredH / NOMINAL_CAL_H_MM;
+  localStorage.setItem(CALIBRATION_KEY, JSON.stringify({ scaleX, scaleY }));
+  refreshCalibrationDisplay();
+});
+
+document.getElementById("calibration-reset-btn").addEventListener("click", () => {
+  localStorage.removeItem(CALIBRATION_KEY);
+  refreshCalibrationDisplay();
+});
 
 // ---- Controls ----
 

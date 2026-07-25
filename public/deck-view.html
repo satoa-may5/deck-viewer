@@ -38,7 +38,40 @@
 
       <button type="button" class="btn primary" id="download-btn">画像として保存</button>
       <button type="button" class="btn" id="print-btn">このデッキを印刷</button>
+      <button type="button" class="btn" id="open-calibration-btn">印刷サイズを調整</button>
       <span id="print-status" class="status-message"></span>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="calibration-modal" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>印刷サイズの調整</h2>
+        <button type="button" class="icon-btn" id="calibration-close-btn">✕</button>
+      </div>
+      <div class="modal-body-vertical">
+        <p class="crop-hint">
+          プリンターや設定によって、実際に印刷される大きさは基準値からずれることがあります。
+          「調整用シートを印刷」で四角形を印刷し、その横幅・縦幅を定規で実測して入力・保存すると、
+          以降の印刷でカードが正確に63mm×88mmになるよう自動調整します。
+        </p>
+        <button type="button" class="btn" id="print-calibration-sheet-btn">調整用シートを印刷</button>
+        <div class="field-row">
+          <div class="field">
+            <label for="cal-measured-w">実測した横幅(mm) ※基準100mm</label>
+            <input type="number" id="cal-measured-w" step="0.1" min="1" placeholder="100" />
+          </div>
+          <div class="field">
+            <label for="cal-measured-h">実測した縦幅(mm) ※基準150mm</label>
+            <input type="number" id="cal-measured-h" step="0.1" min="1" placeholder="150" />
+          </div>
+        </div>
+        <div class="nav-links">
+          <button type="button" class="btn" id="calibration-reset-btn">補正をリセット</button>
+          <button type="button" class="btn primary" id="calibration-save-btn">この数値で保存する</button>
+        </div>
+        <div id="calibration-status" class="status-message"></div>
+      </div>
     </div>
   </div>
 

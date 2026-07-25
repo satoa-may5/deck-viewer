@@ -501,6 +501,12 @@ button {
   gap: 20px;
 }
 
+.modal-body-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .modal-image-area {
   flex: 0 0 180px;
 }
