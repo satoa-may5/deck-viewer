@@ -529,14 +529,32 @@ app.delete("/api/cards/:id", (req, res) => {
 // that pool is kept (starting a new one replaces it).
 const cardInfoJobs = new Map();
 
-// Parallel/foil printings (name ending in "_p<N>", the convention used by
-// both manifest import and make_manifests' own export) render the cost
-// badge in a completely different style -- often a metallic/inverted
-// digit -- that the template library (built from flat, non-foil renders)
-// doesn't represent. Rather than classify them directly and risk a wrong
-// read, they inherit type/color/cost from their same-pool non-parallel
-// base card (same name with the suffix stripped) when one exists.
-const PARALLEL_SUFFIX_RE = /^(.*)_p\d+$/;
+// Parallel/foil printings render the cost badge in a completely different
+// style -- often a metallic/inverted digit -- that the template library
+// (built from flat, non-foil renders) doesn't represent. Rather than
+// classify them directly and risk a wrong read, they inherit type/color/cost
+// from their same-pool non-parallel base card when one can be identified by
+// name.
+//
+// Names follow "<SET>_<CODE>" optionally followed by "_p<N>" (e.g.
+// "UA53BT_CSM-1-017", "UA53BT_CSM-1-017_p1"), where <CODE> is the part that
+// actually identifies the card (e.g. "CSM-1-017") and is stable across
+// reprints/parallels even when <SET> isn't: a card can equally be a parallel
+// via the "_p<N>" suffix (same SET as its base), via a SET of literally
+// "UAPR" instead of a real set code (e.g. "UAPR_KMR-2-052" parallels
+// "EX12BT_KMR-2-052" -- a *different* SET than its own prefix), or both at
+// once (e.g. "UAPR_KMR-1-021_p1" also parallels "UA29BT_KMR-1-021"). So the
+// base lookup has to match on <CODE> alone, not on SET_CODE as a whole, and
+// "UAPR" needs to count as a parallel marker even with no "_p<N>" suffix.
+function parseCardNameParts(name) {
+  const m = /^([^_]+)_(.+)$/.exec(name || "");
+  if (!m) return null;
+  const [, set, rest] = m;
+  const suffixMatch = /^(.*)_p\d+$/.exec(rest);
+  const code = suffixMatch ? suffixMatch[1] : rest;
+  const isParallel = set === "UAPR" || Boolean(suffixMatch);
+  return { code, isParallel };
+}
 
 app.post("/api/pools/:id/auto-fill-info", (req, res) => {
   const pool = readPools().find((p) => p.id === req.params.id);
@@ -579,12 +597,17 @@ function isEmptyValue(v) {
 }
 
 async function runAutoFillInfoJob(job, poolCards) {
-  const byName = new Map(poolCards.map((c) => [c.name, c]));
+  const byCode = new Map(); // code -> non-parallel base card
+  for (const card of poolCards) {
+    const parts = parseCardNameParts(card.name);
+    if (parts && !parts.isParallel) byCode.set(parts.code, card);
+  }
+
   const directCards = [];
   const inheritPairs = []; // [card, baseCard]
   for (const card of poolCards) {
-    const m = PARALLEL_SUFFIX_RE.exec(card.name || "");
-    const base = m ? byName.get(m[1]) : null;
+    const parts = parseCardNameParts(card.name);
+    const base = parts && parts.isParallel ? byCode.get(parts.code) : null;
     if (base) {
       inheritPairs.push([card, base]);
     } else {

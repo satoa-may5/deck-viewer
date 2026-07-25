@@ -247,8 +247,23 @@ async function classifyImage(imagePath, templates) {
   }
   const bestType = [...typeBest.entries()].reduce((a, b) => (b[1] < a[1] ? b : a))[0];
 
-  // Stage C: cost, restricted to the chosen color+type, on the digit crop.
-  const candidates = sameColor.filter((t) => t.type === bestType);
+  // Stage C: cost, restricted to the chosen type but -- unlike color/type --
+  // searched across EVERY color's templates of that type, not just the
+  // matched color's. The digit crop is grayscale and mean-normalized before
+  // correlating (see digitCorrelationScore), which empirically turned out to
+  // be color-invariant enough that a same-type digit template from a
+  // completely different color reliably still finds the right cost
+  // (verified against 1028 real card images: identical results, sometimes
+  // via a cross-color match, with no regression on cards where the matched
+  // color's own template was available). This is what actually closes most
+  // of the template library's coverage gaps -- e.g. Cost-event/P has no
+  // purple0/purple8, but blue/green/red/yellow's event-cost-0/8 templates
+  // cover it once cost search isn't restricted to the matched color. A
+  // genuine OCR pass on the isolated digit region was tried first and
+  // discarded: this game's bold display-font digits didn't match Tesseract's
+  // trained font shapes reliably even after masking/binarizing the crop, so
+  // it read wrong or empty far more often than this correlation approach.
+  const candidates = templates.filter((t) => t.type === bestType);
   let bestCost = null;
   let bestScore = -2;
   for (const t of candidates) {
