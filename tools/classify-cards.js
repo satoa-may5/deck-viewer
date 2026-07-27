@@ -351,6 +351,21 @@ function digitCorrelationScore(resizedData, width, height, t) {
   return best;
 }
 
+// How many templates to process between event-loop yields inside a single
+// classifyImage() call. Yielding once per *card* (done by the job loop in
+// server.js) isn't enough on its own -- classifying one card is itself a
+// long synchronous burst (100+ templates, several of them an O(search
+// window) sliding correlation), so a request arriving mid-card still waits
+// out the whole burst. Yielding partway through each stage's template loop
+// breaks that up too, at the cost of a slightly longer wall-clock job time.
+const YIELD_EVERY_N_TEMPLATES = 12;
+
+async function maybeYield(counter) {
+  if (counter % YIELD_EVERY_N_TEMPLATES === 0) {
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+}
+
 async function classifyImage(imagePath, templates) {
   let img;
   try {
@@ -361,6 +376,7 @@ async function classifyImage(imagePath, templates) {
 
   const variants = await resizedVariants(img, templates);
   const dataFor = (t) => variants.get(`${t.width}x${t.height}`);
+  let processed = 0;
 
   // Stage A: color, scored across every type/cost combination. "全て" (the
   // ALL/rainbow badge) is deliberately excluded here -- see the ALL-color
@@ -370,6 +386,7 @@ async function classifyImage(imagePath, templates) {
     if (t.color === "全て") continue;
     const score = maskedDiffScore(dataFor(t), t.width, t);
     if (!colorBest.has(t.color) || score < colorBest.get(t.color)) colorBest.set(t.color, score);
+    await maybeYield(++processed);
   }
   let bestColor = [...colorBest.entries()].reduce((a, b) => (b[1] < a[1] ? b : a))[0];
 
@@ -379,6 +396,7 @@ async function classifyImage(imagePath, templates) {
   for (const t of sameColor) {
     const score = maskedDiffScore(dataFor(t), t.width, t);
     if (!typeBest.has(t.type) || score < typeBest.get(t.type)) typeBest.set(t.type, score);
+    await maybeYield(++processed);
   }
   const bestType = [...typeBest.entries()].reduce((a, b) => (b[1] < a[1] ? b : a))[0];
 
@@ -422,12 +440,18 @@ async function classifyImage(imagePath, templates) {
   const candidates = templates.filter((t) => t.type === bestType);
   let bestCost = null;
   let bestScore = -2;
+  let costProcessed = 0;
   for (const t of candidates) {
     const score = digitCorrelationScore(dataFor(t), t.width, t.height, t);
     if (score > bestScore) {
       bestScore = score;
       bestCost = t.cost;
     }
+    // Stage C's sliding search is the most expensive part per template, so
+    // yield more often here than Stages A/B (a smaller, dedicated interval
+    // rather than reusing `processed`, whose count already includes A/B).
+    costProcessed++;
+    if (costProcessed % 4 === 0) await new Promise((resolve) => setImmediate(resolve));
   }
 
   // costConfidence is the winning candidate's raw correlation score (-1..1),

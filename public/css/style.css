@@ -404,7 +404,9 @@ button {
 
 .fab {
   position: fixed;
-  right: 24px;
+  /* Pushed further left than the dock tab (also bottom-right-ish, at the far
+     right edge) so the two floating controls don't crowd each other. */
+  right: 84px;
   bottom: 24px;
   width: 56px;
   height: 56px;
@@ -525,8 +527,15 @@ button {
 }
 
 .modal-actions.review-actions {
-  justify-content: space-between;
+  justify-content: flex-end;
   flex-wrap: wrap;
+}
+
+/* Pinned to the left via auto margin (rather than justify-content:
+   space-between on the row) so the nav buttons stay flush right even when
+   this checkbox is hidden (a card with no queue-mate parallels). */
+.modal-actions.review-actions #modal-apply-parallel-wrap {
+  margin-right: auto;
 }
 
 .modal-review-nav {
@@ -1992,14 +2001,10 @@ button {
   transform: translateX(120%);
 }
 
-/* Anchored to the vertical middle of the screen rather than near the bottom
-   corner -- keeping it away from the "+" add-card FAB (also bottom-right)
-   avoids the two floating controls crowding into the same spot. */
 .auto-fill-dock-tab {
   position: fixed;
   right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: 32px;
   z-index: 150;
   width: 30px;
   height: 48px;
@@ -2021,6 +2026,19 @@ button {
   justify-content: space-between;
   gap: 8px;
   padding: 14px 16px;
+}
+
+/* Icon + title grouped into their own flex item so justify-content:
+   space-between (against .auto-fill-panel-header-actions) only inserts free
+   space around this whole group, not between the icon and the title
+   individually -- otherwise the icon ends up visually far from the text it's
+   labeling. */
+.auto-fill-panel-header-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  flex: 1;
 }
 
 .auto-fill-panel-header h3 {
@@ -2176,11 +2194,15 @@ button {
 .uncertain-review-btn {
   color: var(--danger);
   border-color: var(--danger);
-  animation: uncertain-review-blink 3s ease-in-out infinite;
 }
 
 .uncertain-review-btn:hover {
   background: var(--danger-tint);
+}
+
+.uncertain-review-mark {
+  display: inline-block;
+  animation: uncertain-review-blink 3s ease-in-out infinite;
 }
 
 @keyframes uncertain-review-blink {

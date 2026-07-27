@@ -100,8 +100,10 @@ setInterval(pollCardInfoJobs, CARD_INFO_POLL_INTERVAL);
 const AUTO_FILL_PANEL_HTML = `
   <div class="auto-fill-panel" id="auto-fill-panel" hidden>
     <div class="auto-fill-panel-header" id="auto-fill-panel-header">
-      <span class="auto-fill-status-icon" id="auto-fill-status-icon" hidden></span>
-      <h3 id="auto-fill-panel-title">カードの情報を自動取得する</h3>
+      <div class="auto-fill-panel-header-title">
+        <span class="auto-fill-status-icon" id="auto-fill-status-icon" hidden></span>
+        <h3 id="auto-fill-panel-title">カードの情報を自動取得する</h3>
+      </div>
       <div class="auto-fill-panel-header-actions">
         <button type="button" class="icon-btn" id="auto-fill-dock-btn" title="右端に格納" hidden>▸</button>
         <button type="button" class="icon-btn" id="auto-fill-close-btn">✕</button>
@@ -253,14 +255,34 @@ async function populateAutoFillCompleteView() {
   }
 }
 
+// Guarded dismissal: Escape/backdrop-click both route through here
+// (bindModalDismissal), which would otherwise bypass the ✕ being hidden
+// while running/complete -- there's deliberately no way to dismiss either
+// except via the 完了 button, which calls forceCloseAutoFillPanel() directly
+// instead (an explicit confirm action, not a dismissal attempt to guard against).
 function closeAutoFillPanel() {
-  // Escape/backdrop-click both route through here too (bindModalDismissal),
-  // which would otherwise bypass the ✕ being hidden while running/complete --
-  // there's deliberately no way to dismiss either except via the 完了 button.
   if (autoFillMode === "running" || autoFillMode === "complete") return;
+  forceCloseAutoFillPanel();
+}
+
+function forceCloseAutoFillPanel() {
   autoFillPanelEl.hidden = true;
   autoFillMode = "hidden";
   setAutoFillStatusIcon(null);
+}
+
+// Marks the given pool's job confirmed and, if that job is the one currently
+// shown, closes the panel -- shared by the panel's own 完了 button and by
+// pool-detail.js finishing the uncertain-card review flow (which counts as
+// having reviewed the result too, per the user).
+function confirmAutoFillJob(poolId) {
+  const job = getCardInfoJob(poolId);
+  if (!job) return;
+  markJobConfirmed(job);
+  if (autoFillPanelEl && autoFillCurrentPoolId === poolId) {
+    forceCloseAutoFillPanel();
+  }
+  document.dispatchEvent(new CustomEvent("card-info-jobs-updated", { detail: cardInfoJobsCache }));
 }
 
 function ensureAutoFillPanel() {
@@ -324,9 +346,7 @@ function ensureAutoFillPanel() {
   });
 
   autoFillDoneBtn.addEventListener("click", () => {
-    markJobConfirmed(getCardInfoJob(autoFillCurrentPoolId));
-    closeAutoFillPanel();
-    document.dispatchEvent(new CustomEvent("card-info-jobs-updated", { detail: cardInfoJobsCache }));
+    confirmAutoFillJob(autoFillCurrentPoolId);
   });
 }
 
