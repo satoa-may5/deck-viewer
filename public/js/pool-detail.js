@@ -1058,6 +1058,12 @@ async function init() {
   currentPool = pool;
   nameInput.value = pool.name;
   await renderCards();
+
+  // Landed here via the auto-fill completion notice's 修正する button --
+  // same entry point as clicking the ⚠ button directly.
+  if (params.get("review") === "1") {
+    startUncertainReview();
+  }
 }
 
 init();

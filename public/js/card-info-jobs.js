@@ -144,7 +144,7 @@ const AUTO_FILL_PANEL_HTML = `
       <p class="crop-hint" id="auto-fill-uncertain-hint" hidden>以下のカードは自動取得に問題がある可能性があります:</p>
       <div id="auto-fill-uncertain-list" class="auto-fill-uncertain-list"></div>
       <div class="auto-fill-actions">
-        <button type="button" class="btn" id="auto-fill-rerun-btn">再度実行する</button>
+        <button type="button" class="btn" id="auto-fill-fix-btn">修正する</button>
         <button type="button" class="btn primary" id="auto-fill-done-btn">完了</button>
       </div>
     </div>
@@ -160,7 +160,7 @@ let autoFillStatusIcon, autoFillDockStatusIcon;
 let autoFillFormView, autoFillRunningView, autoFillCompleteView;
 let autoFillOverwriteCheckbox, autoFillRunBtn, autoFillStatus;
 let autoFillProgress, autoFillProgressFill, autoFillProgressLabel, autoFillProgressEta;
-let autoFillCompleteSummary, autoFillUncertainHint, autoFillUncertainList, autoFillRerunBtn, autoFillDoneBtn;
+let autoFillCompleteSummary, autoFillUncertainHint, autoFillUncertainList, autoFillFixBtn, autoFillDoneBtn;
 
 let autoFillCurrentPoolId = null;
 let autoFillCurrentPoolName = "";
@@ -248,6 +248,7 @@ async function populateAutoFillCompleteView() {
   const cards = autoFillCurrentPoolId ? await Api.getCards(autoFillCurrentPoolId) : [];
   const uncertainCards = cards.filter((c) => c.infoUncertain);
   autoFillUncertainHint.hidden = uncertainCards.length === 0;
+  autoFillFixBtn.hidden = uncertainCards.length === 0;
   autoFillUncertainList.innerHTML = "";
   for (const card of uncertainCards) {
     const item = document.createElement("div");
@@ -328,7 +329,7 @@ function ensureAutoFillPanel() {
   autoFillCompleteSummary = document.getElementById("auto-fill-complete-summary");
   autoFillUncertainHint = document.getElementById("auto-fill-uncertain-hint");
   autoFillUncertainList = document.getElementById("auto-fill-uncertain-list");
-  autoFillRerunBtn = document.getElementById("auto-fill-rerun-btn");
+  autoFillFixBtn = document.getElementById("auto-fill-fix-btn");
   autoFillDoneBtn = document.getElementById("auto-fill-done-btn");
 
   autoFillDockBtn.addEventListener("click", (e) => {
@@ -355,10 +356,15 @@ function ensureAutoFillPanel() {
     }
   });
 
-  autoFillRerunBtn.addEventListener("click", () => {
-    autoFillOverwriteCheckbox.checked = false;
-    setAutoFillStatus("", "");
-    showAutoFillMode("form");
+  // Full page navigation (rather than calling pool-detail.js's
+  // startUncertainReview() directly) because this panel is shared across
+  // every page -- if 修正する is clicked from somewhere other than that
+  // pool's own detail page, pool-detail.js isn't even loaded. ?review=1
+  // tells pool-detail.js to open the same review flow as the ⚠ button once
+  // the page (and its card list) has loaded.
+  autoFillFixBtn.addEventListener("click", () => {
+    if (!autoFillCurrentPoolId) return;
+    location.href = `pool-detail.html?id=${encodeURIComponent(autoFillCurrentPoolId)}&review=1`;
   });
 
   autoFillDoneBtn.addEventListener("click", () => {
