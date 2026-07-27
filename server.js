@@ -666,11 +666,22 @@ async function runAutoFillInfoJob(job, poolCards) {
   // instead keeps the average pace estimate representative of actual
   // classification work from the start.
   job.classifyStartedAt = new Date().toISOString();
+  // Rolling window of recent card-completion timestamps, used by withEta()
+  // for a LOCAL pace estimate instead of the cumulative average since the
+  // job started. A cumulative average still drifted noticeably (V8 JIT
+  // warmup makes the first several cards genuinely slower than steady-state,
+  // and that keeps dragging a from-the-start average down for the entire
+  // job, not just the first few cards -- observed counting down at roughly
+  // 2 estimated seconds per real second). A short recent window tracks
+  // actual current pace instead.
+  job.recentTimings = [];
   const results = {};
   for (const card of directCards) {
     const info = await classifyImage(path.join(IMAGES_DIR, `${card.id}.${card.imageExt}`), templates);
     if (info) results[card.id] = info;
     job.progress.current++;
+    job.recentTimings.push(Date.now());
+    if (job.recentTimings.length > 20) job.recentTimings.shift();
     // classifyImage's template matching is synchronous, CPU-heavy work that
     // otherwise runs card-after-card with no gap, starving the event loop and
     // making every other request (including plain page loads) sluggish for
@@ -752,8 +763,18 @@ function withEta(job) {
   if (job.status !== "running" || !job.progress || job.progress.current === 0 || !job.classifyStartedAt) {
     return { ...job, etaSeconds: null };
   }
-  const elapsedMs = Date.now() - new Date(job.classifyStartedAt).getTime();
-  const perCardMs = elapsedMs / job.progress.current;
+  const timings = job.recentTimings || [];
+  let perCardMs;
+  if (timings.length >= 2) {
+    // Local pace: how long the last few cards actually took, not the whole
+    // job's average -- keeps up with the real current speed instead of
+    // being dragged down by slower cards earlier in the job.
+    perCardMs = (timings[timings.length - 1] - timings[0]) / (timings.length - 1);
+  } else {
+    // Not enough recent samples yet (job just started) -- fall back to the
+    // cumulative average for the first card or two.
+    perCardMs = (Date.now() - new Date(job.classifyStartedAt).getTime()) / job.progress.current;
+  }
   const remainingMs = perCardMs * (job.progress.total - job.progress.current);
   return { ...job, etaSeconds: Math.max(0, Math.round(remainingMs / 1000)) };
 }

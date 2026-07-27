@@ -442,11 +442,19 @@ function syncAutoFillPanelWithServerState() {
     if (isNewlyDiscovered) setAutoFillDocked(localStorage.getItem(AUTO_FILL_DOCKED_KEY) !== "0", false);
     updateAutoFillProgress(relevantJob);
   } else {
+    // The job just finished while this page was actively watching it run
+    // (as opposed to a fresh page load landing directly on an
+    // already-finished job) -- always surface the result even if it had
+    // been docked, since docking while running is routine but staying
+    // docked through the actual finish would mean the result silently
+    // waits behind the tab until clicked.
+    const justFinished = autoFillMode === "running";
     if (autoFillMode !== "complete" || isNewlyDiscovered) {
       populateAutoFillCompleteView();
       showAutoFillMode("complete");
       if (isNewlyDiscovered) setAutoFillDocked(localStorage.getItem(AUTO_FILL_DOCKED_KEY) !== "0", false);
     }
+    if (justFinished) setAutoFillDocked(false);
   }
   updateAutoFillTitle();
 }
