@@ -6,7 +6,12 @@
 // time -- trying to start a different pool's job while one is running or
 // unconfirmed surfaces a message instead of silently doing nothing.
 
-const CARD_INFO_POLL_INTERVAL = 4000;
+// Polled faster while a job is actually running so the progress bar advances
+// smoothly instead of jumping in chunks of however many cards got classified
+// between polls -- falls back to the slower idle interval otherwise so an
+// open tab with nothing happening isn't hammering the server for no reason.
+const CARD_INFO_POLL_INTERVAL_RUNNING = 700;
+const CARD_INFO_POLL_INTERVAL_IDLE = 4000;
 const AUTO_FILL_SEEN_KEY_PREFIX = "deck-viewer-seen-card-info-job:";
 // Whether the panel is docked (off-screen) -- persisted so navigating to a
 // different page keeps whatever state the user left it in, instead of every
@@ -79,21 +84,25 @@ function showAutoFillBlockedNotice(message, actionLabel, onAction) {
 }
 
 async function pollCardInfoJobs() {
-  let jobs;
   try {
     const res = await fetch("/api/card-info-jobs");
-    if (!res.ok) return;
-    jobs = await res.json();
+    if (res.ok) {
+      const jobs = await res.json();
+      cardInfoJobsCache = jobs;
+      syncAutoFillPanelWithServerState();
+      document.dispatchEvent(new CustomEvent("card-info-jobs-updated", { detail: jobs }));
+    }
   } catch (err) {
-    return; // network hiccup; try again next tick
+    // network hiccup; try again next tick
   }
-  cardInfoJobsCache = jobs;
-  syncAutoFillPanelWithServerState();
-  document.dispatchEvent(new CustomEvent("card-info-jobs-updated", { detail: jobs }));
+  // Self-rescheduling rather than a fixed setInterval so the interval itself
+  // can change (fast while running, slow otherwise) based on what this poll
+  // just observed.
+  const delay = getRunningJob() ? CARD_INFO_POLL_INTERVAL_RUNNING : CARD_INFO_POLL_INTERVAL_IDLE;
+  setTimeout(pollCardInfoJobs, delay);
 }
 
 pollCardInfoJobs();
-setInterval(pollCardInfoJobs, CARD_INFO_POLL_INTERVAL);
 
 // ---- Global floating panel ----
 
@@ -267,6 +276,13 @@ function closeAutoFillPanel() {
 
 function forceCloseAutoFillPanel() {
   autoFillPanelEl.hidden = true;
+  // While docked, the panel itself is already off-screen (via CSS
+  // transform) and the dock tab is the only thing actually visible to the
+  // user -- hiding just the panel left that tab (the real "notice") stuck
+  // on screen even after the job was confirmed.
+  autoFillPanelEl.classList.remove("docked");
+  autoFillDockTab.hidden = true;
+  autoFillDocked = false;
   autoFillMode = "hidden";
   setAutoFillStatusIcon(null);
 }

@@ -726,6 +726,24 @@ function hasQueueEntry(direction, extraSkip) {
   return false;
 }
 
+// "Which step am I on, out of how many total" -- both counts only ever
+// consider entries NOT in reviewSkip (already resolved via an earlier
+// parallel-apply) and, hypothetically, not in extraSkip (this card's own
+// mates, if the checkbox is currently checked) -- so checking the box
+// immediately shrinks the total, e.g. a 2-card base+parallel queue reads
+// "1/2" unchecked and "1/1" checked.
+function reviewProgress(extraSkip) {
+  let position = 0;
+  let total = 0;
+  for (let i = 0; i < reviewQueue.length; i++) {
+    const id = reviewQueue[i].id;
+    if (reviewSkip.has(id) || extraSkip.has(id)) continue;
+    total++;
+    if (i <= reviewIndex) position++;
+  }
+  return { position, total };
+}
+
 function updateReviewNavUI() {
   const mates = queueParallelMates(editingCard);
   modalApplyParallelWrap.hidden = mates.length === 0;
@@ -734,6 +752,8 @@ function updateReviewNavUI() {
   );
   modalReviewBackBtn.disabled = !hasQueueEntry("back", extraSkip);
   modalReviewNextBtn.textContent = hasQueueEntry("next", extraSkip) ? "保存して次へ" : "保存して完了する";
+  const { position, total } = reviewProgress(extraSkip);
+  modalTitle.textContent = `カードを編集 (${position}/${total})`;
 }
 
 modalApplyParallelCheckbox.addEventListener("change", updateReviewNavUI);
@@ -743,7 +763,6 @@ function setModalReviewMode(active) {
   modalActionsReview.hidden = !active;
   if (active) {
     modalApplyParallelCheckbox.checked = true; // default on, per card
-    modalTitle.textContent = `カードを編集 (${reviewIndex + 1}/${reviewQueue.length})`;
     updateReviewNavUI();
   }
 }
