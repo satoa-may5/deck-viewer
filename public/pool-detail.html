@@ -33,6 +33,7 @@
     <div class="list-toolbar">
       <button type="button" class="btn" id="select-mode-btn">選択して削除</button>
       <button type="button" class="btn" id="auto-fill-info-btn">カードの情報を自動取得する</button>
+      <button type="button" class="icon-btn uncertain-review-btn" id="uncertain-review-btn" title="自動取得に問題がある可能性のあるカードを確認する" hidden>⚠</button>
     </div>
 
     <div class="selection-bar" id="selection-bar" hidden>
@@ -87,7 +88,13 @@
       </aside>
     </div>
 
-    <button type="button" class="fab" id="open-add-card-btn">＋</button>
+    <button type="button" class="fab" id="open-add-card-btn" title="カードを追加">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2.5" y="8" width="12.5" height="16" rx="2.2" transform="rotate(-10 8.75 16)" />
+        <rect x="8.5" y="4.5" width="13" height="16.5" rx="2.2" fill="var(--surface)" />
+        <path d="M15 9v11M9.5 14.5h11" stroke-width="2" />
+      </svg>
+    </button>
 
     <div class="modal-overlay" id="add-card-modal" hidden>
       <div class="modal-card">
@@ -124,8 +131,19 @@
             <div class="field checkbox-field">
               <label><input type="checkbox" id="modal-card-parallel" /> パラレル</label>
             </div>
-            <button type="button" class="btn primary" id="modal-save-btn">保存する</button>
             <div id="modal-status" class="status-message"></div>
+          </div>
+        </div>
+        <div class="modal-actions" id="modal-actions-normal">
+          <button type="button" class="btn primary" id="modal-save-btn">保存する</button>
+        </div>
+        <div class="modal-actions review-actions" id="modal-actions-review" hidden>
+          <label class="filter-checkbox">
+            <input type="checkbox" id="modal-apply-parallel-checkbox" /> このカードのパラレルにも適用する
+          </label>
+          <div class="modal-review-nav">
+            <button type="button" class="btn" id="modal-review-back-btn">戻る</button>
+            <button type="button" class="btn primary" id="modal-review-next-btn">保存して次へ</button>
           </div>
         </div>
       </div>

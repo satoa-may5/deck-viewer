@@ -64,6 +64,7 @@ function formatCardName(n) {
 
 // ---- Bulk selection ----
 
+const uncertainReviewBtn = document.getElementById("uncertain-review-btn");
 const selectModeBtn = document.getElementById("select-mode-btn");
 const selectionBar = document.getElementById("selection-bar");
 const selectionCountEl = document.getElementById("selection-count");
@@ -150,6 +151,7 @@ thumbnailModeBtn.addEventListener("click", () => {
 async function renderCards() {
   latestCards = await Api.getCards(poolId);
   cardCountEl.textContent = `${latestCards.length}枚`;
+  uncertainReviewBtn.hidden = !latestCards.some((c) => c.infoUncertain);
   updateFilterUI(latestCards);
   const visibleCards = latestCards.filter(cardMatchesFilters);
 
@@ -635,6 +637,11 @@ const modalColorInput = document.getElementById("modal-card-color");
 const modalParallelInput = document.getElementById("modal-card-parallel");
 const modalSaveBtn = document.getElementById("modal-save-btn");
 const modalStatus = document.getElementById("modal-status");
+const modalActionsNormal = document.getElementById("modal-actions-normal");
+const modalActionsReview = document.getElementById("modal-actions-review");
+const modalApplyParallelCheckbox = document.getElementById("modal-apply-parallel-checkbox");
+const modalReviewBackBtn = document.getElementById("modal-review-back-btn");
+const modalReviewNextBtn = document.getElementById("modal-review-next-btn");
 
 const cropPopup = document.getElementById("crop-popup");
 const cropPopupStage = document.getElementById("crop-popup-stage");
@@ -642,6 +649,33 @@ const cropPopupStage = document.getElementById("crop-popup-stage");
 let cropTool = null;
 let croppedBlob = null;
 let editingCard = null; // null = adding a new card, otherwise the card being edited
+
+// ---- Uncertain-card review (opened via the ⚠ button) ----
+// Steps the "カードを編集" modal through every card flagged infoUncertain,
+// one at a time, instead of the usual single-card save-and-close.
+let reviewQueue = null; // null when not reviewing, otherwise the ordered list of cards to step through
+let reviewIndex = 0;
+
+function startUncertainReview() {
+  const queue = latestCards.filter((c) => c.infoUncertain);
+  if (queue.length === 0) return;
+  reviewQueue = queue;
+  reviewIndex = 0;
+  openEditCardModal(reviewQueue[0], { review: true });
+}
+
+uncertainReviewBtn.addEventListener("click", startUncertainReview);
+
+function setModalReviewMode(active) {
+  modalActionsNormal.hidden = active;
+  modalActionsReview.hidden = !active;
+  if (active) {
+    modalApplyParallelCheckbox.checked = false;
+    modalReviewBackBtn.disabled = reviewIndex === 0;
+    modalReviewNextBtn.textContent = reviewIndex === reviewQueue.length - 1 ? "保存して完了する" : "保存して次へ";
+    modalTitle.textContent = `カードを編集 (${reviewIndex + 1}/${reviewQueue.length})`;
+  }
+}
 
 function setModalStatus(message, kind) {
   modalStatus.textContent = message;
@@ -703,6 +737,7 @@ modalFileInput.addEventListener("change", () => {
 });
 
 function openAddCardModal() {
+  reviewQueue = null; // an entirely separate flow from card-info review
   editingCard = null;
   croppedBlob = null;
   cropTool = null;
@@ -714,12 +749,14 @@ function openAddCardModal() {
   modalParallelInput.checked = false;
   setModalStatus("", "");
   modalTitle.textContent = "カードを追加";
-  modalSaveBtn.textContent = "保存する";
+  setModalReviewMode(false);
   showImagePlaceholder();
   modal.hidden = false;
 }
 
-function openEditCardModal(card) {
+function openEditCardModal(card, options) {
+  const review = Boolean(options && options.review);
+  if (!review) reviewQueue = null; // opening a card the normal way always exits any review flow
   editingCard = card;
   croppedBlob = null;
   cropTool = null;
@@ -731,7 +768,7 @@ function openEditCardModal(card) {
   modalParallelInput.checked = Boolean(card.parallel);
   setModalStatus("", "");
   modalTitle.textContent = "カードを編集";
-  modalSaveBtn.textContent = "保存する";
+  setModalReviewMode(review);
   showImagePreview(Api.cardImageUrl(card));
   modal.hidden = false;
 }
@@ -739,6 +776,7 @@ function openEditCardModal(card) {
 function closeAddCardModal() {
   modal.hidden = true;
   modalFileInput.value = "";
+  reviewQueue = null;
 }
 
 document.getElementById("open-add-card-btn").addEventListener("click", openAddCardModal);
@@ -748,11 +786,55 @@ document.getElementById("close-modal-btn").addEventListener("click", closeAddCar
 // treated as the topmost modal — Enter/Escape act on whichever is actually on top.
 bindModalDismissal(modal, {
   onCancel: closeAddCardModal,
-  onConfirm: () => modalSaveBtn.click(),
+  onConfirm: () => (reviewQueue ? modalReviewNextBtn.click() : modalSaveBtn.click()),
 });
 bindModalDismissal(cropPopup, {
   onCancel: closeCropPopup,
   onConfirm: () => document.getElementById("crop-popup-ok").click(),
+});
+
+// Shared by the normal save button and both review-mode nav buttons: PATCHes
+// the currently-editing card (plus an image replace, if one was cropped).
+// Returns whether it succeeded, leaving the modal open with an error message
+// on failure either way.
+async function saveEditingCard() {
+  const name = modalNameInput.value.trim() || modalNameInput.placeholder;
+  const type = modalTypeInput.value;
+  const cost = modalCostInput.value;
+  const color = modalColorInput.value.trim();
+  const parallel = modalParallelInput.checked;
+  const applyToParallels = Boolean(reviewQueue) && modalApplyParallelCheckbox.checked;
+
+  setModalStatus("保存中...", "");
+  try {
+    if (croppedBlob) {
+      await Api.replaceCardImage(editingCard.id, croppedBlob);
+    }
+    await Api.updateCard(editingCard.id, { name, type, cost, color, parallel, applyToParallels });
+    return true;
+  } catch (err) {
+    setModalStatus(err.message, "error");
+    return false;
+  }
+}
+
+modalReviewNextBtn.addEventListener("click", async () => {
+  if (!(await saveEditingCard())) return;
+  reviewIndex++;
+  if (reviewQueue && reviewIndex < reviewQueue.length) {
+    openEditCardModal(reviewQueue[reviewIndex], { review: true });
+  } else {
+    reviewQueue = null;
+    closeAddCardModal();
+    await renderCards();
+  }
+});
+
+modalReviewBackBtn.addEventListener("click", async () => {
+  if (reviewIndex === 0) return;
+  if (!(await saveEditingCard())) return;
+  reviewIndex--;
+  openEditCardModal(reviewQueue[reviewIndex], { review: true });
 });
 
 modalSaveBtn.addEventListener("click", async () => {
@@ -763,16 +845,9 @@ modalSaveBtn.addEventListener("click", async () => {
   const parallel = modalParallelInput.checked;
 
   if (editingCard) {
-    setModalStatus("保存中...", "");
-    try {
-      if (croppedBlob) {
-        await Api.replaceCardImage(editingCard.id, croppedBlob);
-      }
-      await Api.updateCard(editingCard.id, { name, type, cost, color, parallel });
+    if (await saveEditingCard()) {
       closeAddCardModal();
       await renderCards();
-    } catch (err) {
-      setModalStatus(err.message, "error");
     }
     return;
   }

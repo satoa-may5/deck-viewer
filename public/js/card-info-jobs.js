@@ -8,6 +8,10 @@
 
 const CARD_INFO_POLL_INTERVAL = 4000;
 const AUTO_FILL_SEEN_KEY_PREFIX = "deck-viewer-seen-card-info-job:";
+// Whether the panel is docked (off-screen) -- persisted so navigating to a
+// different page keeps whatever state the user left it in, instead of every
+// fresh page load defaulting back to docked.
+const AUTO_FILL_DOCKED_KEY = "deck-viewer-auto-fill-docked";
 
 let cardInfoJobsCache = [];
 
@@ -96,6 +100,7 @@ setInterval(pollCardInfoJobs, CARD_INFO_POLL_INTERVAL);
 const AUTO_FILL_PANEL_HTML = `
   <div class="auto-fill-panel" id="auto-fill-panel" hidden>
     <div class="auto-fill-panel-header" id="auto-fill-panel-header">
+      <span class="auto-fill-status-icon" id="auto-fill-status-icon" hidden></span>
       <h3 id="auto-fill-panel-title">カードの情報を自動取得する</h3>
       <div class="auto-fill-panel-header-actions">
         <button type="button" class="icon-btn" id="auto-fill-dock-btn" title="右端に格納" hidden>▸</button>
@@ -120,6 +125,7 @@ const AUTO_FILL_PANEL_HTML = `
           <div class="auto-fill-progress-fill" id="auto-fill-progress-fill"></div>
         </div>
         <span id="auto-fill-progress-label"></span>
+        <span id="auto-fill-progress-eta"></span>
       </div>
     </div>
     <div class="auto-fill-panel-body" id="auto-fill-complete-view" hidden>
@@ -132,14 +138,17 @@ const AUTO_FILL_PANEL_HTML = `
       </div>
     </div>
   </div>
-  <button type="button" class="auto-fill-dock-tab" id="auto-fill-dock-tab" title="カードの情報を自動取得する" hidden>◂</button>
+  <button type="button" class="auto-fill-dock-tab" id="auto-fill-dock-tab" title="カードの情報を自動取得する" hidden>
+    <span class="auto-fill-status-icon" id="auto-fill-dock-status-icon" hidden></span>
+  </button>
 `;
 
 let autoFillPanelEl = null;
 let autoFillHeaderEl, autoFillTitleEl, autoFillDockBtn, autoFillCloseBtn, autoFillDockTab;
+let autoFillStatusIcon, autoFillDockStatusIcon;
 let autoFillFormView, autoFillRunningView, autoFillCompleteView;
 let autoFillOverwriteCheckbox, autoFillRunBtn, autoFillStatus;
-let autoFillProgress, autoFillProgressFill, autoFillProgressLabel;
+let autoFillProgress, autoFillProgressFill, autoFillProgressLabel, autoFillProgressEta;
 let autoFillCompleteSummary, autoFillUncertainHint, autoFillUncertainList, autoFillRerunBtn, autoFillDoneBtn;
 
 let autoFillCurrentPoolId = null;
@@ -155,15 +164,29 @@ function setAutoFillStatus(message, kind) {
 
 // "Docked" slides the whole panel out past the right edge of the screen
 // (rather than collapsing it in place), leaving only a small tab visible at
-// the edge to bring it back.
-function setAutoFillDocked(docked) {
+// the edge to bring it back. Persisted so a page navigation carries over
+// whatever dock state the user left it in, rather than every fresh page load
+// (which has no in-memory history of its own) defaulting back to docked.
+function setAutoFillDocked(docked, persist = true) {
   autoFillDocked = docked;
   autoFillPanelEl.classList.toggle("docked", docked);
   autoFillDockTab.hidden = !docked;
+  if (persist) localStorage.setItem(AUTO_FILL_DOCKED_KEY, docked ? "1" : "0");
 }
 
 function updateAutoFillTitle() {
   autoFillTitleEl.textContent = autoFillCurrentPoolName || "カードの情報を自動取得する";
+}
+
+// Shown next to the pool name (and inside the dock tab, so it stays visible
+// while docked too): a spinning ring while a job runs, a checkmark once it's
+// done and awaiting confirmation, nothing otherwise.
+function setAutoFillStatusIcon(state) {
+  for (const el of [autoFillStatusIcon, autoFillDockStatusIcon]) {
+    el.hidden = !state;
+    el.classList.toggle("spinning", state === "running");
+    el.classList.toggle("done", state === "done");
+  }
 }
 
 function showAutoFillMode(mode) {
@@ -172,13 +195,22 @@ function showAutoFillMode(mode) {
   autoFillRunningView.hidden = mode !== "running";
   autoFillCompleteView.hidden = mode !== "complete";
   // No way to dismiss mid-run -- it always finishes; dockable instead so it's
-  // less intrusive while staying reachable. The form is a one-off dialog (✕
-  // closes it outright), and the complete view can still be closed without
-  // confirming via ✕ (button state stays "unconfirmed" until 完了 is clicked).
-  autoFillCloseBtn.hidden = mode === "running";
+  // less intrusive while staying reachable. The complete view can only be
+  // dismissed via the 完了 button (no ✕, no Escape/backdrop-click) so an
+  // unconfirmed result can't be lost by an accidental click outside it.
+  autoFillCloseBtn.hidden = mode === "running" || mode === "complete";
   autoFillDockBtn.hidden = mode === "form";
   autoFillPanelEl.hidden = mode === "hidden";
+  setAutoFillStatusIcon(mode === "running" ? "running" : mode === "complete" ? "done" : null);
   updateAutoFillTitle();
+}
+
+function formatAutoFillEta(seconds) {
+  if (seconds === null || seconds === undefined) return "";
+  if (seconds < 60) return `残り${seconds}秒`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `残り${m}分${s}秒`;
 }
 
 function updateAutoFillProgress(job) {
@@ -186,6 +218,7 @@ function updateAutoFillProgress(job) {
   const pct = job.progress.total > 0 ? (job.progress.current / job.progress.total) * 100 : 0;
   autoFillProgressFill.style.width = `${pct}%`;
   autoFillProgressLabel.textContent = `${job.progress.current}/${job.progress.total}`;
+  autoFillProgressEta.textContent = formatAutoFillEta(job.etaSeconds);
 }
 
 async function populateAutoFillCompleteView() {
@@ -222,11 +255,12 @@ async function populateAutoFillCompleteView() {
 
 function closeAutoFillPanel() {
   // Escape/backdrop-click both route through here too (bindModalDismissal),
-  // which would otherwise bypass the close button being hidden while
-  // running -- there's deliberately no way to dismiss mid-run.
-  if (autoFillMode === "running") return;
+  // which would otherwise bypass the ✕ being hidden while running/complete --
+  // there's deliberately no way to dismiss either except via the 完了 button.
+  if (autoFillMode === "running" || autoFillMode === "complete") return;
   autoFillPanelEl.hidden = true;
   autoFillMode = "hidden";
+  setAutoFillStatusIcon(null);
 }
 
 function ensureAutoFillPanel() {
@@ -241,6 +275,8 @@ function ensureAutoFillPanel() {
   autoFillDockBtn = document.getElementById("auto-fill-dock-btn");
   autoFillCloseBtn = document.getElementById("auto-fill-close-btn");
   autoFillDockTab = document.getElementById("auto-fill-dock-tab");
+  autoFillStatusIcon = document.getElementById("auto-fill-status-icon");
+  autoFillDockStatusIcon = document.getElementById("auto-fill-dock-status-icon");
   autoFillFormView = document.getElementById("auto-fill-form-view");
   autoFillRunningView = document.getElementById("auto-fill-running-view");
   autoFillCompleteView = document.getElementById("auto-fill-complete-view");
@@ -250,6 +286,7 @@ function ensureAutoFillPanel() {
   autoFillProgress = document.getElementById("auto-fill-progress");
   autoFillProgressFill = document.getElementById("auto-fill-progress-fill");
   autoFillProgressLabel = document.getElementById("auto-fill-progress-label");
+  autoFillProgressEta = document.getElementById("auto-fill-progress-eta");
   autoFillCompleteSummary = document.getElementById("auto-fill-complete-summary");
   autoFillUncertainHint = document.getElementById("auto-fill-uncertain-hint");
   autoFillUncertainList = document.getElementById("auto-fill-uncertain-list");
@@ -297,6 +334,8 @@ function openAutoFillFor(poolId, poolName) {
   ensureAutoFillPanel();
   autoFillCurrentPoolId = poolId;
   autoFillCurrentPoolName = poolName;
+  // Explicitly opening the panel always expands it, regardless of whatever
+  // dock state was last persisted.
   setAutoFillDocked(false);
 
   const job = getCardInfoJob(poolId);
@@ -359,13 +398,18 @@ function syncAutoFillPanelWithServerState() {
 
   if (relevantJob.status === "running") {
     if (autoFillMode !== "running") showAutoFillMode("running");
-    if (isNewlyDiscovered) setAutoFillDocked(true); // don't barge in expanded on an unrelated page
+    // A brand-new page load has no memory of whether the panel was left
+    // docked or expanded on whatever page started/last touched this job --
+    // fall back to the persisted dock state (defaulting to docked, so a job
+    // discovered for the first time doesn't barge in expanded on an
+    // unrelated page) instead of always forcing docked.
+    if (isNewlyDiscovered) setAutoFillDocked(localStorage.getItem(AUTO_FILL_DOCKED_KEY) !== "0", false);
     updateAutoFillProgress(relevantJob);
   } else {
     if (autoFillMode !== "complete" || isNewlyDiscovered) {
       populateAutoFillCompleteView();
       showAutoFillMode("complete");
-      if (isNewlyDiscovered) setAutoFillDocked(true);
+      if (isNewlyDiscovered) setAutoFillDocked(localStorage.getItem(AUTO_FILL_DOCKED_KEY) !== "0", false);
     }
   }
   updateAutoFillTitle();

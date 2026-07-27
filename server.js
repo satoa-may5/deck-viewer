@@ -465,6 +465,24 @@ app.patch("/api/cards/:id", (req, res) => {
   if (req.body.type !== undefined || req.body.color !== undefined || req.body.cost !== undefined) {
     card.infoUncertain = false;
   }
+  // Optional: also push this card's type/color/cost onto its own parallel
+  // printings (see parseCardNameParts below for how a parallel is identified
+  // by name) -- lets the manual uncertain-card review flow fix a whole
+  // print run in one edit instead of repeating it per parallel.
+  if (req.body.applyToParallels) {
+    const parts = parseCardNameParts(card.name);
+    if (parts && !parts.isParallel) {
+      const poolMates = cards.filter((c) => c.poolId === card.poolId && c.id !== card.id);
+      for (const mate of poolMates) {
+        const mateParts = parseCardNameParts(mate.name);
+        if (!mateParts || !mateParts.isParallel || mateParts.code !== parts.code) continue;
+        mate.type = card.type;
+        mate.color = card.color;
+        mate.cost = card.cost;
+        mate.infoUncertain = false;
+      }
+    }
+  }
   writeCards(cards);
   res.json(card);
 });
@@ -588,7 +606,7 @@ app.post("/api/pools/:id/auto-fill-info", (req, res) => {
     error: null,
   };
   cardInfoJobs.set(pool.id, job);
-  res.status(202).json(job);
+  res.status(202).json(withEta(job));
 
   runAutoFillInfoJob(job, poolCards).catch((err) => {
     job.status = "error";
@@ -634,6 +652,13 @@ async function runAutoFillInfoJob(job, poolCards) {
     const info = await classifyImage(path.join(IMAGES_DIR, `${card.id}.${card.imageExt}`), templates);
     if (info) results[card.id] = info;
     job.progress.current++;
+    // classifyImage's template matching is synchronous, CPU-heavy work that
+    // otherwise runs card-after-card with no gap, starving the event loop and
+    // making every other request (including plain page loads) sluggish for
+    // the whole job's duration. Yielding once per card lets pending requests
+    // get a turn in between, at the cost of the job itself taking slightly
+    // longer wall-clock time.
+    await new Promise((resolve) => setImmediate(resolve));
   }
 
   const cards = readCards();
@@ -699,8 +724,23 @@ async function runAutoFillInfoJob(job, poolCards) {
   };
 }
 
+// Estimated remaining seconds, derived from how long the job has taken to
+// reach its current progress so far (no fixed per-card cost is assumed,
+// since classification time varies with image size/format). Not stored on
+// the job itself -- computed fresh on every read so it stays accurate as
+// time passes between polls.
+function withEta(job) {
+  if (job.status !== "running" || !job.progress || job.progress.current === 0) {
+    return { ...job, etaSeconds: null };
+  }
+  const elapsedMs = Date.now() - new Date(job.startedAt).getTime();
+  const perCardMs = elapsedMs / job.progress.current;
+  const remainingMs = perCardMs * (job.progress.total - job.progress.current);
+  return { ...job, etaSeconds: Math.max(0, Math.round(remainingMs / 1000)) };
+}
+
 app.get("/api/card-info-jobs", (req, res) => {
-  res.json([...cardInfoJobs.values()]);
+  res.json([...cardInfoJobs.values()].map(withEta));
 });
 
 // ---- Decks ----
