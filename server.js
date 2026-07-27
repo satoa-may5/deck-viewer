@@ -646,6 +646,15 @@ async function runAutoFillInfoJob(job, poolCards) {
     }
   }
 
+  // Progress/ETA only track directCards -- inheritPairs are just copied from
+  // their already-classified base afterward (no per-card classification
+  // work, effectively instant), so counting them in the total made the bar
+  // stall at the real work's pace and then jump straight to 100% once the
+  // inherit pass ran, and inflated the ETA by however many parallels the
+  // pool had (their "remaining work" was counted but never actually cost
+  // any time).
+  job.progress.total = directCards.length;
+
   const templates = await loadCardInfoTemplates();
   const results = {};
   for (const card of directCards) {
