@@ -712,39 +712,85 @@ button {
 /* Non-interactive marker showing which card is currently set as a pool's or
    deck's thumbnail (thumbnail assignment itself happens via the
    "サムネイルを設定" selection-mode button, not by clicking this): a yellow
-   frame around the whole card, with a slightly thicker top edge carrying a
-   small "THUMBNAIL" label. Drawn as two absolutely-positioned pseudo-elements
-   (inset:0 + box-sizing:border-box) rather than a real border, so the extra
-   border width doesn't change the element's own box size and throw off
-   layout/grid sizing next to non-thumbnail cards. */
-.card-frame.is-thumbnail::after,
+   frame around the whole card that sits slightly outside it, with a small
+   "THUMBNAIL" banner poking out above the top edge. Marked on .card-item
+   (the grid tile as a whole) rather than .card-frame (the image container)
+   because .card-frame clips to its own rounded corners for the card image,
+   which would also clip the banner -- it's meant to overflow past the
+   card's own bounds. Both pieces are absolutely-positioned pseudo-elements
+   sized off the same width/aspect-ratio as .card-frame rather than a real
+   border, so they don't add to .card-item's own box size and throw off grid
+   layout/spacing next to non-thumbnail cards. */
+.card-item.is-thumbnail {
+  position: relative;
+}
+
+.card-item.is-thumbnail::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: calc(100% + 6px);
+  aspect-ratio: 63 / 88;
+  box-sizing: border-box;
+  border: 3px solid #f5a623;
+  border-radius: calc(var(--radius-md) + 3px);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.card-item.is-thumbnail::before {
+  content: "THUMBNAIL";
+  position: absolute;
+  top: -20px;
+  left: -3px;
+  width: calc(100% + 6px);
+  height: 17px;
+  background: #f5a623;
+  border-radius: 6px 6px 0 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #fff;
+  line-height: 1;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* List view's thumbnail is much smaller (a 42px-wide inline thumb next to
+   text, not a standalone grid tile), so it keeps the simpler inset
+   treatment rather than the protruding banner above. */
 .card-row-thumb.is-thumbnail::after {
   content: "";
   position: absolute;
   inset: 0;
   box-sizing: border-box;
   border: 2px solid #f5a623;
-  border-top-width: 8px;
+  border-top-width: 10px;
   border-radius: inherit;
   z-index: 1;
   pointer-events: none;
 }
 
-.card-frame.is-thumbnail::before,
 .card-row-thumb.is-thumbnail::before {
   content: "THUMBNAIL";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 8px;
+  height: 10px;
   z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 5px;
+  font-size: 6px;
   font-weight: 800;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   color: #fff;
   line-height: 1;
   pointer-events: none;

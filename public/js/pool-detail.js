@@ -547,8 +547,12 @@ function createCardGridItem(card) {
   }
 
   if (currentPool && currentPool.thumbnailCardId === card.id) {
-    frame.classList.add("is-thumbnail");
-    frame.title = "カードプールのサムネイル";
+    // Marked on the item (not the frame): the frame clips to its own rounded
+    // corners (needed for the card image), which would also clip the
+    // marker's frame+banner since the banner is meant to stick out past the
+    // card's own top edge.
+    item.classList.add("is-thumbnail");
+    item.title = "カードプールのサムネイル";
   }
   if (card.infoUncertain) {
     const warning = document.createElement("span");

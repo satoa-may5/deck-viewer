@@ -35,8 +35,12 @@ function createCardElement(card, id, count, opts) {
   }
 
   if (opts && opts.isThumbnail) {
-    frame.classList.add("is-thumbnail");
-    frame.title = "デッキのサムネイル";
+    // Marked on the item, not the frame -- the frame clips to its own
+    // rounded corners (needed for the card image), which would also clip
+    // the marker's banner since it's meant to stick out past the card's own
+    // top edge.
+    item.classList.add("is-thumbnail");
+    item.title = "デッキのサムネイル";
   }
 
   const caption = document.createElement("div");
