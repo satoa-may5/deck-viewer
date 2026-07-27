@@ -600,6 +600,7 @@ app.post("/api/pools/:id/auto-fill-info", (req, res) => {
     status: "running",
     overwrite: Boolean(req.body && req.body.overwrite),
     startedAt: new Date().toISOString(),
+    classifyStartedAt: null, // set once template loading finishes, see runAutoFillInfoJob
     finishedAt: null,
     progress: { current: 0, total: poolCards.length },
     summary: null,
@@ -656,6 +657,15 @@ async function runAutoFillInfoJob(job, poolCards) {
   job.progress.total = directCards.length;
 
   const templates = await loadCardInfoTemplates();
+  // Timestamped separately from job.startedAt: the first auto-fill run since
+  // the server started pays a one-time cost here (reading ~275 template PNG
+  // files via Jimp), which used to get baked into the elapsed-time/current
+  // average ETA used, making the very first few cards' estimate wildly high
+  // and then crash down fast as later, template-load-free cards pulled the
+  // average back toward the real per-card pace. Measuring elapsed from here
+  // instead keeps the average pace estimate representative of actual
+  // classification work from the start.
+  job.classifyStartedAt = new Date().toISOString();
   const results = {};
   for (const card of directCards) {
     const info = await classifyImage(path.join(IMAGES_DIR, `${card.id}.${card.imageExt}`), templates);
@@ -739,10 +749,10 @@ async function runAutoFillInfoJob(job, poolCards) {
 // the job itself -- computed fresh on every read so it stays accurate as
 // time passes between polls.
 function withEta(job) {
-  if (job.status !== "running" || !job.progress || job.progress.current === 0) {
+  if (job.status !== "running" || !job.progress || job.progress.current === 0 || !job.classifyStartedAt) {
     return { ...job, etaSeconds: null };
   }
-  const elapsedMs = Date.now() - new Date(job.startedAt).getTime();
+  const elapsedMs = Date.now() - new Date(job.classifyStartedAt).getTime();
   const perCardMs = elapsedMs / job.progress.current;
   const remainingMs = perCardMs * (job.progress.total - job.progress.current);
   return { ...job, etaSeconds: Math.max(0, Math.round(remainingMs / 1000)) };
