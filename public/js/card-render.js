@@ -35,10 +35,12 @@ function createCardElement(card, id, count, opts) {
   }
 
   if (opts && opts.isThumbnail) {
-    // Marked on the item, not the frame -- the frame clips to its own
-    // rounded corners (needed for the card image), which would also clip
-    // the marker's banner since it's meant to stick out past the card's own
-    // top edge.
+    // The flush border lives on the frame (tight fit around the card
+    // image); the small protruding banner lives on the item instead, since
+    // the frame clips to its own rounded corners for the card image, which
+    // would also clip the banner where it's meant to peek out above the
+    // card's own top edge.
+    frame.classList.add("is-thumbnail");
     item.classList.add("is-thumbnail");
     item.title = "デッキのサムネイル";
   }

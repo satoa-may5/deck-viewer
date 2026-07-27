@@ -547,10 +547,12 @@ function createCardGridItem(card) {
   }
 
   if (currentPool && currentPool.thumbnailCardId === card.id) {
-    // Marked on the item (not the frame): the frame clips to its own rounded
-    // corners (needed for the card image), which would also clip the
-    // marker's frame+banner since the banner is meant to stick out past the
+    // The flush border lives on the frame (tight fit around the card
+    // image); the small protruding banner lives on the item instead, since
+    // the frame clips to its own rounded corners for the card image, which
+    // would also clip the banner where it's meant to peek out above the
     // card's own top edge.
+    frame.classList.add("is-thumbnail");
     item.classList.add("is-thumbnail");
     item.title = "カードプールのサムネイル";
   }

@@ -712,49 +712,50 @@ button {
 /* Non-interactive marker showing which card is currently set as a pool's or
    deck's thumbnail (thumbnail assignment itself happens via the
    "サムネイルを設定" selection-mode button, not by clicking this): a yellow
-   frame around the whole card that sits slightly outside it, with a small
-   "THUMBNAIL" banner poking out above the top edge. Marked on .card-item
-   (the grid tile as a whole) rather than .card-frame (the image container)
-   because .card-frame clips to its own rounded corners for the card image,
-   which would also clip the banner -- it's meant to overflow past the
-   card's own bounds. Both pieces are absolutely-positioned pseudo-elements
-   sized off the same width/aspect-ratio as .card-frame rather than a real
-   border, so they don't add to .card-item's own box size and throw off grid
-   layout/spacing next to non-thumbnail cards. */
-.card-item.is-thumbnail {
-  position: relative;
-}
-
-.card-item.is-thumbnail::after {
+   border drawn flush against the card (.card-frame, inset:0 -- so it's
+   actually touching the card, not floating outside it) plus a small solid
+   "THUMBNAIL" banner that overlaps the border's top edge and pokes just a
+   few px past the card's own top. The banner is a filled rectangle (not an
+   outline) sitting ON TOP of the border in the overlap area, so the two
+   read as one connected shape instead of a separate ring detached from a
+   separate tag. The banner is marked on .card-item (the grid tile as a
+   whole) rather than .card-frame (the image container) because .card-frame
+   clips to its own rounded corners for the card image, which would also
+   clip the banner where it's meant to overflow past the card's own bounds.
+   Both pieces are absolutely-positioned pseudo-elements rather than a real
+   border, so they don't add to the element's own box size and throw off
+   grid layout/spacing next to non-thumbnail cards. */
+.card-frame.is-thumbnail::after {
   content: "";
   position: absolute;
-  top: -3px;
-  left: -3px;
-  width: calc(100% + 6px);
-  aspect-ratio: 63 / 88;
+  inset: 0;
   box-sizing: border-box;
-  border: 3px solid #f5a623;
-  border-radius: calc(var(--radius-md) + 3px);
+  border: 2px solid #f5a623;
+  border-radius: inherit;
   z-index: 1;
   pointer-events: none;
+}
+
+.card-item.is-thumbnail {
+  position: relative;
 }
 
 .card-item.is-thumbnail::before {
   content: "THUMBNAIL";
   position: absolute;
-  top: -20px;
-  left: -3px;
-  width: calc(100% + 6px);
-  height: 17px;
+  top: -3px;
+  left: 0;
+  width: 100%;
+  height: 11px;
   background: #f5a623;
-  border-radius: 6px 6px 0 0;
+  border-radius: 5px 5px 0 0;
   z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 6px;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   color: #fff;
   line-height: 1;
   pointer-events: none;
