@@ -195,11 +195,14 @@ const filterState = {
   costMin: COST_RANGE_MIN,
   costMax: COST_RANGE_MAX,
   excludeParallel: false,
+  excludeAllColor: true, // on by default, unlike the other filters -- see updateFilterUI()
 };
 
 const filterTypeGroup = document.getElementById("filter-type-group");
 const filterColorGroup = document.getElementById("filter-color-group");
 const filterParallelCheckbox = document.getElementById("filter-parallel-checkbox");
+const filterAllColorWrap = document.getElementById("filter-all-color-wrap");
+const filterAllColorCheckbox = document.getElementById("filter-all-color-checkbox");
 const filterClearBtn = document.getElementById("filter-clear-btn");
 const filterCostMinInput = document.getElementById("filter-cost-min");
 const filterCostMaxInput = document.getElementById("filter-cost-max");
@@ -376,10 +379,18 @@ function updateFilterUI() {
 
   updateCostSliderUI();
   filterParallelCheckbox.checked = filterState.excludeParallel;
+  // Only shown once there's actually something for it to filter out.
+  filterAllColorWrap.hidden = !latestCards.some((c) => c.color === "全て");
+  filterAllColorCheckbox.checked = filterState.excludeAllColor;
 }
 
 filterParallelCheckbox.addEventListener("change", () => {
   filterState.excludeParallel = filterParallelCheckbox.checked;
+  renderCards();
+});
+
+filterAllColorCheckbox.addEventListener("change", () => {
+  filterState.excludeAllColor = filterAllColorCheckbox.checked;
   renderCards();
 });
 
@@ -389,6 +400,7 @@ filterClearBtn.addEventListener("click", () => {
   filterState.costMin = COST_RANGE_MIN;
   filterState.costMax = COST_RANGE_MAX;
   filterState.excludeParallel = false;
+  filterState.excludeAllColor = false;
   updateFilterUI();
   renderCards();
 });
@@ -397,6 +409,7 @@ function cardMatchesFilters(card) {
   if (filterState.types.size > 0 && !filterState.types.has(card.type)) return false;
   // "全て"(ALL/colorless) cards match every color filter, not just an "全て" pill.
   if (filterState.colors.size > 0 && card.color !== "全て" && !filterState.colors.has(card.color)) return false;
+  if (filterState.excludeAllColor && card.color === "全て") return false;
   if (filterState.costMin > COST_RANGE_MIN || filterState.costMax < COST_RANGE_MAX) {
     if (card.cost === null || card.cost === undefined) return false;
     if (card.cost < filterState.costMin || card.cost > filterState.costMax) return false;
@@ -432,22 +445,18 @@ function createCardRow(card) {
   row.dataset.id = card.id;
   if (selectMode && selectedIds.has(card.id)) row.classList.add("selected");
   const isThumbnail = currentPool && currentPool.thumbnailCardId === card.id;
-  if (isThumbnail) row.classList.add("is-thumbnail");
 
   const thumb = document.createElement("div");
   thumb.className = "card-row-thumb";
+  if (isThumbnail) {
+    thumb.classList.add("is-thumbnail");
+    thumb.title = "カードプールのサムネイル";
+  }
   const img = document.createElement("img");
   img.src = Api.cardImageUrl(card);
   img.alt = displayName(card);
   img.draggable = false;
   thumb.appendChild(img);
-  if (isThumbnail) {
-    const badge = document.createElement("span");
-    badge.className = "thumbnail-indicator";
-    badge.title = "カードプールのサムネイル";
-    badge.textContent = "★";
-    thumb.appendChild(badge);
-  }
   if (card.infoUncertain) {
     const warning = document.createElement("span");
     warning.className = "uncertain-badge";
@@ -538,11 +547,8 @@ function createCardGridItem(card) {
   }
 
   if (currentPool && currentPool.thumbnailCardId === card.id) {
-    const badge = document.createElement("span");
-    badge.className = "thumbnail-indicator";
-    badge.title = "カードプールのサムネイル";
-    badge.textContent = "★";
-    frame.appendChild(badge);
+    frame.classList.add("is-thumbnail");
+    frame.title = "カードプールのサムネイル";
   }
   if (card.infoUncertain) {
     const warning = document.createElement("span");
@@ -580,10 +586,14 @@ function createCardGridItem(card) {
 const cardZoomOverlay = document.getElementById("card-zoom-overlay");
 const cardZoomImg = document.getElementById("card-zoom-img");
 
-function openCardZoom(card) {
-  cardZoomImg.src = Api.cardImageUrl(card);
-  cardZoomImg.alt = displayName(card);
+function openImageZoom(src, alt) {
+  cardZoomImg.src = src;
+  cardZoomImg.alt = alt || "";
   cardZoomOverlay.hidden = false;
+}
+
+function openCardZoom(card) {
+  openImageZoom(Api.cardImageUrl(card), displayName(card));
 }
 
 function closeCardZoom() {
@@ -790,6 +800,18 @@ function showImagePreview(src) {
   img.draggable = false;
   preview.appendChild(img);
   preview.addEventListener("click", () => modalFileInput.click());
+
+  const zoomBtn = document.createElement("button");
+  zoomBtn.type = "button";
+  zoomBtn.className = "grid-zoom-btn";
+  zoomBtn.title = "拡大表示";
+  zoomBtn.textContent = "⤢";
+  zoomBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openImageZoom(src, modalNameInput.value || "");
+  });
+  preview.appendChild(zoomBtn);
+
   modalImageArea.appendChild(preview);
 }
 

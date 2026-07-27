@@ -1666,7 +1666,7 @@
   {
     "id": "card-1784891844895",
     "name": "UA29BT_KMR-1-001",
-    "cost": 1,
+    "cost": 10,
     "color": "黄",
     "parallel": false,
     "type": "character",
@@ -1674,12 +1674,12 @@
     "imageExt": "png",
     "order": 128,
     "createdAt": "2026-07-24T11:17:24.767Z",
-    "infoUncertain": true
+    "infoUncertain": false
   },
   {
     "id": "card-1784891844896",
     "name": "UA29BT_KMR-1-001_p1",
-    "cost": 1,
+    "cost": 10,
     "color": "黄",
     "parallel": true,
     "type": "character",
@@ -1687,7 +1687,7 @@
     "imageExt": "png",
     "order": 129,
     "createdAt": "2026-07-24T11:17:24.768Z",
-    "infoUncertain": true
+    "infoUncertain": false
   },
   {
     "id": "card-1784891844898",

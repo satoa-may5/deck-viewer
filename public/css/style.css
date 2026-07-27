@@ -594,6 +594,7 @@ button {
 }
 
 .image-preview {
+  position: relative;
   aspect-ratio: 63 / 88;
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -708,29 +709,47 @@ button {
   box-shadow: 0 0 0 2px var(--danger-tint);
 }
 
-.card-row.is-thumbnail {
-  border-color: #f5a623;
-}
-
 /* Non-interactive marker showing which card is currently set as a pool's or
    deck's thumbnail (thumbnail assignment itself happens via the
-   "サムネイルを設定" selection-mode button, not by clicking this). */
-.thumbnail-indicator {
+   "サムネイルを設定" selection-mode button, not by clicking this): a yellow
+   frame around the whole card, with a slightly thicker top edge carrying a
+   small "THUMBNAIL" label. Drawn as two absolutely-positioned pseudo-elements
+   (inset:0 + box-sizing:border-box) rather than a real border, so the extra
+   border width doesn't change the element's own box size and throw off
+   layout/grid sizing next to non-thumbnail cards. */
+.card-frame.is-thumbnail::after,
+.card-row-thumb.is-thumbnail::after {
+  content: "";
   position: absolute;
-  top: 4px;
-  left: 4px;
+  inset: 0;
+  box-sizing: border-box;
+  border: 2px solid #f5a623;
+  border-top-width: 8px;
+  border-radius: inherit;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.card-frame.is-thumbnail::before,
+.card-row-thumb.is-thumbnail::before {
+  content: "THUMBNAIL";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
   z-index: 2;
-  width: 20px;
-  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
-  background: #f5a623;
+  font-size: 5px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
   color: #fff;
-  font-size: 0.75rem;
   line-height: 1;
   pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 #thumbnail-mode-btn.active,

@@ -35,11 +35,8 @@ function createCardElement(card, id, count, opts) {
   }
 
   if (opts && opts.isThumbnail) {
-    const badge = document.createElement("span");
-    badge.className = "thumbnail-indicator";
-    badge.title = "デッキのサムネイル";
-    badge.textContent = "★";
-    frame.appendChild(badge);
+    frame.classList.add("is-thumbnail");
+    frame.title = "デッキのサムネイル";
   }
 
   const caption = document.createElement("div");
