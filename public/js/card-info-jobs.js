@@ -393,7 +393,7 @@ function openAutoFillFor(poolId, poolName) {
     populateAutoFillCompleteView();
     showAutoFillMode("complete");
   } else {
-    autoFillOverwriteCheckbox.checked = false;
+    autoFillOverwriteCheckbox.checked = true;
     setAutoFillStatus("", "");
     showAutoFillMode("form");
   }
