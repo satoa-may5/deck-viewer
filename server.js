@@ -1,7 +1,9 @@
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const express = require("express");
 const multer = require("multer");
+const AdmZip = require("adm-zip");
 const { loadTemplates: loadCardInfoTemplates, classifyImage } = require("./tools/classify-cards");
 
 // Static assets (public/) are read-only and safe to bundle inside a pkg snapshot,
@@ -347,25 +349,15 @@ app.post("/api/pools/:id/export", (req, res) => {
   res.json({ folderId: pool.id, poolName: pool.name, cardCount: manifestCards.length });
 });
 
-app.post("/api/pool-exports/:folderId/import", (req, res) => {
-  const folder = path.join(EXPORTS_DIR, req.params.folderId);
-  if (!fs.existsSync(folder)) {
-    return res.status(404).json({ error: "インポート元が見つかりません" });
-  }
-  const manifest = readManifest(folder);
-  if (manifest === null) {
-    return res.status(400).json({ error: "manifest.jsonの形式が不正です" });
-  }
-  const manifestCards = resolveManifestCards(folder, manifest);
-  if (manifestCards.length === 0) {
-    return res.status(400).json({ error: "インポートできる画像が見つかりません" });
-  }
-
-  const poolName = (req.body && req.body.name && req.body.name.trim()) || manifest.poolName || req.params.folderId;
+// Shared by the pre-bundled pool-exports/ import and the user-facing zip
+// import below -- both end up with a manifest + an images/ folder on disk
+// (the zip path extracts to a temp dir first), so the actual
+// pool/card-creation logic is identical either way.
+function importPoolFromFolder(folder, manifest, manifestCards, desiredName) {
   const pools = readPools();
   const newPool = {
     id: `pool-${Date.now()}`,
-    name: uniqueName(poolName, pools.map((p) => p.name)),
+    name: uniqueName(desiredName, pools.map((p) => p.name)),
     favorite: false,
     thumbnailCardId: null,
     createdAt: new Date().toISOString(),
@@ -401,7 +393,105 @@ app.post("/api/pool-exports/:folderId/import", (req, res) => {
   writePools(pools);
   writeCards(cards);
 
-  res.status(201).json({ pool: newPool, cardCount: imported });
+  return { pool: newPool, cardCount: imported };
+}
+
+app.post("/api/pool-exports/:folderId/import", (req, res) => {
+  const folder = path.join(EXPORTS_DIR, req.params.folderId);
+  if (!fs.existsSync(folder)) {
+    return res.status(404).json({ error: "インポート元が見つかりません" });
+  }
+  const manifest = readManifest(folder);
+  if (manifest === null) {
+    return res.status(400).json({ error: "manifest.jsonの形式が不正です" });
+  }
+  const manifestCards = resolveManifestCards(folder, manifest);
+  if (manifestCards.length === 0) {
+    return res.status(400).json({ error: "インポートできる画像が見つかりません" });
+  }
+
+  const poolName = (req.body && req.body.name && req.body.name.trim()) || manifest.poolName || req.params.folderId;
+  res.status(201).json(importPoolFromFolder(folder, manifest, manifestCards, poolName));
+});
+
+// ---- Card pool export/import as a downloadable .dvpool file ----
+//
+// A raw pool-exports/<id>/ folder isn't something you'd want to hand someone
+// to download directly (a bare folder full of loose files), so this zips the
+// same manifest.json + images/ structure into one file instead -- .dvpool is
+// just a renamed .zip, not a real distinct format, but keeps it from being
+// mistaken for a generic archive the OS might try to "helpfully" auto-extract.
+
+app.get("/api/pools/:id/export-zip", (req, res) => {
+  const pool = readPools().find((p) => p.id === req.params.id);
+  if (!pool) return res.status(404).json({ error: "カードプールが見つかりません" });
+
+  const cards = readCards()
+    .filter((c) => c.poolId === pool.id)
+    .sort((a, b) => (typeof a.order === "number" ? a.order : 0) - (typeof b.order === "number" ? b.order : 0));
+
+  const zip = new AdmZip();
+  const manifestCards = [];
+  let thumbnailImage = null;
+  for (const card of cards) {
+    const srcImage = path.join(IMAGES_DIR, `${card.id}.${card.imageExt}`);
+    if (!fs.existsSync(srcImage)) continue;
+    const imageName = `${card.id}.${card.imageExt}`;
+    zip.addFile(`images/${imageName}`, fs.readFileSync(srcImage));
+    manifestCards.push({
+      name: card.name,
+      cost: card.cost,
+      color: card.color || "",
+      parallel: Boolean(card.parallel),
+      type: normalizeCardType(card.type),
+      trigger: normalizeTrigger(card.trigger),
+      image: imageName,
+    });
+    if (card.id === pool.thumbnailCardId) thumbnailImage = imageName;
+  }
+  const manifest = {
+    poolName: pool.name,
+    thumbnail: thumbnailImage,
+    exportedAt: new Date().toISOString(),
+    cards: manifestCards,
+  };
+  zip.addFile("manifest.json", Buffer.from(JSON.stringify(manifest, null, 2) + "\n"));
+
+  const filename = `${pool.name}.dvpool`;
+  res.set({
+    "Content-Type": "application/octet-stream",
+    "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+  });
+  res.send(zip.toBuffer());
+});
+
+app.post("/api/pools/import-zip", upload.single("file"), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "ファイルが送信されていません" });
+
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dv-pool-import-"));
+  try {
+    const zip = new AdmZip(req.file.buffer);
+    zip.extractAllTo(tempDir, true);
+  } catch (err) {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    return res.status(400).json({ error: "エクスポートファイルの読み込みに失敗しました" });
+  }
+
+  try {
+    const manifest = readManifest(tempDir);
+    if (manifest === null) {
+      return res.status(400).json({ error: "manifest.jsonの形式が不正です" });
+    }
+    const manifestCards = resolveManifestCards(tempDir, manifest);
+    if (manifestCards.length === 0) {
+      return res.status(400).json({ error: "インポートできる画像が見つかりません" });
+    }
+    const poolName =
+      (req.body && req.body.name && req.body.name.trim()) || manifest.poolName || "インポートしたカードプール";
+    res.status(201).json(importPoolFromFolder(tempDir, manifest, manifestCards, poolName));
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
 });
 
 // ---- Cards ----
