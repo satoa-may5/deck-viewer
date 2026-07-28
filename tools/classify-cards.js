@@ -347,18 +347,26 @@ function maskedDiffScore(resizedData, width, t) {
 // change the result.
 const TRIGGER_SEARCH_PAD = 6;
 const TRIGGER_SEARCH_STRIDE = 2;
+// Used for the much smaller label-box tie-break region instead (see
+// classifyTrigger) -- a coarser stride that's fine averaged over the whole
+// banner loses too much of a small, compact region's signal (confirmed:
+// with the whole-banner pad/stride reused as-is on the label box, a wrong
+// candidate won even though a full-resolution, wider-pad search over the
+// same region clearly favored the right one).
+const TRIGGER_LABEL_SEARCH_PAD = 8;
+const TRIGGER_LABEL_SEARCH_STRIDE = 1;
 
-function maskedDiffScoreSearch(resizedData, width, height, t) {
+function maskedDiffScoreSearch(resizedData, width, height, t, pad = TRIGGER_SEARCH_PAD, stride = TRIGGER_SEARCH_STRIDE) {
   const { y0, y1, x0, x1 } = t.bbox;
   let best = Infinity;
-  for (let dy = -TRIGGER_SEARCH_PAD; dy <= TRIGGER_SEARCH_PAD; dy += TRIGGER_SEARCH_STRIDE) {
+  for (let dy = -pad; dy <= pad; dy += stride) {
     if (y0 + dy < 0 || y1 + dy >= height) continue;
-    for (let dx = -TRIGGER_SEARCH_PAD; dx <= TRIGGER_SEARCH_PAD; dx += TRIGGER_SEARCH_STRIDE) {
+    for (let dx = -pad; dx <= pad; dx += stride) {
       if (x0 + dx < 0 || x1 + dx >= width) continue;
       let sum = 0;
       let count = 0;
-      for (let y = y0; y <= y1; y += TRIGGER_SEARCH_STRIDE) {
-        for (let x = x0; x <= x1; x += TRIGGER_SEARCH_STRIDE) {
+      for (let y = y0; y <= y1; y += stride) {
+        for (let x = x0; x <= x1; x += stride) {
           const ti = (y * t.width + x) * 4;
           if (t.data[ti + 3] === 0) continue;
           const si = ((y + dy) * width + (x + dx)) * 4;
@@ -576,6 +584,16 @@ async function classifyImage(imagePath, templates) {
 // -- if trigger detection turns out to over- or under-fire in practice,
 // tightening/loosening this is the first thing to try.
 const TRIGGER_MAX_DIFF_SCORE = 50;
+// How close the top-2 whole-banner scores have to be before bothering with
+// the label-box tie-break below -- picked comfortably above the ~1-2 point
+// gaps seen on real misclassified cards, comfortably below the 15+ point
+// gaps seen on confidently-correct ones, so it only fires for genuinely
+// ambiguous cases.
+const TRIGGER_TIEBREAK_MARGIN = 5;
+// Width of the compact opaque label box from each template's own left edge
+// (bbox.x0) -- wide enough to cover the longest label ("アクティブ") without
+// reaching into the following free-form effect text.
+const TRIGGER_LABEL_BOX_WIDTH = 150;
 
 // Presence gate, checked before attempting to tell trigger TYPES apart: any
 // card with a real trigger (of any type) prints a small red "トリガー" label
@@ -642,20 +660,57 @@ async function classifyTrigger(img, cardColor) {
     return { trigger: "", triggerScore: null };
   }
 
-  const triggerBest = new Map();
+  const triggerBest = new Map(); // triggerType -> { score, template }
   let triggerProcessed = 0;
   for (const t of candidates) {
     const score = maskedDiffScoreSearch(dataFor(t), t.width, t.height, t);
-    if (!triggerBest.has(t.triggerType) || score < triggerBest.get(t.triggerType)) {
-      triggerBest.set(t.triggerType, score);
+    if (!triggerBest.has(t.triggerType) || score < triggerBest.get(t.triggerType).score) {
+      triggerBest.set(t.triggerType, { score, template: t });
     }
     // The search is the most expensive part of classifyImage per template,
     // so it gets its own yield point rather than reusing Stage A/B's.
     triggerProcessed++;
     if (triggerProcessed % 2 === 0) await new Promise((resolve) => setImmediate(resolve));
   }
-  const [bestTrigger, bestScore] = [...triggerBest.entries()].reduce((a, b) => (b[1] < a[1] ? b : a));
+  const ranked = [...triggerBest.entries()].sort((a, b) => a[1].score - b[1].score);
+  let [bestTrigger, best] = ranked[0];
+  let bestScore = best.score;
   if (bestScore > TRIGGER_MAX_DIFF_SCORE) return { trigger: "", triggerScore: bestScore };
+
+  // Tie-break among every candidate within TRIGGER_TIEBREAK_MARGIN of the
+  // best whole-banner score (not just the top-2 -- a real card was found
+  // where the top 3 were within ~2 points of each other, and comparing only
+  // the top pair would have left the genuinely-correct answer, ranked 3rd,
+  // out of consideration entirely) using just the compact opaque label box
+  // at the left edge of the badge (e.g. "レイド"/"ドロー") instead of the
+  // whole banner. The rest of the banner is a translucent strip showing the
+  // card's own art color through it, which varies enough card-to-card to
+  // occasionally tip an already-close whole-banner comparison -- the label
+  // box is a small, solid, opaque region uninfluenced by that. Confirmed
+  // against 3 real raid cards the whole-banner search got wrong: scoping to
+  // just the label box widened the gap to ~12+ in favor of the correct
+  // answer, all 3 fixed, with no change to any card whose whole-banner
+  // scores weren't already this close (this only ever re-decides the small
+  // subset of genuinely ambiguous cases, not the easy majority the
+  // whole-banner search already gets right).
+  const close = ranked.filter(([, v]) => v.score - bestScore < TRIGGER_TIEBREAK_MARGIN);
+  if (close.length > 1) {
+    const labelScore = (t) => {
+      const x1 = t.bbox.x0 + TRIGGER_LABEL_BOX_WIDTH;
+      return maskedDiffScoreSearch(
+        dataFor(t),
+        t.width,
+        t.height,
+        { ...t, bbox: { y0: t.bbox.y0 + 2, y1: t.bbox.y1 - 2, x0: t.bbox.x0 + 2, x1 } },
+        TRIGGER_LABEL_SEARCH_PAD,
+        TRIGGER_LABEL_SEARCH_STRIDE
+      );
+    };
+    const rescored = close.map(([type, v]) => [type, labelScore(v.template)]).sort((a, b) => a[1] - b[1]);
+    bestTrigger = rescored[0][0];
+    bestScore = triggerBest.get(bestTrigger).score;
+  }
+
   return { trigger: bestTrigger, triggerScore: bestScore };
 }
 
