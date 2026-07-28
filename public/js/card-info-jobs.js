@@ -122,8 +122,11 @@ const AUTO_FILL_PANEL_HTML = `
       <p class="crop-hint">
         カードプール内の全カードの画像からタイプ・色・必要エナジーを自動で読み取ります。閉じたり他の画面に移動しても処理は続きます。
       </p>
+      <p class="crop-hint auto-fill-warning">
+        公式の画像を流用していないオリジナルカードの場合、精度が低下する恐れがあります。
+      </p>
       <label class="filter-checkbox">
-        <input type="checkbox" id="auto-fill-overwrite-checkbox" /> 既にある情報を上書きする
+        <input type="checkbox" id="auto-fill-overwrite-checkbox" checked /> 既にある情報を上書きする
       </label>
       <div id="auto-fill-status" class="status-message"></div>
       <div class="auto-fill-actions">

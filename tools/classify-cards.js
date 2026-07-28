@@ -577,6 +577,44 @@ async function classifyImage(imagePath, templates) {
 // tightening/loosening this is the first thing to try.
 const TRIGGER_MAX_DIFF_SCORE = 50;
 
+// Presence gate, checked before attempting to tell trigger TYPES apart: any
+// card with a real trigger (of any type) prints a small red "トリガー" label
+// near the badge, independent of which type it is. The type badges
+// themselves share large white/background regions, so a plain trigger-less
+// region of card art can spuriously score as a good match against one of
+// them by matching background rather than any real badge content (confirmed
+// against two real cards misclassified as "active" that were actually
+// blank -- their best search score there came from matching a plain white
+// area, not genuine badge ink). Checking for the red label first sidesteps
+// that failure mode entirely rather than trying to out-threshold it.
+//
+// Region/threshold picked from real cards: every trigger type on a real KMR
+// card scored ~2400-2900 red pixels here regardless of which type it was,
+// while genuinely trigger-less cards (including both real
+// misclassified-as-"active" cases) scored exactly 0 -- comfortably far
+// from the 300 cutoff either way. One other card set tested had this region
+// red on 100% of its cards with no bimodal split at all (so evidently
+// something else in its card frame sits in the same spot) -- for a pool like
+// that this gate just never fires, falling through to the same type search
+// used before it existed, no worse off than without it.
+const TRIGGER_LABEL_BAND = { y0: 745, y1: 770, x0: 225, x1: 375 };
+const TRIGGER_LABEL_MIN_RED = 300;
+
+function isRedPixel(r, g, b) {
+  return r > 140 && r - g > 40 && r - b > 40;
+}
+
+function countRedInBand(resizedData, width) {
+  let count = 0;
+  for (let y = TRIGGER_LABEL_BAND.y0; y <= TRIGGER_LABEL_BAND.y1; y++) {
+    for (let x = TRIGGER_LABEL_BAND.x0; x <= TRIGGER_LABEL_BAND.x1; x++) {
+      const i = (y * width + x) * 4;
+      if (isRedPixel(resizedData[i], resizedData[i + 1], resizedData[i + 2])) count++;
+    }
+  }
+  return count;
+}
+
 async function classifyTrigger(img, cardColor) {
   const triggerTemplates = await loadTriggerTemplates();
   if (triggerTemplates.length === 0) return { trigger: "", triggerScore: null };
@@ -587,6 +625,13 @@ async function classifyTrigger(img, cardColor) {
 
   const variants = await resizedVariants(img, candidates);
   const dataFor = (t) => variants.get(`${t.width}x${t.height}`);
+
+  // All trigger templates share the same 600x838 canvas, so any one
+  // candidate's resized source data works for the presence check.
+  const canvasData = dataFor(candidates[0]);
+  if (canvasData && countRedInBand(canvasData, candidates[0].width) < TRIGGER_LABEL_MIN_RED) {
+    return { trigger: "", triggerScore: null };
+  }
 
   const triggerBest = new Map();
   let triggerProcessed = 0;

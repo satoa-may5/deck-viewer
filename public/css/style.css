@@ -2184,6 +2184,12 @@ button {
   font-size: 0.78rem;
 }
 
+.auto-fill-warning {
+  color: var(--danger);
+  margin-top: 0.5em !important;
+  margin-bottom: 0.5em !important;
+}
+
 .auto-fill-actions {
   display: flex;
   justify-content: flex-end;

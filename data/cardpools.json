@@ -12,5 +12,33 @@
     "favorite": false,
     "thumbnailCardId": "card-1784932821151",
     "createdAt": "2026-07-24T22:40:21.100Z"
+  },
+  {
+    "id": "pool-1785264361556",
+    "name": "[UA] チェンソーマン",
+    "favorite": false,
+    "thumbnailCardId": "card-1785264361654",
+    "createdAt": "2026-07-28T18:46:01.556Z"
+  },
+  {
+    "id": "pool-1785264370922",
+    "name": "[UA] 犬夜叉",
+    "favorite": false,
+    "thumbnailCardId": "card-1785264371015",
+    "createdAt": "2026-07-28T18:46:10.922Z"
+  },
+  {
+    "id": "pool-1785264373593",
+    "name": "[UA] 陰の実力者になりたくて！",
+    "favorite": false,
+    "thumbnailCardId": "card-1785264373716",
+    "createdAt": "2026-07-28T18:46:13.593Z"
+  },
+  {
+    "id": "pool-1785264375363",
+    "name": "[UA] キングダム",
+    "favorite": false,
+    "thumbnailCardId": "card-1785264375673",
+    "createdAt": "2026-07-28T18:46:15.363Z"
   }
 ]
