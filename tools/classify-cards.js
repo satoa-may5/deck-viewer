@@ -17,6 +17,7 @@ const { Jimp } = require("jimp");
 
 const TEMPLATES_DIR = path.join(__dirname, "cost-templates");
 const ICONS_DIR = path.join(TEMPLATES_DIR, "icons");
+const TRIGGER_TEMPLATES_DIR = path.join(__dirname, "trigger-templates");
 
 const TYPE_MAP = {
   "Cost-character": "character",
@@ -38,6 +39,16 @@ const TYPE_MAP = {
 const ICON_FILE_RE = /^ico_(character|event|field)_energy_([a-z]+)(\d+)\.png$/i;
 const ICON_COLOR_MAP = { blue: "青", green: "緑", purple: "紫", red: "赤", yellow: "黄", all: "全て" };
 const LEGACY_COLOR_MAP = { B: "青", G: "緑", P: "紫", R: "赤", Y: "黄" };
+const COLOR_TO_LEGACY_LETTER = { 青: "B", 緑: "G", 紫: "P", 赤: "R", 黄: "Y" };
+// tools/trigger-templates/<type>[_old].png (active/drow/final/get/raid/
+// special) plus tools/trigger-templates/color-<B|G|P|R|Y>[_old].png (the
+// "カラー" trigger type -- a plain color gem with no icon, so it has one
+// variant per real card color instead of one shared image). Like the legacy
+// Cost-*/ templates, these are already full 600x838 card-canvas images with
+// everything but the badge itself transparent, so the same
+// findAlphaBBox+maskedDiffScore approach works unchanged.
+const TRIGGER_COLOR_FILE_RE = /^color-([BGPRY])(?:_old)?\.png$/i;
+const TRIGGER_TYPE_FILE_RE = /^(active|drow|final|get|raid|special)(?:_old)?\.png$/i;
 const COST_RE = /(\d+)$/;
 const CANVAS_W = 600;
 const CANVAS_H = 838;
@@ -186,6 +197,44 @@ async function loadTemplates() {
     throw new Error(`No valid cost templates found under ${TEMPLATES_DIR}`);
   }
   cachedTemplates = templates;
+  return templates;
+}
+
+let cachedTriggerTemplates = null;
+
+// Loads independently of loadTemplates()/classifyImage()'s caller -- there's
+// no trigger template requirement (a pool with no trigger-templates/ folder
+// just classifies every card as having no trigger), unlike the cost
+// templates which throw if missing.
+async function loadTriggerTemplates() {
+  if (cachedTriggerTemplates) return cachedTriggerTemplates;
+  const templates = [];
+  if (fs.existsSync(TRIGGER_TEMPLATES_DIR)) {
+    const files = fs
+      .readdirSync(TRIGGER_TEMPLATES_DIR)
+      .filter((f) => f.toLowerCase().endsWith(".png"))
+      .sort();
+    for (const file of files) {
+      const colorMatch = TRIGGER_COLOR_FILE_RE.exec(file);
+      const typeMatch = TRIGGER_TYPE_FILE_RE.exec(file);
+      const triggerType = colorMatch ? "color" : typeMatch ? typeMatch[1] : null;
+      if (!triggerType) continue;
+
+      const img = await Jimp.read(path.join(TRIGGER_TEMPLATES_DIR, file));
+      const { data, width, height } = img.bitmap;
+      const bbox = findAlphaBBox(data, width, height);
+      if (!bbox) continue;
+      templates.push({
+        data,
+        width,
+        height,
+        bbox,
+        triggerType,
+        colorLetter: colorMatch ? colorMatch[1].toUpperCase() : null,
+      });
+    }
+  }
+  cachedTriggerTemplates = templates;
   return templates;
 }
 
@@ -463,7 +512,50 @@ async function classifyImage(imagePath, templates) {
   // a multi-digit "10"-style cost the fixed-size digit crop doesn't fully
   // capture) scored ~0.4-0.5 even for their best candidate, regardless of
   // how close the runner-up was.
-  return { type: bestType, color: bestColor, cost: bestCost, costConfidence: bestScore };
+
+  // Stage D: trigger badge (active/drow/final/get/raid/special/color, or no
+  // trigger at all -- most cards don't have one). "カラー" is a plain color
+  // gem with a variant per real card color rather than one shared icon, so
+  // once the color is already known (above), only that one color's
+  // candidate(s) are considered instead of all 5 -- a card whose color came
+  // out "全て" has no color-trigger variant at all, so it's simply excluded
+  // from the candidate pool in that case.
+  const trigger = await classifyTrigger(img, bestColor);
+
+  return { type: bestType, color: bestColor, cost: bestCost, costConfidence: bestScore, ...trigger };
+}
+
+// Score is a masked mean-abs-diff (lower is better), same metric as the
+// color/type stages above -- unlike those, though, there's a genuine "none
+// of these" case here (most cards simply don't have a trigger badge), so a
+// cutoff is needed rather than always picking the best of a fixed set. This
+// threshold is a first-pass guess, NOT calibrated against real cards the way
+// COST_CONFIDENCE_THRESHOLD was (no labeled trigger dataset was available)
+// -- if trigger detection turns out to over- or under-fire in practice,
+// tightening/loosening this is the first thing to try.
+const TRIGGER_MAX_DIFF_SCORE = 50;
+
+async function classifyTrigger(img, cardColor) {
+  const triggerTemplates = await loadTriggerTemplates();
+  if (triggerTemplates.length === 0) return { trigger: "", triggerScore: null };
+
+  const colorLetter = COLOR_TO_LEGACY_LETTER[cardColor] || null;
+  const candidates = triggerTemplates.filter((t) => t.triggerType !== "color" || t.colorLetter === colorLetter);
+  if (candidates.length === 0) return { trigger: "", triggerScore: null };
+
+  const variants = await resizedVariants(img, candidates);
+  const dataFor = (t) => variants.get(`${t.width}x${t.height}`);
+
+  const triggerBest = new Map();
+  for (const t of candidates) {
+    const score = maskedDiffScore(dataFor(t), t.width, t);
+    if (!triggerBest.has(t.triggerType) || score < triggerBest.get(t.triggerType)) {
+      triggerBest.set(t.triggerType, score);
+    }
+  }
+  const [bestTrigger, bestScore] = [...triggerBest.entries()].reduce((a, b) => (b[1] < a[1] ? b : a));
+  if (bestScore > TRIGGER_MAX_DIFF_SCORE) return { trigger: "", triggerScore: bestScore };
+  return { trigger: bestTrigger, triggerScore: bestScore };
 }
 
 module.exports = { loadTemplates, classifyImage };

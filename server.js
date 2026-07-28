@@ -228,9 +228,14 @@ function defaultNameFromImage(image) {
 }
 
 const CARD_TYPES = ["character", "event", "field"];
+const TRIGGER_TYPES = ["active", "drow", "final", "get", "raid", "special", "color"];
 
 function normalizeCardType(type) {
   return CARD_TYPES.includes(type) ? type : "";
+}
+
+function normalizeTrigger(trigger) {
+  return TRIGGER_TYPES.includes(trigger) ? trigger : "";
 }
 
 function readManifest(folder) {
@@ -257,6 +262,7 @@ function resolveManifestCards(folder, manifest) {
         color: (item.color && String(item.color).trim()) || "",
         parallel: Boolean(item.parallel),
         type: normalizeCardType(item.type),
+        trigger: normalizeTrigger(item.trigger),
       }));
   }
   const imagesFolder = path.join(folder, "images");
@@ -265,7 +271,15 @@ function resolveManifestCards(folder, manifest) {
     .readdirSync(imagesFolder)
     .filter((f) => /\.(png|jpe?g)$/i.test(f))
     .sort()
-    .map((image) => ({ image, name: defaultNameFromImage(image), cost: null, color: "", parallel: false, type: "" }));
+    .map((image) => ({
+      image,
+      name: defaultNameFromImage(image),
+      cost: null,
+      color: "",
+      parallel: false,
+      type: "",
+      trigger: "",
+    }));
 }
 
 app.get("/api/pool-exports", (req, res) => {
@@ -316,6 +330,7 @@ app.post("/api/pools/:id/export", (req, res) => {
       color: card.color || "",
       parallel: Boolean(card.parallel),
       type: normalizeCardType(card.type),
+      trigger: normalizeTrigger(card.trigger),
       image: imageName,
     });
     if (card.id === pool.thumbnailCardId) thumbnailImage = imageName;
@@ -374,6 +389,7 @@ app.post("/api/pool-exports/:folderId/import", (req, res) => {
       color: item.color,
       parallel: item.parallel,
       type: item.type,
+      trigger: item.trigger,
       poolId: newPool.id,
       imageExt: ext,
       order: order++,
@@ -402,7 +418,7 @@ app.get("/api/cards", (req, res) => {
 });
 
 app.post("/api/cards", upload.single("image"), (req, res) => {
-  const { name, cost, poolId, color, parallel, type } = req.body;
+  const { name, cost, poolId, color, parallel, type, trigger } = req.body;
 
   if (!poolId) {
     return res.status(400).json({ error: "カードプールを選択してください" });
@@ -430,6 +446,7 @@ app.post("/api/cards", upload.single("image"), (req, res) => {
     color: (color || "").trim(),
     parallel: parallel === true || parallel === "true",
     type: normalizeCardType(type),
+    trigger: normalizeTrigger(trigger),
     poolId,
     imageExt: ext,
     order: nextCardOrder(cards),
@@ -460,9 +477,17 @@ app.patch("/api/cards/:id", (req, res) => {
   if (req.body.type !== undefined) {
     card.type = normalizeCardType(req.body.type);
   }
+  if (req.body.trigger !== undefined) {
+    card.trigger = normalizeTrigger(req.body.trigger);
+  }
   // A manual edit to any auto-detected field counts as the user having
   // reviewed it, so the "自動取得の結果が怪しい" warning mark no longer applies.
-  if (req.body.type !== undefined || req.body.color !== undefined || req.body.cost !== undefined) {
+  if (
+    req.body.type !== undefined ||
+    req.body.color !== undefined ||
+    req.body.cost !== undefined ||
+    req.body.trigger !== undefined
+  ) {
     card.infoUncertain = false;
   }
   // Optional: also push this card's type/color/cost onto its own parallel
@@ -479,6 +504,7 @@ app.patch("/api/cards/:id", (req, res) => {
         mate.type = card.type;
         mate.color = card.color;
         mate.cost = card.cost;
+        mate.trigger = card.trigger;
         mate.infoUncertain = false;
       }
     }
@@ -717,6 +743,13 @@ async function runAutoFillInfoJob(job, poolCards) {
       target.cost = info.cost;
       changed = true;
     }
+    // Unlike cost/color/type, "" is a real, confidently-determined answer for
+    // trigger (most cards genuinely have none) rather than "couldn't tell" --
+    // so it's written whenever canWrite() allows it, not gated on truthiness.
+    if (canWrite("trigger") && info.trigger !== undefined && target.trigger !== info.trigger) {
+      target.trigger = info.trigger;
+      changed = true;
+    }
     const isUncertain = typeof info.costConfidence === "number" && info.costConfidence < COST_CONFIDENCE_THRESHOLD;
     if (target.infoUncertain !== isUncertain) {
       target.infoUncertain = isUncertain;
@@ -735,7 +768,13 @@ async function runAutoFillInfoJob(job, poolCards) {
     const info =
       results[base.id] ||
       (baseTarget && (baseTarget.type || baseTarget.color || !isEmptyValue(baseTarget.cost))
-        ? { type: baseTarget.type, color: baseTarget.color, cost: baseTarget.cost, costConfidence: baseTarget.infoUncertain ? 0 : 1 }
+        ? {
+            type: baseTarget.type,
+            color: baseTarget.color,
+            cost: baseTarget.cost,
+            trigger: baseTarget.trigger,
+            costConfidence: baseTarget.infoUncertain ? 0 : 1,
+          }
         : null);
     applyResult(card, info);
   }

@@ -59,6 +59,11 @@
         </div>
 
         <div class="filter-box">
+          <div class="filter-box-title">トリガー</div>
+          <div class="filter-box-body filter-vertical" id="filter-trigger-group"></div>
+        </div>
+
+        <div class="filter-box">
           <div class="filter-box-title">必要エナジー</div>
           <div class="filter-box-body">
             <div class="range-slider-wrap">
@@ -130,6 +135,19 @@
                 <label for="modal-card-color">色(任意)</label>
                 <input type="text" id="modal-card-color" placeholder="例: 青" />
               </div>
+            </div>
+            <div class="field">
+              <label for="modal-card-trigger">トリガー(任意)</label>
+              <select id="modal-card-trigger">
+                <option value="">(未設定/なし)</option>
+                <option value="active">アクティブ</option>
+                <option value="drow">ドロー</option>
+                <option value="final">ファイナル</option>
+                <option value="get">ゲット</option>
+                <option value="raid">レイド</option>
+                <option value="special">スペシャル</option>
+                <option value="color">カラー</option>
+              </select>
             </div>
             <div class="field checkbox-field">
               <label><input type="checkbox" id="modal-card-parallel" /> パラレル</label>

@@ -192,6 +192,7 @@ const COST_RANGE_MAX = 15;
 const filterState = {
   types: new Set(),
   colors: new Set(),
+  triggers: new Set(),
   costMin: COST_RANGE_MIN,
   costMax: COST_RANGE_MAX,
   excludeParallel: false,
@@ -200,6 +201,7 @@ const filterState = {
 
 const filterTypeGroup = document.getElementById("filter-type-group");
 const filterColorGroup = document.getElementById("filter-color-group");
+const filterTriggerGroup = document.getElementById("filter-trigger-group");
 const filterParallelCheckbox = document.getElementById("filter-parallel-checkbox");
 const filterAllColorWrap = document.getElementById("filter-all-color-wrap");
 const filterAllColorCheckbox = document.getElementById("filter-all-color-checkbox");
@@ -377,6 +379,16 @@ function updateFilterUI() {
     filterColorGroup.appendChild(pill);
   }
 
+  filterTriggerGroup.innerHTML = "";
+  for (const [value, label] of Object.entries(TRIGGER_LABELS)) {
+    filterTriggerGroup.appendChild(
+      createFilterCheckbox(label, filterState.triggers.has(value), () => {
+        toggleInSet(filterState.triggers, value);
+        renderCards();
+      })
+    );
+  }
+
   updateCostSliderUI();
   filterParallelCheckbox.checked = filterState.excludeParallel;
   // Only shown once there's actually something for it to filter out.
@@ -397,6 +409,7 @@ filterAllColorCheckbox.addEventListener("change", () => {
 filterClearBtn.addEventListener("click", () => {
   filterState.types.clear();
   filterState.colors.clear();
+  filterState.triggers.clear();
   filterState.costMin = COST_RANGE_MIN;
   filterState.costMax = COST_RANGE_MAX;
   filterState.excludeParallel = false;
@@ -415,18 +428,29 @@ function cardMatchesFilters(card) {
     if (card.cost < filterState.costMin || card.cost > filterState.costMax) return false;
   }
   if (filterState.excludeParallel && card.parallel) return false;
+  if (filterState.triggers.size > 0 && !filterState.triggers.has(card.trigger)) return false;
   return true;
 }
 
 // ---- List view ----
 
 const CARD_TYPE_LABELS = { character: "キャラクター", event: "イベント", field: "フィールド" };
+const TRIGGER_LABELS = {
+  active: "アクティブ",
+  drow: "ドロー",
+  final: "ファイナル",
+  get: "ゲット",
+  raid: "レイド",
+  special: "スペシャル",
+  color: "カラー",
+};
 
 function cardCaption(card) {
   const parts = [];
   if (card.type && CARD_TYPE_LABELS[card.type]) parts.push(CARD_TYPE_LABELS[card.type]);
   if (card.cost !== null && card.cost !== undefined) parts.push(`必要エナジー ${card.cost}`);
   if (card.color) parts.push(card.color);
+  if (card.trigger && TRIGGER_LABELS[card.trigger]) parts.push(`トリガー: ${TRIGGER_LABELS[card.trigger]}`);
   if (card.parallel) parts.push("パラレル");
   return parts.join(" ・ ");
 }
@@ -650,6 +674,7 @@ const modalNameInput = document.getElementById("modal-card-name");
 const modalTypeInput = document.getElementById("modal-card-type");
 const modalCostInput = document.getElementById("modal-card-cost");
 const modalColorInput = document.getElementById("modal-card-color");
+const modalTriggerInput = document.getElementById("modal-card-trigger");
 const modalParallelInput = document.getElementById("modal-card-parallel");
 const modalSaveBtn = document.getElementById("modal-save-btn");
 const modalStatus = document.getElementById("modal-status");
@@ -865,6 +890,7 @@ function openAddCardModal() {
   modalTypeInput.value = "";
   modalCostInput.value = "";
   modalColorInput.value = "";
+  modalTriggerInput.value = "";
   modalParallelInput.checked = false;
   setModalStatus("", "");
   modalTitle.textContent = "カードを追加";
@@ -888,6 +914,7 @@ function openEditCardModal(card, options) {
   modalTypeInput.value = card.type || "";
   modalCostInput.value = card.cost !== null && card.cost !== undefined ? card.cost : "";
   modalColorInput.value = card.color || "";
+  modalTriggerInput.value = card.trigger || "";
   modalParallelInput.checked = Boolean(card.parallel);
   setModalStatus("", "");
   modalTitle.textContent = "カードを編集";
@@ -926,6 +953,7 @@ async function saveEditingCard(applyToParallels) {
   const type = modalTypeInput.value;
   const cost = modalCostInput.value;
   const color = modalColorInput.value.trim();
+  const trigger = modalTriggerInput.value;
   const parallel = modalParallelInput.checked;
 
   setModalStatus("保存中...", "");
@@ -933,7 +961,15 @@ async function saveEditingCard(applyToParallels) {
     if (croppedBlob) {
       await Api.replaceCardImage(editingCard.id, croppedBlob);
     }
-    await Api.updateCard(editingCard.id, { name, type, cost, color, parallel, applyToParallels: Boolean(applyToParallels) });
+    await Api.updateCard(editingCard.id, {
+      name,
+      type,
+      cost,
+      color,
+      trigger,
+      parallel,
+      applyToParallels: Boolean(applyToParallels),
+    });
     return true;
   } catch (err) {
     setModalStatus(err.message, "error");
@@ -983,6 +1019,7 @@ modalSaveBtn.addEventListener("click", async () => {
   const type = modalTypeInput.value;
   const cost = modalCostInput.value;
   const color = modalColorInput.value.trim();
+  const trigger = modalTriggerInput.value;
   const parallel = modalParallelInput.checked;
 
   if (editingCard) {
@@ -1000,7 +1037,7 @@ modalSaveBtn.addEventListener("click", async () => {
 
   setModalStatus("保存中...", "");
   try {
-    const card = await Api.addCard({ name, cost, color, parallel, type, poolId, imageBlob: croppedBlob });
+    const card = await Api.addCard({ name, cost, color, trigger, parallel, type, poolId, imageBlob: croppedBlob });
     setModalStatus(`「${displayName(card)}」を登録しました。続けて追加できます。`, "success");
     croppedBlob = null;
     cropTool = null;
@@ -1008,6 +1045,7 @@ modalSaveBtn.addEventListener("click", async () => {
     modalTypeInput.value = "";
     modalCostInput.value = "";
     modalColorInput.value = "";
+    modalTriggerInput.value = "";
     modalParallelInput.checked = false;
     modalFileInput.value = "";
     showImagePlaceholder();
