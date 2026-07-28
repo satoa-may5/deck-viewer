@@ -10,7 +10,8 @@
     "imageExt": "png",
     "order": 0,
     "createdAt": "2026-07-24T11:17:24.676Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844677",
@@ -23,7 +24,8 @@
     "imageExt": "png",
     "order": 1,
     "createdAt": "2026-07-24T11:17:24.677Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844679",
@@ -36,7 +38,8 @@
     "imageExt": "png",
     "order": 2,
     "createdAt": "2026-07-24T11:17:24.677Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844680",
@@ -49,7 +52,8 @@
     "imageExt": "png",
     "order": 3,
     "createdAt": "2026-07-24T11:17:24.678Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844682",
@@ -62,7 +66,8 @@
     "imageExt": "png",
     "order": 4,
     "createdAt": "2026-07-24T11:17:24.679Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844684",
@@ -75,7 +80,8 @@
     "imageExt": "png",
     "order": 5,
     "createdAt": "2026-07-24T11:17:24.679Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844685",
@@ -88,7 +94,8 @@
     "imageExt": "png",
     "order": 6,
     "createdAt": "2026-07-24T11:17:24.680Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844687",
@@ -101,7 +108,8 @@
     "imageExt": "png",
     "order": 7,
     "createdAt": "2026-07-24T11:17:24.681Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844689",
@@ -114,7 +122,8 @@
     "imageExt": "png",
     "order": 8,
     "createdAt": "2026-07-24T11:17:24.681Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844690",
@@ -127,7 +136,8 @@
     "imageExt": "png",
     "order": 9,
     "createdAt": "2026-07-24T11:17:24.682Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844692",
@@ -140,7 +150,8 @@
     "imageExt": "png",
     "order": 10,
     "createdAt": "2026-07-24T11:17:24.682Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844694",
@@ -153,7 +164,8 @@
     "imageExt": "png",
     "order": 11,
     "createdAt": "2026-07-24T11:17:24.683Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844695",
@@ -166,7 +178,8 @@
     "imageExt": "png",
     "order": 12,
     "createdAt": "2026-07-24T11:17:24.684Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844697",
@@ -179,7 +192,8 @@
     "imageExt": "png",
     "order": 13,
     "createdAt": "2026-07-24T11:17:24.684Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844698",
@@ -192,7 +206,8 @@
     "imageExt": "png",
     "order": 14,
     "createdAt": "2026-07-24T11:17:24.685Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784891844700",
@@ -205,7 +220,8 @@
     "imageExt": "png",
     "order": 15,
     "createdAt": "2026-07-24T11:17:24.685Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844701",
@@ -218,7 +234,8 @@
     "imageExt": "png",
     "order": 16,
     "createdAt": "2026-07-24T11:17:24.686Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844703",
@@ -231,7 +248,8 @@
     "imageExt": "png",
     "order": 17,
     "createdAt": "2026-07-24T11:17:24.687Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844705",
@@ -244,7 +262,8 @@
     "imageExt": "png",
     "order": 18,
     "createdAt": "2026-07-24T11:17:24.687Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844706",
@@ -257,7 +276,8 @@
     "imageExt": "png",
     "order": 19,
     "createdAt": "2026-07-24T11:17:24.688Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844708",
@@ -270,7 +290,8 @@
     "imageExt": "png",
     "order": 20,
     "createdAt": "2026-07-24T11:17:24.689Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844710",
@@ -283,7 +304,8 @@
     "imageExt": "png",
     "order": 21,
     "createdAt": "2026-07-24T11:17:24.689Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "special"
   },
   {
     "id": "card-1784891844711",
@@ -296,7 +318,8 @@
     "imageExt": "png",
     "order": 22,
     "createdAt": "2026-07-24T11:17:24.690Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "final"
   },
   {
     "id": "card-1784891844713",
@@ -309,7 +332,8 @@
     "imageExt": "png",
     "order": 23,
     "createdAt": "2026-07-24T11:17:24.690Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844714",
@@ -322,7 +346,8 @@
     "imageExt": "png",
     "order": 24,
     "createdAt": "2026-07-24T11:17:24.691Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844716",
@@ -335,7 +360,8 @@
     "imageExt": "png",
     "order": 25,
     "createdAt": "2026-07-24T11:17:24.691Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844718",
@@ -348,7 +374,8 @@
     "imageExt": "png",
     "order": 26,
     "createdAt": "2026-07-24T11:17:24.692Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844720",
@@ -361,7 +388,8 @@
     "imageExt": "png",
     "order": 27,
     "createdAt": "2026-07-24T11:17:24.693Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844721",
@@ -374,7 +402,8 @@
     "imageExt": "png",
     "order": 28,
     "createdAt": "2026-07-24T11:17:24.694Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844723",
@@ -387,7 +416,8 @@
     "imageExt": "png",
     "order": 29,
     "createdAt": "2026-07-24T11:17:24.694Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844724",
@@ -400,7 +430,8 @@
     "imageExt": "png",
     "order": 30,
     "createdAt": "2026-07-24T11:17:24.695Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844726",
@@ -413,7 +444,8 @@
     "imageExt": "png",
     "order": 31,
     "createdAt": "2026-07-24T11:17:24.695Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844728",
@@ -426,7 +458,8 @@
     "imageExt": "png",
     "order": 32,
     "createdAt": "2026-07-24T11:17:24.696Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844729",
@@ -439,7 +472,8 @@
     "imageExt": "png",
     "order": 33,
     "createdAt": "2026-07-24T11:17:24.697Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844731",
@@ -452,7 +486,8 @@
     "imageExt": "png",
     "order": 34,
     "createdAt": "2026-07-24T11:17:24.697Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844732",
@@ -465,7 +500,8 @@
     "imageExt": "png",
     "order": 35,
     "createdAt": "2026-07-24T11:17:24.698Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844734",
@@ -478,7 +514,8 @@
     "imageExt": "png",
     "order": 36,
     "createdAt": "2026-07-24T11:17:24.699Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844736",
@@ -491,7 +528,8 @@
     "imageExt": "png",
     "order": 37,
     "createdAt": "2026-07-24T11:17:24.699Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "final"
   },
   {
     "id": "card-1784891844738",
@@ -504,7 +542,8 @@
     "imageExt": "png",
     "order": 38,
     "createdAt": "2026-07-24T11:17:24.700Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844739",
@@ -517,7 +556,8 @@
     "imageExt": "png",
     "order": 39,
     "createdAt": "2026-07-24T11:17:24.701Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844741",
@@ -530,7 +570,8 @@
     "imageExt": "png",
     "order": 40,
     "createdAt": "2026-07-24T11:17:24.701Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844743",
@@ -543,7 +584,8 @@
     "imageExt": "png",
     "order": 41,
     "createdAt": "2026-07-24T11:17:24.702Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844744",
@@ -556,7 +598,8 @@
     "imageExt": "png",
     "order": 42,
     "createdAt": "2026-07-24T11:17:24.703Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844746",
@@ -569,7 +612,8 @@
     "imageExt": "png",
     "order": 43,
     "createdAt": "2026-07-24T11:17:24.704Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844748",
@@ -582,7 +626,8 @@
     "imageExt": "png",
     "order": 44,
     "createdAt": "2026-07-24T11:17:24.705Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844750",
@@ -595,7 +640,8 @@
     "imageExt": "png",
     "order": 45,
     "createdAt": "2026-07-24T11:17:24.706Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844752",
@@ -608,7 +654,8 @@
     "imageExt": "png",
     "order": 46,
     "createdAt": "2026-07-24T11:17:24.707Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844754",
@@ -621,7 +668,8 @@
     "imageExt": "png",
     "order": 47,
     "createdAt": "2026-07-24T11:17:24.708Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "special"
   },
   {
     "id": "card-1784891844756",
@@ -634,7 +682,8 @@
     "imageExt": "png",
     "order": 48,
     "createdAt": "2026-07-24T11:17:24.708Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "special"
   },
   {
     "id": "card-1784891844758",
@@ -647,7 +696,8 @@
     "imageExt": "png",
     "order": 49,
     "createdAt": "2026-07-24T11:17:24.709Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844759",
@@ -660,7 +710,8 @@
     "imageExt": "png",
     "order": 50,
     "createdAt": "2026-07-24T11:17:24.710Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844762",
@@ -673,7 +724,8 @@
     "imageExt": "png",
     "order": 51,
     "createdAt": "2026-07-24T11:17:24.711Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844763",
@@ -686,7 +738,8 @@
     "imageExt": "png",
     "order": 52,
     "createdAt": "2026-07-24T11:17:24.712Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844765",
@@ -699,7 +752,8 @@
     "imageExt": "png",
     "order": 53,
     "createdAt": "2026-07-24T11:17:24.712Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844767",
@@ -712,7 +766,8 @@
     "imageExt": "png",
     "order": 54,
     "createdAt": "2026-07-24T11:17:24.713Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844768",
@@ -725,7 +780,8 @@
     "imageExt": "png",
     "order": 55,
     "createdAt": "2026-07-24T11:17:24.714Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844770",
@@ -738,7 +794,8 @@
     "imageExt": "png",
     "order": 56,
     "createdAt": "2026-07-24T11:17:24.715Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844772",
@@ -751,7 +808,8 @@
     "imageExt": "png",
     "order": 57,
     "createdAt": "2026-07-24T11:17:24.716Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "final"
   },
   {
     "id": "card-1784891844774",
@@ -764,7 +822,8 @@
     "imageExt": "png",
     "order": 58,
     "createdAt": "2026-07-24T11:17:24.716Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "special"
   },
   {
     "id": "card-1784891844775",
@@ -777,7 +836,8 @@
     "imageExt": "png",
     "order": 59,
     "createdAt": "2026-07-24T11:17:24.717Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844777",
@@ -790,7 +850,8 @@
     "imageExt": "png",
     "order": 60,
     "createdAt": "2026-07-24T11:17:24.719Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844780",
@@ -803,7 +864,8 @@
     "imageExt": "png",
     "order": 61,
     "createdAt": "2026-07-24T11:17:24.720Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844782",
@@ -816,7 +878,8 @@
     "imageExt": "png",
     "order": 62,
     "createdAt": "2026-07-24T11:17:24.721Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844784",
@@ -829,7 +892,8 @@
     "imageExt": "png",
     "order": 63,
     "createdAt": "2026-07-24T11:17:24.722Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784891844786",
@@ -842,7 +906,8 @@
     "imageExt": "png",
     "order": 64,
     "createdAt": "2026-07-24T11:17:24.722Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784891844788",
@@ -855,7 +920,8 @@
     "imageExt": "png",
     "order": 65,
     "createdAt": "2026-07-24T11:17:24.723Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844789",
@@ -868,7 +934,8 @@
     "imageExt": "png",
     "order": 66,
     "createdAt": "2026-07-24T11:17:24.724Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844791",
@@ -881,7 +948,8 @@
     "imageExt": "png",
     "order": 67,
     "createdAt": "2026-07-24T11:17:24.725Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844793",
@@ -894,7 +962,8 @@
     "imageExt": "png",
     "order": 68,
     "createdAt": "2026-07-24T11:17:24.725Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844795",
@@ -907,7 +976,8 @@
     "imageExt": "png",
     "order": 69,
     "createdAt": "2026-07-24T11:17:24.726Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844796",
@@ -920,7 +990,8 @@
     "imageExt": "png",
     "order": 70,
     "createdAt": "2026-07-24T11:17:24.727Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844798",
@@ -933,7 +1004,8 @@
     "imageExt": "png",
     "order": 71,
     "createdAt": "2026-07-24T11:17:24.727Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844799",
@@ -946,7 +1018,8 @@
     "imageExt": "png",
     "order": 72,
     "createdAt": "2026-07-24T11:17:24.728Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844801",
@@ -959,7 +1032,8 @@
     "imageExt": "png",
     "order": 73,
     "createdAt": "2026-07-24T11:17:24.729Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844803",
@@ -972,7 +1046,8 @@
     "imageExt": "png",
     "order": 74,
     "createdAt": "2026-07-24T11:17:24.730Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844805",
@@ -985,7 +1060,8 @@
     "imageExt": "png",
     "order": 75,
     "createdAt": "2026-07-24T11:17:24.731Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844807",
@@ -998,7 +1074,8 @@
     "imageExt": "png",
     "order": 76,
     "createdAt": "2026-07-24T11:17:24.731Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844808",
@@ -1011,7 +1088,8 @@
     "imageExt": "png",
     "order": 77,
     "createdAt": "2026-07-24T11:17:24.732Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844810",
@@ -1024,7 +1102,8 @@
     "imageExt": "png",
     "order": 78,
     "createdAt": "2026-07-24T11:17:24.732Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844812",
@@ -1037,7 +1116,8 @@
     "imageExt": "png",
     "order": 79,
     "createdAt": "2026-07-24T11:17:24.733Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "special"
   },
   {
     "id": "card-1784891844813",
@@ -1050,7 +1130,8 @@
     "imageExt": "png",
     "order": 80,
     "createdAt": "2026-07-24T11:17:24.734Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "final"
   },
   {
     "id": "card-1784891844815",
@@ -1063,7 +1144,8 @@
     "imageExt": "png",
     "order": 81,
     "createdAt": "2026-07-24T11:17:24.735Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844817",
@@ -1076,7 +1158,8 @@
     "imageExt": "png",
     "order": 82,
     "createdAt": "2026-07-24T11:17:24.736Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844819",
@@ -1089,7 +1172,8 @@
     "imageExt": "png",
     "order": 83,
     "createdAt": "2026-07-24T11:17:24.737Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844821",
@@ -1102,7 +1186,8 @@
     "imageExt": "png",
     "order": 84,
     "createdAt": "2026-07-24T11:17:24.737Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844822",
@@ -1115,7 +1200,8 @@
     "imageExt": "png",
     "order": 85,
     "createdAt": "2026-07-24T11:17:24.738Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784891844824",
@@ -1128,7 +1214,8 @@
     "imageExt": "png",
     "order": 86,
     "createdAt": "2026-07-24T11:17:24.739Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844826",
@@ -1141,7 +1228,8 @@
     "imageExt": "png",
     "order": 87,
     "createdAt": "2026-07-24T11:17:24.739Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844827",
@@ -1154,7 +1242,8 @@
     "imageExt": "png",
     "order": 88,
     "createdAt": "2026-07-24T11:17:24.740Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844829",
@@ -1167,7 +1256,8 @@
     "imageExt": "png",
     "order": 89,
     "createdAt": "2026-07-24T11:17:24.741Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844831",
@@ -1180,7 +1270,8 @@
     "imageExt": "png",
     "order": 90,
     "createdAt": "2026-07-24T11:17:24.742Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844833",
@@ -1193,7 +1284,8 @@
     "imageExt": "png",
     "order": 91,
     "createdAt": "2026-07-24T11:17:24.742Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844834",
@@ -1206,7 +1298,8 @@
     "imageExt": "png",
     "order": 92,
     "createdAt": "2026-07-24T11:17:24.743Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844836",
@@ -1219,7 +1312,8 @@
     "imageExt": "png",
     "order": 93,
     "createdAt": "2026-07-24T11:17:24.744Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844838",
@@ -1232,7 +1326,8 @@
     "imageExt": "png",
     "order": 94,
     "createdAt": "2026-07-24T11:17:24.744Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844839",
@@ -1245,7 +1340,8 @@
     "imageExt": "png",
     "order": 95,
     "createdAt": "2026-07-24T11:17:24.745Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844841",
@@ -1258,7 +1354,8 @@
     "imageExt": "png",
     "order": 96,
     "createdAt": "2026-07-24T11:17:24.746Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844843",
@@ -1271,7 +1368,8 @@
     "imageExt": "png",
     "order": 97,
     "createdAt": "2026-07-24T11:17:24.746Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844844",
@@ -1284,7 +1382,8 @@
     "imageExt": "png",
     "order": 98,
     "createdAt": "2026-07-24T11:17:24.747Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "special"
   },
   {
     "id": "card-1784891844846",
@@ -1297,7 +1396,8 @@
     "imageExt": "png",
     "order": 99,
     "createdAt": "2026-07-24T11:17:24.748Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "final"
   },
   {
     "id": "card-1784891844848",
@@ -1310,7 +1410,8 @@
     "imageExt": "png",
     "order": 100,
     "createdAt": "2026-07-24T11:17:24.748Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844850",
@@ -1323,7 +1424,8 @@
     "imageExt": "png",
     "order": 101,
     "createdAt": "2026-07-24T11:17:24.749Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844851",
@@ -1336,7 +1438,8 @@
     "imageExt": "png",
     "order": 102,
     "createdAt": "2026-07-24T11:17:24.750Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844853",
@@ -1349,7 +1452,8 @@
     "imageExt": "png",
     "order": 103,
     "createdAt": "2026-07-24T11:17:24.750Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "final"
   },
   {
     "id": "card-1784891844854",
@@ -1362,7 +1466,8 @@
     "imageExt": "png",
     "order": 104,
     "createdAt": "2026-07-24T11:17:24.751Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844856",
@@ -1375,7 +1480,8 @@
     "imageExt": "png",
     "order": 105,
     "createdAt": "2026-07-24T11:17:24.752Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844858",
@@ -1388,7 +1494,8 @@
     "imageExt": "png",
     "order": 106,
     "createdAt": "2026-07-24T11:17:24.752Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844859",
@@ -1401,7 +1508,8 @@
     "imageExt": "png",
     "order": 107,
     "createdAt": "2026-07-24T11:17:24.753Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844861",
@@ -1414,7 +1522,8 @@
     "imageExt": "png",
     "order": 108,
     "createdAt": "2026-07-24T11:17:24.754Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844863",
@@ -1427,7 +1536,8 @@
     "imageExt": "png",
     "order": 109,
     "createdAt": "2026-07-24T11:17:24.754Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844865",
@@ -1440,7 +1550,8 @@
     "imageExt": "png",
     "order": 110,
     "createdAt": "2026-07-24T11:17:24.755Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844866",
@@ -1453,7 +1564,8 @@
     "imageExt": "png",
     "order": 111,
     "createdAt": "2026-07-24T11:17:24.756Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844868",
@@ -1466,7 +1578,8 @@
     "imageExt": "png",
     "order": 112,
     "createdAt": "2026-07-24T11:17:24.756Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844870",
@@ -1479,7 +1592,8 @@
     "imageExt": "png",
     "order": 113,
     "createdAt": "2026-07-24T11:17:24.757Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844871",
@@ -1492,7 +1606,8 @@
     "imageExt": "png",
     "order": 114,
     "createdAt": "2026-07-24T11:17:24.758Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844873",
@@ -1505,7 +1620,8 @@
     "imageExt": "png",
     "order": 115,
     "createdAt": "2026-07-24T11:17:24.758Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844875",
@@ -1518,7 +1634,8 @@
     "imageExt": "png",
     "order": 116,
     "createdAt": "2026-07-24T11:17:24.759Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844876",
@@ -1531,7 +1648,8 @@
     "imageExt": "png",
     "order": 117,
     "createdAt": "2026-07-24T11:17:24.760Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844878",
@@ -1544,7 +1662,8 @@
     "imageExt": "png",
     "order": 118,
     "createdAt": "2026-07-24T11:17:24.761Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844880",
@@ -1557,7 +1676,8 @@
     "imageExt": "png",
     "order": 119,
     "createdAt": "2026-07-24T11:17:24.761Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844881",
@@ -1570,7 +1690,8 @@
     "imageExt": "png",
     "order": 120,
     "createdAt": "2026-07-24T11:17:24.762Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844883",
@@ -1583,7 +1704,8 @@
     "imageExt": "png",
     "order": 121,
     "createdAt": "2026-07-24T11:17:24.763Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844885",
@@ -1596,7 +1718,8 @@
     "imageExt": "png",
     "order": 122,
     "createdAt": "2026-07-24T11:17:24.763Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844886",
@@ -1609,7 +1732,8 @@
     "imageExt": "png",
     "order": 123,
     "createdAt": "2026-07-24T11:17:24.764Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844888",
@@ -1622,7 +1746,8 @@
     "imageExt": "png",
     "order": 124,
     "createdAt": "2026-07-24T11:17:24.765Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844890",
@@ -1635,7 +1760,8 @@
     "imageExt": "png",
     "order": 125,
     "createdAt": "2026-07-24T11:17:24.765Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "final"
   },
   {
     "id": "card-1784891844891",
@@ -1648,7 +1774,8 @@
     "imageExt": "png",
     "order": 126,
     "createdAt": "2026-07-24T11:17:24.766Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784891844893",
@@ -1661,7 +1788,8 @@
     "imageExt": "png",
     "order": 127,
     "createdAt": "2026-07-24T11:17:24.767Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "special"
   },
   {
     "id": "card-1784891844895",
@@ -1674,7 +1802,8 @@
     "imageExt": "png",
     "order": 128,
     "createdAt": "2026-07-24T11:17:24.767Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784891844896",
@@ -1687,7 +1816,8 @@
     "imageExt": "png",
     "order": 129,
     "createdAt": "2026-07-24T11:17:24.768Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784891844898",
@@ -1700,7 +1830,8 @@
     "imageExt": "png",
     "order": 130,
     "createdAt": "2026-07-24T11:17:24.769Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844900",
@@ -1713,7 +1844,8 @@
     "imageExt": "png",
     "order": 131,
     "createdAt": "2026-07-24T11:17:24.769Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844901",
@@ -1726,7 +1858,8 @@
     "imageExt": "png",
     "order": 132,
     "createdAt": "2026-07-24T11:17:24.770Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844903",
@@ -1739,7 +1872,8 @@
     "imageExt": "png",
     "order": 133,
     "createdAt": "2026-07-24T11:17:24.771Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844905",
@@ -1752,7 +1886,8 @@
     "imageExt": "png",
     "order": 134,
     "createdAt": "2026-07-24T11:17:24.772Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844907",
@@ -1765,7 +1900,8 @@
     "imageExt": "png",
     "order": 135,
     "createdAt": "2026-07-24T11:17:24.773Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844909",
@@ -1778,7 +1914,8 @@
     "imageExt": "png",
     "order": 136,
     "createdAt": "2026-07-24T11:17:24.773Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844910",
@@ -1791,7 +1928,8 @@
     "imageExt": "png",
     "order": 137,
     "createdAt": "2026-07-24T11:17:24.774Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844912",
@@ -1804,7 +1942,8 @@
     "imageExt": "png",
     "order": 138,
     "createdAt": "2026-07-24T11:17:24.775Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844914",
@@ -1817,7 +1956,8 @@
     "imageExt": "png",
     "order": 139,
     "createdAt": "2026-07-24T11:17:24.775Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844915",
@@ -1830,7 +1970,8 @@
     "imageExt": "png",
     "order": 140,
     "createdAt": "2026-07-24T11:17:24.776Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844917",
@@ -1843,7 +1984,8 @@
     "imageExt": "png",
     "order": 141,
     "createdAt": "2026-07-24T11:17:24.776Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844919",
@@ -1856,7 +1998,8 @@
     "imageExt": "png",
     "order": 142,
     "createdAt": "2026-07-24T11:17:24.778Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844921",
@@ -1869,7 +2012,8 @@
     "imageExt": "png",
     "order": 143,
     "createdAt": "2026-07-24T11:17:24.779Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844923",
@@ -1882,7 +2026,8 @@
     "imageExt": "png",
     "order": 144,
     "createdAt": "2026-07-24T11:17:24.779Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844924",
@@ -1895,7 +2040,8 @@
     "imageExt": "png",
     "order": 145,
     "createdAt": "2026-07-24T11:17:24.780Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784891844926",
@@ -1908,7 +2054,8 @@
     "imageExt": "png",
     "order": 146,
     "createdAt": "2026-07-24T11:17:24.781Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844928",
@@ -1921,7 +2068,8 @@
     "imageExt": "png",
     "order": 147,
     "createdAt": "2026-07-24T11:17:24.782Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844930",
@@ -1934,7 +2082,8 @@
     "imageExt": "png",
     "order": 148,
     "createdAt": "2026-07-24T11:17:24.782Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844932",
@@ -1947,7 +2096,8 @@
     "imageExt": "png",
     "order": 149,
     "createdAt": "2026-07-24T11:17:24.784Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844934",
@@ -1960,7 +2110,8 @@
     "imageExt": "png",
     "order": 150,
     "createdAt": "2026-07-24T11:17:24.785Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844936",
@@ -1973,7 +2124,8 @@
     "imageExt": "png",
     "order": 151,
     "createdAt": "2026-07-24T11:17:24.785Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844937",
@@ -1986,7 +2138,8 @@
     "imageExt": "png",
     "order": 152,
     "createdAt": "2026-07-24T11:17:24.786Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844939",
@@ -1999,7 +2152,8 @@
     "imageExt": "png",
     "order": 153,
     "createdAt": "2026-07-24T11:17:24.787Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844941",
@@ -2012,7 +2166,8 @@
     "imageExt": "png",
     "order": 154,
     "createdAt": "2026-07-24T11:17:24.787Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844942",
@@ -2025,7 +2180,8 @@
     "imageExt": "png",
     "order": 155,
     "createdAt": "2026-07-24T11:17:24.788Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844944",
@@ -2038,7 +2194,8 @@
     "imageExt": "png",
     "order": 156,
     "createdAt": "2026-07-24T11:17:24.788Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844946",
@@ -2051,7 +2208,8 @@
     "imageExt": "png",
     "order": 157,
     "createdAt": "2026-07-24T11:17:24.789Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844947",
@@ -2064,7 +2222,8 @@
     "imageExt": "png",
     "order": 158,
     "createdAt": "2026-07-24T11:17:24.790Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844949",
@@ -2077,7 +2236,8 @@
     "imageExt": "png",
     "order": 159,
     "createdAt": "2026-07-24T11:17:24.791Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844951",
@@ -2090,7 +2250,8 @@
     "imageExt": "png",
     "order": 160,
     "createdAt": "2026-07-24T11:17:24.791Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844953",
@@ -2103,7 +2264,8 @@
     "imageExt": "png",
     "order": 161,
     "createdAt": "2026-07-24T11:17:24.792Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844954",
@@ -2116,7 +2278,8 @@
     "imageExt": "png",
     "order": 162,
     "createdAt": "2026-07-24T11:17:24.793Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844956",
@@ -2129,7 +2292,8 @@
     "imageExt": "png",
     "order": 163,
     "createdAt": "2026-07-24T11:17:24.795Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844959",
@@ -2142,7 +2306,8 @@
     "imageExt": "png",
     "order": 164,
     "createdAt": "2026-07-24T11:17:24.796Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844961",
@@ -2155,7 +2320,8 @@
     "imageExt": "png",
     "order": 165,
     "createdAt": "2026-07-24T11:17:24.796Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891844963",
@@ -2168,7 +2334,8 @@
     "imageExt": "png",
     "order": 166,
     "createdAt": "2026-07-24T11:17:24.797Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844964",
@@ -2181,7 +2348,8 @@
     "imageExt": "png",
     "order": 167,
     "createdAt": "2026-07-24T11:17:24.798Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844966",
@@ -2194,7 +2362,8 @@
     "imageExt": "png",
     "order": 168,
     "createdAt": "2026-07-24T11:17:24.798Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "special"
   },
   {
     "id": "card-1784891844967",
@@ -2207,7 +2376,8 @@
     "imageExt": "png",
     "order": 169,
     "createdAt": "2026-07-24T11:17:24.799Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "final"
   },
   {
     "id": "card-1784891844969",
@@ -2220,7 +2390,8 @@
     "imageExt": "png",
     "order": 170,
     "createdAt": "2026-07-24T11:17:24.799Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "special"
   },
   {
     "id": "card-1784891844971",
@@ -2233,7 +2404,8 @@
     "imageExt": "png",
     "order": 171,
     "createdAt": "2026-07-24T11:17:24.800Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844972",
@@ -2246,7 +2418,8 @@
     "imageExt": "png",
     "order": 172,
     "createdAt": "2026-07-24T11:17:24.801Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844974",
@@ -2259,7 +2432,8 @@
     "imageExt": "png",
     "order": 173,
     "createdAt": "2026-07-24T11:17:24.801Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844976",
@@ -2272,7 +2446,8 @@
     "imageExt": "png",
     "order": 174,
     "createdAt": "2026-07-24T11:17:24.802Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "special"
   },
   {
     "id": "card-1784891844977",
@@ -2285,7 +2460,8 @@
     "imageExt": "png",
     "order": 175,
     "createdAt": "2026-07-24T11:17:24.803Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844979",
@@ -2298,7 +2474,8 @@
     "imageExt": "png",
     "order": 176,
     "createdAt": "2026-07-24T11:17:24.803Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844981",
@@ -2311,7 +2488,8 @@
     "imageExt": "png",
     "order": 177,
     "createdAt": "2026-07-24T11:17:24.804Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844982",
@@ -2324,7 +2502,8 @@
     "imageExt": "png",
     "order": 178,
     "createdAt": "2026-07-24T11:17:24.805Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844984",
@@ -2337,7 +2516,8 @@
     "imageExt": "png",
     "order": 179,
     "createdAt": "2026-07-24T11:17:24.806Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844986",
@@ -2350,7 +2530,8 @@
     "imageExt": "png",
     "order": 180,
     "createdAt": "2026-07-24T11:17:24.806Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844987",
@@ -2363,7 +2544,8 @@
     "imageExt": "png",
     "order": 181,
     "createdAt": "2026-07-24T11:17:24.807Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844989",
@@ -2376,7 +2558,8 @@
     "imageExt": "png",
     "order": 182,
     "createdAt": "2026-07-24T11:17:24.808Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844991",
@@ -2389,7 +2572,8 @@
     "imageExt": "png",
     "order": 183,
     "createdAt": "2026-07-24T11:17:24.808Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844993",
@@ -2402,7 +2586,8 @@
     "imageExt": "png",
     "order": 184,
     "createdAt": "2026-07-24T11:17:24.809Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891844994",
@@ -2415,7 +2600,8 @@
     "imageExt": "png",
     "order": 185,
     "createdAt": "2026-07-24T11:17:24.810Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891844996",
@@ -2428,7 +2614,8 @@
     "imageExt": "png",
     "order": 186,
     "createdAt": "2026-07-24T11:17:24.811Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891844998",
@@ -2441,7 +2628,8 @@
     "imageExt": "png",
     "order": 187,
     "createdAt": "2026-07-24T11:17:24.811Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891844999",
@@ -2454,7 +2642,8 @@
     "imageExt": "png",
     "order": 188,
     "createdAt": "2026-07-24T11:17:24.812Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891845001",
@@ -2467,7 +2656,8 @@
     "imageExt": "png",
     "order": 189,
     "createdAt": "2026-07-24T11:17:24.812Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891845002",
@@ -2480,7 +2670,8 @@
     "imageExt": "png",
     "order": 190,
     "createdAt": "2026-07-24T11:17:24.813Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845004",
@@ -2493,7 +2684,8 @@
     "imageExt": "png",
     "order": 191,
     "createdAt": "2026-07-24T11:17:24.814Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "special"
   },
   {
     "id": "card-1784891845006",
@@ -2506,7 +2698,8 @@
     "imageExt": "png",
     "order": 192,
     "createdAt": "2026-07-24T11:17:24.814Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891845008",
@@ -2519,7 +2712,8 @@
     "imageExt": "png",
     "order": 193,
     "createdAt": "2026-07-24T11:17:24.815Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891845009",
@@ -2532,7 +2726,8 @@
     "imageExt": "png",
     "order": 194,
     "createdAt": "2026-07-24T11:17:24.816Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891845011",
@@ -2545,7 +2740,8 @@
     "imageExt": "png",
     "order": 195,
     "createdAt": "2026-07-24T11:17:24.816Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891845012",
@@ -2558,7 +2754,8 @@
     "imageExt": "png",
     "order": 196,
     "createdAt": "2026-07-24T11:17:24.817Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891845014",
@@ -2571,7 +2768,8 @@
     "imageExt": "png",
     "order": 197,
     "createdAt": "2026-07-24T11:17:24.818Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891845016",
@@ -2584,7 +2782,8 @@
     "imageExt": "png",
     "order": 198,
     "createdAt": "2026-07-24T11:17:24.818Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891845017",
@@ -2597,7 +2796,8 @@
     "imageExt": "png",
     "order": 199,
     "createdAt": "2026-07-24T11:17:24.819Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891845019",
@@ -2610,7 +2810,8 @@
     "imageExt": "png",
     "order": 200,
     "createdAt": "2026-07-24T11:17:24.820Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845021",
@@ -2623,7 +2824,8 @@
     "imageExt": "png",
     "order": 201,
     "createdAt": "2026-07-24T11:17:24.821Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891845023",
@@ -2636,7 +2838,8 @@
     "imageExt": "png",
     "order": 202,
     "createdAt": "2026-07-24T11:17:24.821Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845024",
@@ -2649,7 +2852,8 @@
     "imageExt": "png",
     "order": 203,
     "createdAt": "2026-07-24T11:17:24.822Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891845026",
@@ -2662,7 +2866,8 @@
     "imageExt": "png",
     "order": 204,
     "createdAt": "2026-07-24T11:17:24.822Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891845028",
@@ -2675,7 +2880,8 @@
     "imageExt": "png",
     "order": 205,
     "createdAt": "2026-07-24T11:17:24.823Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845029",
@@ -2688,7 +2894,8 @@
     "imageExt": "png",
     "order": 206,
     "createdAt": "2026-07-24T11:17:24.824Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891845031",
@@ -2701,7 +2908,8 @@
     "imageExt": "png",
     "order": 207,
     "createdAt": "2026-07-24T11:17:24.825Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891845033",
@@ -2714,7 +2922,8 @@
     "imageExt": "png",
     "order": 208,
     "createdAt": "2026-07-24T11:17:24.825Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891845034",
@@ -2727,7 +2936,8 @@
     "imageExt": "png",
     "order": 209,
     "createdAt": "2026-07-24T11:17:24.826Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "special"
   },
   {
     "id": "card-1784891845036",
@@ -2740,7 +2950,8 @@
     "imageExt": "png",
     "order": 210,
     "createdAt": "2026-07-24T11:17:24.827Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891845038",
@@ -2753,7 +2964,8 @@
     "imageExt": "png",
     "order": 211,
     "createdAt": "2026-07-24T11:17:24.828Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "final"
   },
   {
     "id": "card-1784891845040",
@@ -2766,7 +2978,8 @@
     "imageExt": "png",
     "order": 212,
     "createdAt": "2026-07-24T11:17:24.828Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "special"
   },
   {
     "id": "card-1784891845041",
@@ -2779,7 +2992,8 @@
     "imageExt": "png",
     "order": 213,
     "createdAt": "2026-07-24T11:17:24.829Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845043",
@@ -2792,7 +3006,8 @@
     "imageExt": "png",
     "order": 214,
     "createdAt": "2026-07-24T11:17:24.830Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891845045",
@@ -2805,7 +3020,8 @@
     "imageExt": "png",
     "order": 215,
     "createdAt": "2026-07-24T11:17:24.830Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891845046",
@@ -2818,7 +3034,8 @@
     "imageExt": "png",
     "order": 216,
     "createdAt": "2026-07-24T11:17:24.831Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891845048",
@@ -2831,7 +3048,8 @@
     "imageExt": "png",
     "order": 217,
     "createdAt": "2026-07-24T11:17:24.831Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845049",
@@ -2844,7 +3062,8 @@
     "imageExt": "png",
     "order": 218,
     "createdAt": "2026-07-24T11:17:24.832Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845051",
@@ -2857,7 +3076,8 @@
     "imageExt": "png",
     "order": 219,
     "createdAt": "2026-07-24T11:17:24.833Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891845053",
@@ -2870,7 +3090,8 @@
     "imageExt": "png",
     "order": 220,
     "createdAt": "2026-07-24T11:17:24.834Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845055",
@@ -2883,7 +3104,8 @@
     "imageExt": "png",
     "order": 221,
     "createdAt": "2026-07-24T11:17:24.835Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891845057",
@@ -2896,7 +3118,8 @@
     "imageExt": "png",
     "order": 222,
     "createdAt": "2026-07-24T11:17:24.835Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891845058",
@@ -2909,7 +3132,8 @@
     "imageExt": "png",
     "order": 223,
     "createdAt": "2026-07-24T11:17:24.836Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891845060",
@@ -2922,7 +3146,8 @@
     "imageExt": "png",
     "order": 224,
     "createdAt": "2026-07-24T11:17:24.837Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891845062",
@@ -2935,7 +3160,8 @@
     "imageExt": "png",
     "order": 225,
     "createdAt": "2026-07-24T11:17:24.838Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891845064",
@@ -2948,7 +3174,8 @@
     "imageExt": "png",
     "order": 226,
     "createdAt": "2026-07-24T11:17:24.838Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891845065",
@@ -2961,7 +3188,8 @@
     "imageExt": "png",
     "order": 227,
     "createdAt": "2026-07-24T11:17:24.839Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891845067",
@@ -2974,7 +3202,8 @@
     "imageExt": "png",
     "order": 228,
     "createdAt": "2026-07-24T11:17:24.839Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891845069",
@@ -2987,7 +3216,8 @@
     "imageExt": "png",
     "order": 229,
     "createdAt": "2026-07-24T11:17:24.840Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845070",
@@ -3000,7 +3230,8 @@
     "imageExt": "png",
     "order": 230,
     "createdAt": "2026-07-24T11:17:24.841Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891845072",
@@ -3013,7 +3244,8 @@
     "imageExt": "png",
     "order": 231,
     "createdAt": "2026-07-24T11:17:24.841Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891845074",
@@ -3026,7 +3258,8 @@
     "imageExt": "png",
     "order": 232,
     "createdAt": "2026-07-24T11:17:24.842Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891845075",
@@ -3039,7 +3272,8 @@
     "imageExt": "png",
     "order": 233,
     "createdAt": "2026-07-24T11:17:24.843Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845077",
@@ -3052,7 +3286,8 @@
     "imageExt": "png",
     "order": 234,
     "createdAt": "2026-07-24T11:17:24.844Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784891845079",
@@ -3065,7 +3300,8 @@
     "imageExt": "png",
     "order": 235,
     "createdAt": "2026-07-24T11:17:24.844Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891845080",
@@ -3078,7 +3314,8 @@
     "imageExt": "png",
     "order": 236,
     "createdAt": "2026-07-24T11:17:24.845Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891845082",
@@ -3091,7 +3328,8 @@
     "imageExt": "png",
     "order": 237,
     "createdAt": "2026-07-24T11:17:24.846Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891845084",
@@ -3104,7 +3342,8 @@
     "imageExt": "png",
     "order": 238,
     "createdAt": "2026-07-24T11:17:24.846Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891845086",
@@ -3117,7 +3356,8 @@
     "imageExt": "png",
     "order": 239,
     "createdAt": "2026-07-24T11:17:24.847Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845087",
@@ -3130,7 +3370,8 @@
     "imageExt": "png",
     "order": 240,
     "createdAt": "2026-07-24T11:17:24.848Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891845089",
@@ -3143,7 +3384,8 @@
     "imageExt": "png",
     "order": 241,
     "createdAt": "2026-07-24T11:17:24.848Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891845090",
@@ -3156,7 +3398,8 @@
     "imageExt": "png",
     "order": 242,
     "createdAt": "2026-07-24T11:17:24.849Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891845092",
@@ -3169,7 +3412,8 @@
     "imageExt": "png",
     "order": 243,
     "createdAt": "2026-07-24T11:17:24.850Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845094",
@@ -3182,7 +3426,8 @@
     "imageExt": "png",
     "order": 244,
     "createdAt": "2026-07-24T11:17:24.850Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845095",
@@ -3195,7 +3440,8 @@
     "imageExt": "png",
     "order": 245,
     "createdAt": "2026-07-24T11:17:24.851Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845097",
@@ -3208,7 +3454,8 @@
     "imageExt": "png",
     "order": 246,
     "createdAt": "2026-07-24T11:17:24.852Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784891845099",
@@ -3221,7 +3468,8 @@
     "imageExt": "png",
     "order": 247,
     "createdAt": "2026-07-24T11:17:24.852Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784891845100",
@@ -3234,7 +3482,8 @@
     "imageExt": "png",
     "order": 248,
     "createdAt": "2026-07-24T11:17:24.853Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845102",
@@ -3247,7 +3496,8 @@
     "imageExt": "png",
     "order": 249,
     "createdAt": "2026-07-24T11:17:24.854Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845104",
@@ -3260,7 +3510,8 @@
     "imageExt": "png",
     "order": 250,
     "createdAt": "2026-07-24T11:17:24.854Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891845105",
@@ -3273,7 +3524,8 @@
     "imageExt": "png",
     "order": 251,
     "createdAt": "2026-07-24T11:17:24.855Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891845107",
@@ -3286,7 +3538,8 @@
     "imageExt": "png",
     "order": 252,
     "createdAt": "2026-07-24T11:17:24.856Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "special"
   },
   {
     "id": "card-1784891845109",
@@ -3299,7 +3552,8 @@
     "imageExt": "png",
     "order": 253,
     "createdAt": "2026-07-24T11:17:24.856Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "final"
   },
   {
     "id": "card-1784891845110",
@@ -3312,7 +3566,8 @@
     "imageExt": "png",
     "order": 254,
     "createdAt": "2026-07-24T11:17:24.857Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845112",
@@ -3325,7 +3580,8 @@
     "imageExt": "png",
     "order": 255,
     "createdAt": "2026-07-24T11:17:24.858Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "special"
   },
   {
     "id": "card-1784891845114",
@@ -3338,7 +3594,8 @@
     "imageExt": "png",
     "order": 256,
     "createdAt": "2026-07-24T11:17:24.858Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891845115",
@@ -3351,7 +3608,8 @@
     "imageExt": "png",
     "order": 257,
     "createdAt": "2026-07-24T11:17:24.859Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845117",
@@ -3364,7 +3622,8 @@
     "imageExt": "png",
     "order": 258,
     "createdAt": "2026-07-24T11:17:24.859Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845118",
@@ -3377,7 +3636,8 @@
     "imageExt": "png",
     "order": 259,
     "createdAt": "2026-07-24T11:17:24.860Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891845120",
@@ -3390,7 +3650,8 @@
     "imageExt": "png",
     "order": 260,
     "createdAt": "2026-07-24T11:17:24.861Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891845122",
@@ -3403,7 +3664,8 @@
     "imageExt": "png",
     "order": 261,
     "createdAt": "2026-07-24T11:17:24.861Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891845123",
@@ -3416,7 +3678,8 @@
     "imageExt": "png",
     "order": 262,
     "createdAt": "2026-07-24T11:17:24.862Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845125",
@@ -3429,7 +3692,8 @@
     "imageExt": "png",
     "order": 263,
     "createdAt": "2026-07-24T11:17:24.863Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845127",
@@ -3442,7 +3706,8 @@
     "imageExt": "png",
     "order": 264,
     "createdAt": "2026-07-24T11:17:24.863Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "final"
   },
   {
     "id": "card-1784891845128",
@@ -3455,7 +3720,8 @@
     "imageExt": "png",
     "order": 265,
     "createdAt": "2026-07-24T11:17:24.864Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "special"
   },
   {
     "id": "card-1784891845130",
@@ -3468,7 +3734,8 @@
     "imageExt": "png",
     "order": 266,
     "createdAt": "2026-07-24T11:17:24.865Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845132",
@@ -3481,7 +3748,8 @@
     "imageExt": "png",
     "order": 267,
     "createdAt": "2026-07-24T11:17:24.865Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891845133",
@@ -3494,7 +3762,8 @@
     "imageExt": "png",
     "order": 268,
     "createdAt": "2026-07-24T11:17:24.866Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891845135",
@@ -3507,7 +3776,8 @@
     "imageExt": "png",
     "order": 269,
     "createdAt": "2026-07-24T11:17:24.866Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784891845136",
@@ -3520,7 +3790,8 @@
     "imageExt": "png",
     "order": 270,
     "createdAt": "2026-07-24T11:17:24.867Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891845138",
@@ -3533,7 +3804,8 @@
     "imageExt": "png",
     "order": 271,
     "createdAt": "2026-07-24T11:17:24.868Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784891845141",
@@ -3546,7 +3818,8 @@
     "imageExt": "png",
     "order": 272,
     "createdAt": "2026-07-24T11:17:24.870Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891845143",
@@ -3559,7 +3832,8 @@
     "imageExt": "png",
     "order": 273,
     "createdAt": "2026-07-24T11:17:24.871Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891845145",
@@ -3572,7 +3846,8 @@
     "imageExt": "png",
     "order": 274,
     "createdAt": "2026-07-24T11:17:24.871Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891845146",
@@ -3585,7 +3860,8 @@
     "imageExt": "png",
     "order": 275,
     "createdAt": "2026-07-24T11:17:24.872Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891845148",
@@ -3598,7 +3874,8 @@
     "imageExt": "png",
     "order": 276,
     "createdAt": "2026-07-24T11:17:24.872Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891845149",
@@ -3611,7 +3888,8 @@
     "imageExt": "png",
     "order": 277,
     "createdAt": "2026-07-24T11:17:24.873Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891845151",
@@ -3624,7 +3902,8 @@
     "imageExt": "png",
     "order": 278,
     "createdAt": "2026-07-24T11:17:24.874Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891845153",
@@ -3637,7 +3916,8 @@
     "imageExt": "png",
     "order": 279,
     "createdAt": "2026-07-24T11:17:24.875Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891845155",
@@ -3650,7 +3930,8 @@
     "imageExt": "png",
     "order": 280,
     "createdAt": "2026-07-24T11:17:24.875Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891845156",
@@ -3663,7 +3944,8 @@
     "imageExt": "png",
     "order": 281,
     "createdAt": "2026-07-24T11:17:24.876Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891845158",
@@ -3676,7 +3958,8 @@
     "imageExt": "png",
     "order": 282,
     "createdAt": "2026-07-24T11:17:24.876Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891845159",
@@ -3689,7 +3972,8 @@
     "imageExt": "png",
     "order": 283,
     "createdAt": "2026-07-24T11:17:24.877Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891845161",
@@ -3702,7 +3986,8 @@
     "imageExt": "png",
     "order": 284,
     "createdAt": "2026-07-24T11:17:24.877Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891845162",
@@ -3715,7 +4000,8 @@
     "imageExt": "png",
     "order": 285,
     "createdAt": "2026-07-24T11:17:24.878Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891845164",
@@ -3728,7 +4014,8 @@
     "imageExt": "png",
     "order": 286,
     "createdAt": "2026-07-24T11:17:24.878Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784891845165",
@@ -3741,7 +4028,8 @@
     "imageExt": "png",
     "order": 287,
     "createdAt": "2026-07-24T11:17:24.879Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891845167",
@@ -3754,7 +4042,8 @@
     "imageExt": "png",
     "order": 288,
     "createdAt": "2026-07-24T11:17:24.879Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891845169",
@@ -3767,7 +4056,8 @@
     "imageExt": "png",
     "order": 289,
     "createdAt": "2026-07-24T11:17:24.880Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784891845170",
@@ -3780,7 +4070,8 @@
     "imageExt": "png",
     "order": 290,
     "createdAt": "2026-07-24T11:17:24.881Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891845172",
@@ -3793,7 +4084,8 @@
     "imageExt": "png",
     "order": 291,
     "createdAt": "2026-07-24T11:17:24.881Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784891845174",
@@ -3806,7 +4098,8 @@
     "imageExt": "png",
     "order": 292,
     "createdAt": "2026-07-24T11:17:24.882Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784891845175",
@@ -3819,7 +4112,8 @@
     "imageExt": "png",
     "order": 293,
     "createdAt": "2026-07-24T11:17:24.883Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784891845177",
@@ -3832,7 +4126,8 @@
     "imageExt": "png",
     "order": 294,
     "createdAt": "2026-07-24T11:17:24.883Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "final"
   },
   {
     "id": "card-1784891845178",
@@ -3845,7 +4140,8 @@
     "imageExt": "png",
     "order": 295,
     "createdAt": "2026-07-24T11:17:24.884Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "final"
   },
   {
     "id": "card-1784932821100",
@@ -3858,7 +4154,8 @@
     "imageExt": "png",
     "order": 297,
     "createdAt": "2026-07-24T22:40:21.101Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821102",
@@ -3871,7 +4168,8 @@
     "imageExt": "png",
     "order": 298,
     "createdAt": "2026-07-24T22:40:21.102Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821104",
@@ -3884,7 +4182,8 @@
     "imageExt": "png",
     "order": 299,
     "createdAt": "2026-07-24T22:40:21.102Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821105",
@@ -3897,7 +4196,8 @@
     "imageExt": "png",
     "order": 300,
     "createdAt": "2026-07-24T22:40:21.103Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784932821107",
@@ -3910,7 +4210,8 @@
     "imageExt": "png",
     "order": 301,
     "createdAt": "2026-07-24T22:40:21.104Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784932821109",
@@ -3923,7 +4224,8 @@
     "imageExt": "png",
     "order": 302,
     "createdAt": "2026-07-24T22:40:21.104Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821110",
@@ -3936,7 +4238,8 @@
     "imageExt": "png",
     "order": 303,
     "createdAt": "2026-07-24T22:40:21.105Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821112",
@@ -3949,7 +4252,8 @@
     "imageExt": "png",
     "order": 304,
     "createdAt": "2026-07-24T22:40:21.105Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821113",
@@ -3962,7 +4266,8 @@
     "imageExt": "png",
     "order": 305,
     "createdAt": "2026-07-24T22:40:21.106Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821115",
@@ -3975,7 +4280,8 @@
     "imageExt": "png",
     "order": 306,
     "createdAt": "2026-07-24T22:40:21.107Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821117",
@@ -3988,7 +4294,8 @@
     "imageExt": "png",
     "order": 307,
     "createdAt": "2026-07-24T22:40:21.107Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821118",
@@ -4001,7 +4308,8 @@
     "imageExt": "png",
     "order": 308,
     "createdAt": "2026-07-24T22:40:21.108Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821120",
@@ -4014,7 +4322,8 @@
     "imageExt": "png",
     "order": 309,
     "createdAt": "2026-07-24T22:40:21.108Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821121",
@@ -4027,7 +4336,8 @@
     "imageExt": "png",
     "order": 310,
     "createdAt": "2026-07-24T22:40:21.109Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821123",
@@ -4040,7 +4350,8 @@
     "imageExt": "png",
     "order": 311,
     "createdAt": "2026-07-24T22:40:21.110Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821125",
@@ -4053,7 +4364,8 @@
     "imageExt": "png",
     "order": 312,
     "createdAt": "2026-07-24T22:40:21.110Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821126",
@@ -4066,7 +4378,8 @@
     "imageExt": "png",
     "order": 313,
     "createdAt": "2026-07-24T22:40:21.111Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784932821128",
@@ -4079,7 +4392,8 @@
     "imageExt": "png",
     "order": 314,
     "createdAt": "2026-07-24T22:40:21.111Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784932821129",
@@ -4092,7 +4406,8 @@
     "imageExt": "png",
     "order": 315,
     "createdAt": "2026-07-24T22:40:21.112Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821131",
@@ -4105,7 +4420,8 @@
     "imageExt": "png",
     "order": 316,
     "createdAt": "2026-07-24T22:40:21.112Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821133",
@@ -4118,7 +4434,8 @@
     "imageExt": "png",
     "order": 317,
     "createdAt": "2026-07-24T22:40:21.113Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821134",
@@ -4131,7 +4448,8 @@
     "imageExt": "png",
     "order": 318,
     "createdAt": "2026-07-24T22:40:21.114Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821136",
@@ -4144,7 +4462,8 @@
     "imageExt": "png",
     "order": 319,
     "createdAt": "2026-07-24T22:40:21.115Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821138",
@@ -4157,7 +4476,8 @@
     "imageExt": "png",
     "order": 320,
     "createdAt": "2026-07-24T22:40:21.115Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821139",
@@ -4170,7 +4490,8 @@
     "imageExt": "png",
     "order": 321,
     "createdAt": "2026-07-24T22:40:21.116Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821141",
@@ -4183,7 +4504,8 @@
     "imageExt": "png",
     "order": 322,
     "createdAt": "2026-07-24T22:40:21.117Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821143",
@@ -4196,7 +4518,8 @@
     "imageExt": "png",
     "order": 323,
     "createdAt": "2026-07-24T22:40:21.117Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821144",
@@ -4209,7 +4532,8 @@
     "imageExt": "png",
     "order": 324,
     "createdAt": "2026-07-24T22:40:21.118Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784932821146",
@@ -4222,7 +4546,8 @@
     "imageExt": "png",
     "order": 325,
     "createdAt": "2026-07-24T22:40:21.118Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784932821147",
@@ -4235,7 +4560,8 @@
     "imageExt": "png",
     "order": 326,
     "createdAt": "2026-07-24T22:40:21.119Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784932821149",
@@ -4248,7 +4574,8 @@
     "imageExt": "png",
     "order": 327,
     "createdAt": "2026-07-24T22:40:21.119Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784932821151",
@@ -4261,7 +4588,8 @@
     "imageExt": "png",
     "order": 328,
     "createdAt": "2026-07-24T22:40:21.120Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784932821152",
@@ -4274,7 +4602,8 @@
     "imageExt": "png",
     "order": 329,
     "createdAt": "2026-07-24T22:40:21.121Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784932821154",
@@ -4287,7 +4616,8 @@
     "imageExt": "png",
     "order": 330,
     "createdAt": "2026-07-24T22:40:21.122Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821156",
@@ -4300,7 +4630,8 @@
     "imageExt": "png",
     "order": 331,
     "createdAt": "2026-07-24T22:40:21.122Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821157",
@@ -4313,7 +4644,8 @@
     "imageExt": "png",
     "order": 332,
     "createdAt": "2026-07-24T22:40:21.123Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821159",
@@ -4326,7 +4658,8 @@
     "imageExt": "png",
     "order": 333,
     "createdAt": "2026-07-24T22:40:21.123Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821160",
@@ -4339,7 +4672,8 @@
     "imageExt": "png",
     "order": 334,
     "createdAt": "2026-07-24T22:40:21.124Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821162",
@@ -4352,7 +4686,8 @@
     "imageExt": "png",
     "order": 335,
     "createdAt": "2026-07-24T22:40:21.124Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821164",
@@ -4365,7 +4700,8 @@
     "imageExt": "png",
     "order": 336,
     "createdAt": "2026-07-24T22:40:21.125Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821165",
@@ -4378,7 +4714,8 @@
     "imageExt": "png",
     "order": 337,
     "createdAt": "2026-07-24T22:40:21.126Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821167",
@@ -4391,7 +4728,8 @@
     "imageExt": "png",
     "order": 338,
     "createdAt": "2026-07-24T22:40:21.126Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821168",
@@ -4404,7 +4742,8 @@
     "imageExt": "png",
     "order": 339,
     "createdAt": "2026-07-24T22:40:21.127Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821170",
@@ -4417,7 +4756,8 @@
     "imageExt": "png",
     "order": 340,
     "createdAt": "2026-07-24T22:40:21.128Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821172",
@@ -4430,7 +4770,8 @@
     "imageExt": "png",
     "order": 341,
     "createdAt": "2026-07-24T22:40:21.128Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821173",
@@ -4443,7 +4784,8 @@
     "imageExt": "png",
     "order": 342,
     "createdAt": "2026-07-24T22:40:21.129Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821175",
@@ -4456,7 +4798,8 @@
     "imageExt": "png",
     "order": 343,
     "createdAt": "2026-07-24T22:40:21.129Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821176",
@@ -4469,7 +4812,8 @@
     "imageExt": "png",
     "order": 344,
     "createdAt": "2026-07-24T22:40:21.130Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821178",
@@ -4482,7 +4826,8 @@
     "imageExt": "png",
     "order": 345,
     "createdAt": "2026-07-24T22:40:21.130Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821179",
@@ -4495,7 +4840,8 @@
     "imageExt": "png",
     "order": 346,
     "createdAt": "2026-07-24T22:40:21.131Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821181",
@@ -4508,7 +4854,8 @@
     "imageExt": "png",
     "order": 347,
     "createdAt": "2026-07-24T22:40:21.132Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821183",
@@ -4521,7 +4868,8 @@
     "imageExt": "png",
     "order": 348,
     "createdAt": "2026-07-24T22:40:21.132Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784932821184",
@@ -4534,7 +4882,8 @@
     "imageExt": "png",
     "order": 349,
     "createdAt": "2026-07-24T22:40:21.133Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784932821186",
@@ -4547,7 +4896,8 @@
     "imageExt": "png",
     "order": 350,
     "createdAt": "2026-07-24T22:40:21.133Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821188",
@@ -4560,7 +4910,8 @@
     "imageExt": "png",
     "order": 351,
     "createdAt": "2026-07-24T22:40:21.134Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821189",
@@ -4573,7 +4924,8 @@
     "imageExt": "png",
     "order": 352,
     "createdAt": "2026-07-24T22:40:21.135Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821191",
@@ -4586,7 +4938,8 @@
     "imageExt": "png",
     "order": 353,
     "createdAt": "2026-07-24T22:40:21.135Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784932821192",
@@ -4599,7 +4952,8 @@
     "imageExt": "png",
     "order": 354,
     "createdAt": "2026-07-24T22:40:21.136Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "special"
   },
   {
     "id": "card-1784932821194",
@@ -4612,7 +4966,8 @@
     "imageExt": "png",
     "order": 355,
     "createdAt": "2026-07-24T22:40:21.136Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821195",
@@ -4625,7 +4980,8 @@
     "imageExt": "png",
     "order": 356,
     "createdAt": "2026-07-24T22:40:21.137Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "final"
   },
   {
     "id": "card-1784932821197",
@@ -4638,7 +4994,8 @@
     "imageExt": "png",
     "order": 357,
     "createdAt": "2026-07-24T22:40:21.137Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "final"
   },
   {
     "id": "card-1784932821199",
@@ -4651,7 +5008,8 @@
     "imageExt": "png",
     "order": 358,
     "createdAt": "2026-07-24T22:40:21.138Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "special"
   },
   {
     "id": "card-1784932821200",
@@ -4664,7 +5022,8 @@
     "imageExt": "png",
     "order": 359,
     "createdAt": "2026-07-24T22:40:21.139Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821202",
@@ -4677,7 +5036,8 @@
     "imageExt": "png",
     "order": 360,
     "createdAt": "2026-07-24T22:40:21.139Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821203",
@@ -4690,7 +5050,8 @@
     "imageExt": "png",
     "order": 361,
     "createdAt": "2026-07-24T22:40:21.140Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821205",
@@ -4703,7 +5064,8 @@
     "imageExt": "png",
     "order": 362,
     "createdAt": "2026-07-24T22:40:21.141Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821207",
@@ -4716,7 +5078,8 @@
     "imageExt": "png",
     "order": 363,
     "createdAt": "2026-07-24T22:40:21.141Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821208",
@@ -4729,7 +5092,8 @@
     "imageExt": "png",
     "order": 364,
     "createdAt": "2026-07-24T22:40:21.142Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821210",
@@ -4742,7 +5106,8 @@
     "imageExt": "png",
     "order": 365,
     "createdAt": "2026-07-24T22:40:21.142Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821211",
@@ -4755,7 +5120,8 @@
     "imageExt": "png",
     "order": 366,
     "createdAt": "2026-07-24T22:40:21.143Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821213",
@@ -4768,7 +5134,8 @@
     "imageExt": "png",
     "order": 367,
     "createdAt": "2026-07-24T22:40:21.143Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821215",
@@ -4781,7 +5148,8 @@
     "imageExt": "png",
     "order": 368,
     "createdAt": "2026-07-24T22:40:21.144Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821216",
@@ -4794,7 +5162,8 @@
     "imageExt": "png",
     "order": 369,
     "createdAt": "2026-07-24T22:40:21.145Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821218",
@@ -4807,7 +5176,8 @@
     "imageExt": "png",
     "order": 370,
     "createdAt": "2026-07-24T22:40:21.145Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821219",
@@ -4820,7 +5190,8 @@
     "imageExt": "png",
     "order": 371,
     "createdAt": "2026-07-24T22:40:21.146Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784932821221",
@@ -4833,7 +5204,8 @@
     "imageExt": "png",
     "order": 372,
     "createdAt": "2026-07-24T22:40:21.147Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784932821223",
@@ -4846,7 +5218,8 @@
     "imageExt": "png",
     "order": 373,
     "createdAt": "2026-07-24T22:40:21.147Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821224",
@@ -4859,7 +5232,8 @@
     "imageExt": "png",
     "order": 374,
     "createdAt": "2026-07-24T22:40:21.148Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821226",
@@ -4872,7 +5246,8 @@
     "imageExt": "png",
     "order": 375,
     "createdAt": "2026-07-24T22:40:21.149Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821228",
@@ -4885,7 +5260,8 @@
     "imageExt": "png",
     "order": 376,
     "createdAt": "2026-07-24T22:40:21.149Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821229",
@@ -4898,7 +5274,8 @@
     "imageExt": "png",
     "order": 377,
     "createdAt": "2026-07-24T22:40:21.150Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821231",
@@ -4911,7 +5288,8 @@
     "imageExt": "png",
     "order": 378,
     "createdAt": "2026-07-24T22:40:21.150Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821232",
@@ -4924,7 +5302,8 @@
     "imageExt": "png",
     "order": 379,
     "createdAt": "2026-07-24T22:40:21.151Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821234",
@@ -4937,7 +5316,8 @@
     "imageExt": "png",
     "order": 380,
     "createdAt": "2026-07-24T22:40:21.152Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821236",
@@ -4950,7 +5330,8 @@
     "imageExt": "png",
     "order": 381,
     "createdAt": "2026-07-24T22:40:21.152Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821238",
@@ -4963,7 +5344,8 @@
     "imageExt": "png",
     "order": 382,
     "createdAt": "2026-07-24T22:40:21.153Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784932821239",
@@ -4976,7 +5358,8 @@
     "imageExt": "png",
     "order": 383,
     "createdAt": "2026-07-24T22:40:21.154Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784932821241",
@@ -4989,7 +5372,8 @@
     "imageExt": "png",
     "order": 384,
     "createdAt": "2026-07-24T22:40:21.154Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821242",
@@ -5002,7 +5386,8 @@
     "imageExt": "png",
     "order": 385,
     "createdAt": "2026-07-24T22:40:21.155Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821244",
@@ -5015,7 +5400,8 @@
     "imageExt": "png",
     "order": 386,
     "createdAt": "2026-07-24T22:40:21.155Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821245",
@@ -5028,7 +5414,8 @@
     "imageExt": "png",
     "order": 387,
     "createdAt": "2026-07-24T22:40:21.156Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821247",
@@ -5041,7 +5428,8 @@
     "imageExt": "png",
     "order": 388,
     "createdAt": "2026-07-24T22:40:21.157Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821249",
@@ -5054,7 +5442,8 @@
     "imageExt": "png",
     "order": 389,
     "createdAt": "2026-07-24T22:40:21.157Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821250",
@@ -5067,7 +5456,8 @@
     "imageExt": "png",
     "order": 390,
     "createdAt": "2026-07-24T22:40:21.158Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784932821252",
@@ -5080,7 +5470,8 @@
     "imageExt": "png",
     "order": 391,
     "createdAt": "2026-07-24T22:40:21.159Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784932821254",
@@ -5093,7 +5484,8 @@
     "imageExt": "png",
     "order": 392,
     "createdAt": "2026-07-24T22:40:21.160Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784932821256",
@@ -5106,7 +5498,8 @@
     "imageExt": "png",
     "order": 393,
     "createdAt": "2026-07-24T22:40:21.160Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784932821257",
@@ -5119,7 +5512,8 @@
     "imageExt": "png",
     "order": 394,
     "createdAt": "2026-07-24T22:40:21.161Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784932821259",
@@ -5132,7 +5526,8 @@
     "imageExt": "png",
     "order": 395,
     "createdAt": "2026-07-24T22:40:21.162Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "raid"
   },
   {
     "id": "card-1784932821261",
@@ -5145,7 +5540,8 @@
     "imageExt": "png",
     "order": 396,
     "createdAt": "2026-07-24T22:40:21.162Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821262",
@@ -5158,7 +5554,8 @@
     "imageExt": "png",
     "order": 397,
     "createdAt": "2026-07-24T22:40:21.163Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "drow"
   },
   {
     "id": "card-1784932821264",
@@ -5171,7 +5568,8 @@
     "imageExt": "png",
     "order": 398,
     "createdAt": "2026-07-24T22:40:21.163Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821266",
@@ -5184,7 +5582,8 @@
     "imageExt": "png",
     "order": 399,
     "createdAt": "2026-07-24T22:40:21.164Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821267",
@@ -5197,7 +5596,8 @@
     "imageExt": "png",
     "order": 400,
     "createdAt": "2026-07-24T22:40:21.165Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821269",
@@ -5210,7 +5610,8 @@
     "imageExt": "png",
     "order": 401,
     "createdAt": "2026-07-24T22:40:21.166Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821271",
@@ -5223,7 +5624,8 @@
     "imageExt": "png",
     "order": 402,
     "createdAt": "2026-07-24T22:40:21.166Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "get"
   },
   {
     "id": "card-1784932821272",
@@ -5236,7 +5638,8 @@
     "imageExt": "png",
     "order": 403,
     "createdAt": "2026-07-24T22:40:21.167Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "special"
   },
   {
     "id": "card-1784932821274",
@@ -5249,7 +5652,8 @@
     "imageExt": "png",
     "order": 404,
     "createdAt": "2026-07-24T22:40:21.167Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "special"
   },
   {
     "id": "card-1784932821275",
@@ -5262,7 +5666,8 @@
     "imageExt": "png",
     "order": 405,
     "createdAt": "2026-07-24T22:40:21.168Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821277",
@@ -5275,7 +5680,8 @@
     "imageExt": "png",
     "order": 406,
     "createdAt": "2026-07-24T22:40:21.168Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784932821279",
@@ -5288,7 +5694,8 @@
     "imageExt": "png",
     "order": 407,
     "createdAt": "2026-07-24T22:40:21.169Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "final"
   },
   {
     "id": "card-1784932821280",
@@ -5301,7 +5708,8 @@
     "imageExt": "png",
     "order": 408,
     "createdAt": "2026-07-24T22:40:21.170Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "final"
   },
   {
     "id": "card-1784932821282",
@@ -5314,7 +5722,8 @@
     "imageExt": "png",
     "order": 409,
     "createdAt": "2026-07-24T22:40:21.170Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": ""
   },
   {
     "id": "card-1784932821283",
@@ -5327,7 +5736,8 @@
     "imageExt": "png",
     "order": 410,
     "createdAt": "2026-07-24T22:40:21.171Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784932821285",
@@ -5340,7 +5750,8 @@
     "imageExt": "png",
     "order": 411,
     "createdAt": "2026-07-24T22:40:21.172Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "color"
   },
   {
     "id": "card-1784932821287",
@@ -5353,7 +5764,8 @@
     "imageExt": "png",
     "order": 412,
     "createdAt": "2026-07-24T22:40:21.172Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "active"
   },
   {
     "id": "card-1784932821288",
@@ -5366,6 +5778,7 @@
     "imageExt": "png",
     "order": 413,
     "createdAt": "2026-07-24T22:40:21.173Z",
-    "infoUncertain": false
+    "infoUncertain": false,
+    "trigger": "final"
   }
 ]

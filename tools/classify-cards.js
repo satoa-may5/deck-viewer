@@ -333,6 +333,48 @@ function maskedDiffScore(resizedData, width, t) {
   return count > 0 ? sum / count : Infinity;
 }
 
+// Like maskedDiffScore, but slides the template over a padded window instead
+// of assuming its own fixed position lines up exactly -- needed for the
+// trigger badge (see classifyTrigger): unlike the small cost/color badge,
+// the trigger banner is a wide strip of fine text, and even a couple pixels
+// of real-card/template misalignment was enough to make genuinely different
+// trigger types (e.g. "active" vs "get") score within ~1 of each other at
+// the fixed position, while the correct one wins by a huge margin (~30+ vs
+// ~50) once actually aligned -- confirmed empirically against real
+// misclassified cards before adding this. Every 2nd pixel is sampled (both
+// in the badge itself and across search offsets) to keep the added cost
+// manageable; the badge region is large enough that this doesn't meaningfully
+// change the result.
+const TRIGGER_SEARCH_PAD = 6;
+const TRIGGER_SEARCH_STRIDE = 2;
+
+function maskedDiffScoreSearch(resizedData, width, height, t) {
+  const { y0, y1, x0, x1 } = t.bbox;
+  let best = Infinity;
+  for (let dy = -TRIGGER_SEARCH_PAD; dy <= TRIGGER_SEARCH_PAD; dy += TRIGGER_SEARCH_STRIDE) {
+    if (y0 + dy < 0 || y1 + dy >= height) continue;
+    for (let dx = -TRIGGER_SEARCH_PAD; dx <= TRIGGER_SEARCH_PAD; dx += TRIGGER_SEARCH_STRIDE) {
+      if (x0 + dx < 0 || x1 + dx >= width) continue;
+      let sum = 0;
+      let count = 0;
+      for (let y = y0; y <= y1; y += TRIGGER_SEARCH_STRIDE) {
+        for (let x = x0; x <= x1; x += TRIGGER_SEARCH_STRIDE) {
+          const ti = (y * t.width + x) * 4;
+          if (t.data[ti + 3] === 0) continue;
+          const si = ((y + dy) * width + (x + dx)) * 4;
+          sum += Math.abs(resizedData[si] - t.data[ti]);
+          sum += Math.abs(resizedData[si + 1] - t.data[ti + 1]);
+          sum += Math.abs(resizedData[si + 2] - t.data[ti + 2]);
+          count += 3;
+        }
+      }
+      const score = count > 0 ? sum / count : Infinity;
+      if (score < best) best = score;
+    }
+  }
+  return best;
+}
+
 // cv2.matchTemplate(..., TM_CCOEFF_NORMED).max() equivalent: slide the
 // template's digit crop over a padded window of the resized source and
 // return the best (highest) normalized cross-correlation found, rather than
@@ -547,11 +589,16 @@ async function classifyTrigger(img, cardColor) {
   const dataFor = (t) => variants.get(`${t.width}x${t.height}`);
 
   const triggerBest = new Map();
+  let triggerProcessed = 0;
   for (const t of candidates) {
-    const score = maskedDiffScore(dataFor(t), t.width, t);
+    const score = maskedDiffScoreSearch(dataFor(t), t.width, t.height, t);
     if (!triggerBest.has(t.triggerType) || score < triggerBest.get(t.triggerType)) {
       triggerBest.set(t.triggerType, score);
     }
+    // The search is the most expensive part of classifyImage per template,
+    // so it gets its own yield point rather than reusing Stage A/B's.
+    triggerProcessed++;
+    if (triggerProcessed % 2 === 0) await new Promise((resolve) => setImmediate(resolve));
   }
   const [bestTrigger, bestScore] = [...triggerBest.entries()].reduce((a, b) => (b[1] < a[1] ? b : a));
   if (bestScore > TRIGGER_MAX_DIFF_SCORE) return { trigger: "", triggerScore: bestScore };

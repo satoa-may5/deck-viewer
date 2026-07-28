@@ -380,7 +380,7 @@ function updateFilterUI() {
   }
 
   filterTriggerGroup.innerHTML = "";
-  for (const [value, label] of Object.entries(TRIGGER_LABELS)) {
+  for (const [value, label] of Object.entries({ "": "トリガーなし", ...TRIGGER_LABELS })) {
     filterTriggerGroup.appendChild(
       createFilterCheckbox(label, filterState.triggers.has(value), () => {
         toggleInSet(filterState.triggers, value);
@@ -428,7 +428,9 @@ function cardMatchesFilters(card) {
     if (card.cost < filterState.costMin || card.cost > filterState.costMax) return false;
   }
   if (filterState.excludeParallel && card.parallel) return false;
-  if (filterState.triggers.size > 0 && !filterState.triggers.has(card.trigger)) return false;
+  // card.trigger is undefined on cards saved before this field existed --
+  // treat that the same as "" (no trigger) rather than as a non-match.
+  if (filterState.triggers.size > 0 && !filterState.triggers.has(card.trigger || "")) return false;
   return true;
 }
 
