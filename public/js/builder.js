@@ -86,9 +86,78 @@ function prepareCardExit(sourceEl, direction) {
   };
 }
 
+// ---- Undo/redo (deck composition: add/remove/reorder/sort/thumbnail) ----
+// Deliberately scoped to the deck's card composition, not the deck name or
+// which pools are referenced -- those are ordinary text/selection edits, not
+// the kind of "oops" action this is meant to step back from.
+
+const HISTORY_LIMIT = 30; // within the requested 20-50 range
+const undoBtn = document.getElementById("undo-btn");
+const redoBtn = document.getElementById("redo-btn");
+let history = [];
+let historyIndex = -1;
+let restoringHistory = false;
+
+function snapshotDeck() {
+  return { counts: [...deckCounts.entries()], thumbnail: deckThumbnailCardId };
+}
+
+function pushHistory() {
+  if (restoringHistory) return;
+  history = history.slice(0, historyIndex + 1);
+  history.push(snapshotDeck());
+  if (history.length > HISTORY_LIMIT) history.shift();
+  historyIndex = history.length - 1;
+  updateUndoRedoButtons();
+}
+
+function restoreSnapshot(snapshot) {
+  restoringHistory = true;
+  deckCounts.clear();
+  for (const [cardId, count] of snapshot.counts) deckCounts.set(cardId, count);
+  deckThumbnailCardId = snapshot.thumbnail;
+  renderPanes();
+  restoringHistory = false;
+}
+
+function undo() {
+  if (historyIndex <= 0) return;
+  historyIndex--;
+  restoreSnapshot(history[historyIndex]);
+  updateUndoRedoButtons();
+}
+
+function redo() {
+  if (historyIndex >= history.length - 1) return;
+  historyIndex++;
+  restoreSnapshot(history[historyIndex]);
+  updateUndoRedoButtons();
+}
+
+function updateUndoRedoButtons() {
+  undoBtn.disabled = historyIndex <= 0;
+  redoBtn.disabled = historyIndex >= history.length - 1;
+}
+
+undoBtn.addEventListener("click", undo);
+redoBtn.addEventListener("click", redo);
+
+document.addEventListener("keydown", (e) => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  const key = e.key.toLowerCase();
+  if (key === "z" && !e.shiftKey) {
+    e.preventDefault();
+    undo();
+  } else if (key === "y" || (key === "z" && e.shiftKey)) {
+    e.preventDefault();
+    redo();
+  }
+});
+
 function addToDeck(cardId) {
   deckCounts.set(cardId, (deckCounts.get(cardId) || 0) + 1);
   renderPanes();
+  pushHistory();
 }
 
 function removeFromDeck(cardId) {
@@ -100,6 +169,7 @@ function removeFromDeck(cardId) {
     deckCounts.set(cardId, current - 1);
   }
   renderPanes();
+  pushHistory();
 }
 
 // ---- Deck thumbnail selection mode ----
@@ -124,6 +194,7 @@ function exitDeckThumbnailMode() {
 function setDeckThumbnail(cardId) {
   deckThumbnailCardId = cardId;
   exitDeckThumbnailMode();
+  pushHistory();
 }
 
 deckThumbnailModeBtn.addEventListener("click", () => {
@@ -146,6 +217,7 @@ document.getElementById("deck-sort-cost-btn").addEventListener("click", () => {
   deckCounts.clear();
   for (const [cardId, count] of entries) deckCounts.set(cardId, count);
   renderPanes();
+  pushHistory();
 });
 
 // ---- Filtering (collection pane only: type / color / cost range / parallel) ----
@@ -460,6 +532,7 @@ makeSortable(deckGrid, {
     deckCounts.clear();
     for (const [cardId, count] of reordered) deckCounts.set(cardId, count);
     renderPanes();
+    pushHistory();
   },
 });
 
@@ -485,6 +558,12 @@ async function init() {
 
   renderPoolPicker();
   renderPanes();
+
+  // Baseline snapshot -- undoing all the way back lands on the deck as it
+  // was when the page loaded, not an empty deck.
+  history = [snapshotDeck()];
+  historyIndex = 0;
+  updateUndoRedoButtons();
 }
 
 async function saveDeck() {
