@@ -1770,7 +1770,7 @@ button {
 
 .builder-panes {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   flex: 1;
   min-height: 0;
   gap: 10px;
@@ -1869,15 +1869,6 @@ button {
 
 .builder-grid .card-item:active .card-frame {
   transform: scale(0.94);
-}
-
-@media (min-width: 700px) and (orientation: landscape) {
-  .builder-panes {
-    flex-direction: row;
-  }
-  .pane-deck {
-    flex: 0 0 44%;
-  }
 }
 
 @media (max-width: 480px) {
