@@ -600,8 +600,17 @@ const TRIGGER_MAX_DIFF_SCORE = 50;
 const TRIGGER_LABEL_BAND = { y0: 745, y1: 770, x0: 225, x1: 375 };
 const TRIGGER_LABEL_MIN_RED = 300;
 
+// Tighter than a generic "reddish" check on purpose: one card set's frame
+// design has an unrelated orange-ish element in this exact spot on every
+// card regardless of trigger (avg ~179,80,40 -- confirmed against its own
+// real trigger-less ground truth), which a looser r-g/r-b ratio check
+// couldn't tell apart from the genuine trigger label's much more saturated
+// red (~230,23,28 across both that set and a different one). The g/b caps
+// specifically exclude that orange while still catching real trigger red
+// (verified 100% against 224 KMR + 123 Kingdom real cards' actual trigger
+// presence/absence after tightening).
 function isRedPixel(r, g, b) {
-  return r > 140 && r - g > 40 && r - b > 40;
+  return r > 190 && g < 60 && b < 60;
 }
 
 function countRedInBand(resizedData, width) {
