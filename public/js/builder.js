@@ -94,7 +94,10 @@ function prepareCardExit(sourceEl, direction) {
 const HISTORY_LIMIT = 30; // within the requested 20-50 range
 const undoBtn = document.getElementById("undo-btn");
 const redoBtn = document.getElementById("redo-btn");
-let history = [];
+// Named deckHistory, not history -- that shadowed the global window.history
+// object, which broke history.replaceState(...) (later in this file, after
+// saving) with "history.replaceState is not a function".
+let deckHistory = [];
 let historyIndex = -1;
 let restoringHistory = false;
 
@@ -104,10 +107,10 @@ function snapshotDeck() {
 
 function pushHistory() {
   if (restoringHistory) return;
-  history = history.slice(0, historyIndex + 1);
-  history.push(snapshotDeck());
-  if (history.length > HISTORY_LIMIT) history.shift();
-  historyIndex = history.length - 1;
+  deckHistory = deckHistory.slice(0, historyIndex + 1);
+  deckHistory.push(snapshotDeck());
+  if (deckHistory.length > HISTORY_LIMIT) deckHistory.shift();
+  historyIndex = deckHistory.length - 1;
   updateUndoRedoButtons();
 }
 
@@ -123,20 +126,20 @@ function restoreSnapshot(snapshot) {
 function undo() {
   if (historyIndex <= 0) return;
   historyIndex--;
-  restoreSnapshot(history[historyIndex]);
+  restoreSnapshot(deckHistory[historyIndex]);
   updateUndoRedoButtons();
 }
 
 function redo() {
-  if (historyIndex >= history.length - 1) return;
+  if (historyIndex >= deckHistory.length - 1) return;
   historyIndex++;
-  restoreSnapshot(history[historyIndex]);
+  restoreSnapshot(deckHistory[historyIndex]);
   updateUndoRedoButtons();
 }
 
 function updateUndoRedoButtons() {
   undoBtn.disabled = historyIndex <= 0;
-  redoBtn.disabled = historyIndex >= history.length - 1;
+  redoBtn.disabled = historyIndex >= deckHistory.length - 1;
 }
 
 undoBtn.addEventListener("click", undo);
@@ -342,9 +345,9 @@ function renderDeckStats() {
     countEl.className = "stats-trigger-count";
     countEl.textContent = `${count}枚`;
     barWrap.appendChild(bar);
-    barWrap.appendChild(countEl);
     row.appendChild(nameEl);
     row.appendChild(barWrap);
+    row.appendChild(countEl);
     statsTriggerListEl.appendChild(row);
     triggerBars.push([bar, (count / maxTrigger) * 100]);
   }
@@ -725,7 +728,7 @@ async function init() {
 
   // Baseline snapshot -- undoing all the way back lands on the deck as it
   // was when the page loaded, not an empty deck.
-  history = [snapshotDeck()];
+  deckHistory = [snapshotDeck()];
   historyIndex = 0;
   updateUndoRedoButtons();
 }

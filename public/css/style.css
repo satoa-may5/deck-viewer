@@ -1839,20 +1839,12 @@ button {
   border: 1.5px solid var(--danger);
 }
 
-/* Shown when the deck has no thumbnail card set yet -- the whole
-   button/item (frame, text/lines together, since they're one gradient
-   unit) blinks slowly (mostly opaque, brief dip) to draw the eye without
-   being an aggressive on/off flash. Both use the same animation
-   name/timing so toggling their classes together (see js/builder.js) keeps
-   them in sync. Animating the element's own opacity (rather than just an
-   inner piece of it) is deliberate -- it's simpler and doesn't depend on
-   animating a property (SVG child opacity) that turned out not to visibly
-   play in at least one environment. */
-.deck-menu-item.needs-thumbnail,
-.deck-menu-btn.needs-thumbnail {
-  animation: deck-menu-blink 3s ease-in-out infinite;
-}
-
+/* Shown when the deck has no thumbnail card set yet -- the frame stays a
+   static gradient blue; only the content inside it (the item's text, the
+   button's three lines) blinks slowly (mostly opaque, brief dip) to draw
+   the eye without being an aggressive on/off flash. Both inner pieces use
+   the same animation name/timing so toggling their classes together (see
+   js/builder.js) keeps them in sync. */
 .deck-menu-item.needs-thumbnail {
   border: 1.5px solid transparent;
   background-image: linear-gradient(var(--surface), var(--surface)), var(--accent-grad);
@@ -1865,6 +1857,7 @@ button {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  animation: deck-menu-blink 3s ease-in-out infinite;
 }
 
 .deck-menu-btn.needs-thumbnail {
@@ -1876,6 +1869,7 @@ button {
 
 .deck-menu-btn.needs-thumbnail .deck-menu-lines {
   stroke: url(#deck-menu-grad);
+  animation: deck-menu-blink 3s ease-in-out infinite;
 }
 
 @keyframes deck-menu-blink {
@@ -1975,7 +1969,6 @@ button {
   height: 24px;
   background: var(--surface-2);
   border-radius: var(--radius-sm);
-  overflow: visible;
 }
 
 .stats-trigger-bar {
@@ -1989,19 +1982,15 @@ button {
   transition: width 0.45s ease-out;
 }
 
+/* Its own column outside .stats-trigger-bar-wrap (not overlapping the bar)
+   -- a fixed width keeps every row's count at the same x position
+   regardless of that row's bar length. */
 .stats-trigger-count {
-  position: absolute;
-  top: 50%;
-  right: 8px;
-  transform: translateY(-50%);
-  z-index: 1;
+  flex: 0 0 34px;
+  text-align: right;
   font-size: 0.78rem;
   font-weight: 700;
   color: var(--text);
-  /* Readable whether it lands on the plain track (short/zero bars) or on
-     top of the gradient bar (long bars) -- a soft halo of the page's own
-     surface color instead of committing to one text color for both. */
-  text-shadow: 0 0 4px var(--surface), 0 0 4px var(--surface), 0 0 2px var(--surface);
 }
 
 .pane {
