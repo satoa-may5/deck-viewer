@@ -1789,23 +1789,33 @@ button {
   position: relative;
 }
 
+/* Buttons carry non-zero default UA padding that isn't necessarily
+   symmetric -- left uncleared, it can throw off how centered/even the icon
+   inside looks. */
+.deck-menu-btn {
+  padding: 0;
+}
+
 /* Plain CSS bars instead of an SVG icon -- two different SVG-based attempts
    (stroke inherited from a parent <g>, then stroke set directly on each
    <line>) both turned out not to actually render, for reasons that couldn't
    be pinned down without being able to see it -- this sidesteps SVG
-   rendering entirely. */
+   rendering entirely. gap instead of justify-content:space-between for the
+   spacing between bars -- more predictable than relying on space
+   distribution across flex items that might not all end up the same size. */
 .deck-menu-lines-wrap {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  align-items: stretch;
+  gap: 4px;
   width: 16px;
-  height: 12px;
 }
 
 .deck-menu-lines {
   display: block;
   width: 100%;
   height: 2px;
+  flex: 0 0 2px;
   border-radius: 1px;
   background: var(--text);
 }
