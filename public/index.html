@@ -28,6 +28,7 @@
               <button type="button" class="view-toggle-btn" data-view="grid" title="グリッド表示">▦</button>
             </div>
             <button type="button" class="btn" id="import-pool-btn">カードプールをインポート</button>
+            <button type="button" class="btn" id="export-pool-btn">カードプールをエクスポート</button>
           </div>
           <button type="button" class="ghost-row" id="create-pool-row">＋ カードプールを作る</button>
           <div class="deck-list" id="pool-list"></div>
@@ -52,9 +53,22 @@
           <h2>カードプールをインポート</h2>
           <button type="button" class="icon-btn" id="close-import-modal-btn">✕</button>
         </div>
+        <button type="button" class="ghost-row" id="import-pool-local-row">＋ ローカルからカードプールをインポート</button>
         <div id="import-pool-list"></div>
       </div>
     </div>
+
+    <div class="modal-overlay" id="export-pool-modal" hidden>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2>カードプールをエクスポート</h2>
+          <button type="button" class="icon-btn" id="close-export-modal-btn">✕</button>
+        </div>
+        <div id="export-pool-list"></div>
+      </div>
+    </div>
+
+    <input type="file" id="import-pool-file-input" accept=".dvpool" hidden />
   </div>
 
   <script src="js/api.js"></script>

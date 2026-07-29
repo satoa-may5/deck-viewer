@@ -126,6 +126,19 @@ const Api = {
     return data;
   },
 
+  exportPoolZipUrl(poolId) {
+    return `/api/pools/${encodeURIComponent(poolId)}/export-zip`;
+  },
+
+  async importPoolZip(file) {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch("/api/pools/import-zip", { method: "POST", body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "インポートに失敗しました");
+    return data;
+  },
+
   async getDecks() {
     const res = await fetch("/api/decks");
     return res.json();

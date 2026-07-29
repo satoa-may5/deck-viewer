@@ -732,6 +732,86 @@ async function openImportModal() {
 
 importPoolBtn.addEventListener("click", openImportModal);
 document.getElementById("close-import-modal-btn").addEventListener("click", closeImportModal);
+
+// ---- Import a .dvpool file from the user's own device ----
+
+const importPoolLocalRow = document.getElementById("import-pool-local-row");
+const importPoolFileInput = document.getElementById("import-pool-file-input");
+
+importPoolLocalRow.addEventListener("click", () => importPoolFileInput.click());
+
+importPoolFileInput.addEventListener("change", async () => {
+  const file = importPoolFileInput.files[0];
+  importPoolFileInput.value = "";
+  if (!file) return;
+  try {
+    await Api.importPoolZip(file);
+    closeImportModal();
+    await renderPools();
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+// ---- Export a card pool as a downloadable .dvpool file ----
+
+const exportPoolBtn = document.getElementById("export-pool-btn");
+const exportModal = document.getElementById("export-pool-modal");
+const exportListEl = document.getElementById("export-pool-list");
+
+function closeExportModal() {
+  exportModal.hidden = true;
+}
+
+async function openExportModal() {
+  exportModal.hidden = false;
+  exportListEl.innerHTML = "読み込み中...";
+
+  const pools = await Api.getPools();
+  if (pools.length === 0) {
+    exportListEl.innerHTML = '<div class="empty-state">カードプールがありません。</div>';
+    return;
+  }
+
+  exportListEl.innerHTML = "";
+  for (const pool of pools) {
+    const row = document.createElement("div");
+    row.className = "deck-row";
+
+    const info = document.createElement("div");
+    info.className = "deck-info";
+    const title = document.createElement("strong");
+    title.textContent = pool.name;
+    const small = document.createElement("small");
+    small.textContent = `${pool.cardCount}枚`;
+    info.appendChild(title);
+    info.appendChild(small);
+
+    const exportBtn = document.createElement("button");
+    exportBtn.type = "button";
+    exportBtn.className = "btn primary";
+    exportBtn.textContent = "エクスポート";
+    exportBtn.addEventListener("click", () => {
+      // The endpoint responds with Content-Disposition: attachment, so
+      // navigating an <a> to it downloads the file without leaving this page.
+      const a = document.createElement("a");
+      a.href = Api.exportPoolZipUrl(pool.id);
+      a.click();
+    });
+
+    const main = document.createElement("div");
+    main.className = "deck-row-main";
+    main.appendChild(info);
+
+    row.appendChild(main);
+    row.appendChild(exportBtn);
+    exportListEl.appendChild(row);
+  }
+}
+
+exportPoolBtn.addEventListener("click", openExportModal);
+document.getElementById("close-export-modal-btn").addEventListener("click", closeExportModal);
+bindModalDismissal(exportModal, { onCancel: closeExportModal });
 bindModalDismissal(importModal, { onCancel: closeImportModal });
 
 updateViewToggleUI(poolViewToggle, poolViewMode);
