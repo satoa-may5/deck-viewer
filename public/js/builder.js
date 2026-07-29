@@ -172,21 +172,53 @@ function removeFromDeck(cardId) {
   pushHistory();
 }
 
+// ---- Deck pane menu (サムネイルを設定 / 統計情報を表示) ----
+// A small dropdown rather than two separate buttons in the title row.
+
+const deckMenuBtn = document.getElementById("deck-menu-btn");
+const deckMenuDropdown = document.getElementById("deck-menu-dropdown");
+const deckMenuLines = deckMenuBtn.querySelector(".deck-menu-lines");
+
+function closeDeckMenu() {
+  deckMenuDropdown.hidden = true;
+}
+
+deckMenuBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  deckMenuDropdown.hidden = !deckMenuDropdown.hidden;
+});
+
+document.addEventListener("click", (e) => {
+  if (!deckMenuDropdown.hidden && !e.target.closest(".deck-menu-wrap")) closeDeckMenu();
+});
+
+// Blinking gradient-blue highlight on both the menu button (frame + the
+// three lines) and the "サムネイルを設定" item inside it while the deck has
+// no thumbnail set yet -- kept in sync by toggling both classes together
+// here, in the same tick, using the same CSS animation.
+function updateDeckMenuIndicator() {
+  const needsThumbnail = !deckThumbnailCardId;
+  deckMenuBtn.classList.toggle("needs-thumbnail", needsThumbnail);
+  deckThumbnailModeBtn.classList.toggle("needs-thumbnail", needsThumbnail && !deckThumbnailMode);
+}
+
 // ---- Deck thumbnail selection mode ----
 
 const deckThumbnailModeBtn = document.getElementById("deck-thumbnail-mode-btn");
+const deckThumbnailModeLabel = deckThumbnailModeBtn.querySelector(".deck-menu-item-label");
 let deckThumbnailMode = false;
 
 function enterDeckThumbnailMode() {
   deckThumbnailMode = true;
-  deckThumbnailModeBtn.textContent = "サムネイルにするカードを選択(キャンセル)";
+  deckThumbnailModeLabel.textContent = "サムネイルにするカードを選択(キャンセル)";
   deckThumbnailModeBtn.classList.add("active");
+  closeDeckMenu();
   renderPanes();
 }
 
 function exitDeckThumbnailMode() {
   deckThumbnailMode = false;
-  deckThumbnailModeBtn.textContent = "サムネイルを設定";
+  deckThumbnailModeLabel.textContent = "サムネイルを設定";
   deckThumbnailModeBtn.classList.remove("active");
   renderPanes();
 }
@@ -201,6 +233,87 @@ deckThumbnailModeBtn.addEventListener("click", () => {
   if (deckThumbnailMode) exitDeckThumbnailMode();
   else enterDeckThumbnailMode();
 });
+
+// ---- Deck stats popup (必要エナジー分布 / トリガー内訳) ----
+
+const TRIGGER_LABELS = {
+  active: "アクティブ",
+  drow: "ドロー",
+  final: "ファイナル",
+  get: "ゲット",
+  raid: "レイド",
+  special: "スペシャル",
+  color: "カラー",
+};
+
+const deckStatsBtn = document.getElementById("deck-stats-btn");
+const deckStatsModal = document.getElementById("deck-stats-modal");
+const statsManaCurveEl = document.getElementById("stats-mana-curve");
+const statsTriggerListEl = document.getElementById("stats-trigger-list");
+
+function renderDeckStats() {
+  const cardById = Object.fromEntries(allCards.map((c) => [c.id, c]));
+
+  const buckets = new Array(9).fill(0); // costs 0..7, 8 = "8+"
+  const triggerCounts = { "": 0, ...Object.fromEntries(Object.keys(TRIGGER_LABELS).map((k) => [k, 0])) };
+  for (const [cardId, count] of deckCounts) {
+    const card = cardById[cardId];
+    if (!card) continue;
+    if (card.cost !== null && card.cost !== undefined) {
+      buckets[Math.min(card.cost, 8)] += count;
+    }
+    const trigger = card.trigger || "";
+    triggerCounts[trigger] = (triggerCounts[trigger] || 0) + count;
+  }
+
+  const maxBucket = Math.max(1, ...buckets);
+  statsManaCurveEl.innerHTML = "";
+  buckets.forEach((count, cost) => {
+    const col = document.createElement("div");
+    col.className = "stats-mana-bar-col";
+    const countEl = document.createElement("div");
+    countEl.className = "stats-mana-count";
+    countEl.textContent = count > 0 ? String(count) : "";
+    const bar = document.createElement("div");
+    bar.className = "stats-mana-bar";
+    bar.style.height = `${Math.max((count / maxBucket) * 100, count > 0 ? 3 : 0)}%`;
+    const label = document.createElement("div");
+    label.className = "stats-mana-label";
+    label.textContent = cost === 8 ? "8+" : String(cost);
+    col.appendChild(countEl);
+    col.appendChild(bar);
+    col.appendChild(label);
+    statsManaCurveEl.appendChild(col);
+  });
+
+  statsTriggerListEl.innerHTML = "";
+  const rows = [["", "トリガーなし"], ...Object.entries(TRIGGER_LABELS)];
+  for (const [key, label] of rows) {
+    const row = document.createElement("div");
+    row.className = "stats-trigger-row";
+    const nameEl = document.createElement("span");
+    nameEl.textContent = label;
+    const countEl = document.createElement("strong");
+    countEl.textContent = `${triggerCounts[key] || 0}枚`;
+    row.appendChild(nameEl);
+    row.appendChild(countEl);
+    statsTriggerListEl.appendChild(row);
+  }
+}
+
+function openDeckStats() {
+  closeDeckMenu();
+  renderDeckStats();
+  deckStatsModal.hidden = false;
+}
+
+function closeDeckStats() {
+  deckStatsModal.hidden = true;
+}
+
+deckStatsBtn.addEventListener("click", openDeckStats);
+document.getElementById("deck-stats-close-btn").addEventListener("click", closeDeckStats);
+bindModalDismissal(deckStatsModal, { onCancel: closeDeckStats });
 
 document.getElementById("deck-sort-cost-btn").addEventListener("click", () => {
   const cardById = Object.fromEntries(allCards.map((c) => [c.id, c]));
@@ -473,6 +586,7 @@ function renderPanes() {
 
   const totalCount = [...deckCounts.values()].reduce((sum, count) => sum + count, 0);
   document.getElementById("deck-total-count").textContent = `${totalCount}枚`;
+  updateDeckMenuIndicator();
 
   deckGrid.innerHTML = "";
   for (const [cardId, count] of deckCounts) {

@@ -31,7 +31,31 @@
           <p class="pane-title">デッキ <span id="deck-total-count" class="pane-title-count"></span></p>
           <div class="pane-title-actions">
             <button type="button" class="btn" id="deck-sort-cost-btn">必要エナジーで昇順ソート</button>
-            <button type="button" class="btn" id="deck-thumbnail-mode-btn">サムネイルを設定</button>
+            <div class="deck-menu-wrap">
+              <button type="button" class="icon-btn deck-menu-btn" id="deck-menu-btn" title="メニュー">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke-width="2" stroke-linecap="round">
+                  <defs>
+                    <linearGradient id="deck-menu-grad" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stop-color="#5b6ef5" />
+                      <stop offset="100%" stop-color="#8b5cf6" />
+                    </linearGradient>
+                  </defs>
+                  <g class="deck-menu-lines" stroke="currentColor">
+                    <line x1="4" y1="7" x2="20" y2="7" />
+                    <line x1="4" y1="12" x2="20" y2="12" />
+                    <line x1="4" y1="17" x2="20" y2="17" />
+                  </g>
+                </svg>
+              </button>
+              <div class="deck-menu-dropdown" id="deck-menu-dropdown" hidden>
+                <button type="button" class="deck-menu-item" id="deck-thumbnail-mode-btn">
+                  <span class="deck-menu-item-label">サムネイルを設定</span>
+                </button>
+                <button type="button" class="deck-menu-item" id="deck-stats-btn">
+                  <span class="deck-menu-item-label">統計情報を表示</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
         <div class="builder-grid" id="deck-grid"></div>
@@ -90,6 +114,21 @@
     <div class="builder-bottom-bar">
       <button type="button" class="btn" id="undo-btn" title="元に戻す (Ctrl+Z)" disabled>↺ 元に戻す</button>
       <button type="button" class="btn" id="redo-btn" title="やり直す (Ctrl+Y)" disabled>↻ やり直す</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="deck-stats-modal" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>統計情報</h2>
+        <button type="button" class="icon-btn" id="deck-stats-close-btn">✕</button>
+      </div>
+      <div class="modal-body-vertical">
+        <p class="pane-title">必要エナジー</p>
+        <div class="stats-mana-curve" id="stats-mana-curve"></div>
+        <p class="pane-title">トリガー</p>
+        <div class="stats-trigger-list" id="stats-trigger-list"></div>
+      </div>
     </div>
   </div>
 
