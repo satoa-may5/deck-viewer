@@ -804,8 +804,7 @@ button {
   overflow: hidden;
 }
 
-#thumbnail-mode-btn.active,
-#deck-thumbnail-mode-btn.active {
+#thumbnail-mode-btn.active {
   background: #f5a623;
   border-color: #f5a623;
   color: #fff;
@@ -1825,11 +1824,35 @@ button {
   background: var(--accent-tint);
 }
 
-/* Shown when the deck has no thumbnail card set yet -- a gradient-blue
-   frame/text (menu item) or frame/lines (menu button) that blinks slowly
-   (mostly opaque, brief dip) to draw the eye without being an aggressive
-   on/off flash. Both use the same animation name/timing so toggling their
-   classes together (see js/builder.js) keeps them in sync. */
+/* Selecting the deck's thumbnail card: a blue outline on whatever card is
+   under the pointer, on top of the grid's existing hover lift
+   (.builder-grid .card-item:hover .card-frame, unchanged/untouched here). */
+#deck-grid.thumbnail-select-mode .card-item:hover .card-frame {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Selecting-in-progress state: red instead of the default styling, so it
+   reads as a "cancel" action. */
+.deck-menu-item.active {
+  color: var(--danger);
+  border: 1.5px solid var(--danger);
+}
+
+/* Shown when the deck has no thumbnail card set yet -- the whole
+   button/item (frame, text/lines together, since they're one gradient
+   unit) blinks slowly (mostly opaque, brief dip) to draw the eye without
+   being an aggressive on/off flash. Both use the same animation
+   name/timing so toggling their classes together (see js/builder.js) keeps
+   them in sync. Animating the element's own opacity (rather than just an
+   inner piece of it) is deliberate -- it's simpler and doesn't depend on
+   animating a property (SVG child opacity) that turned out not to visibly
+   play in at least one environment. */
+.deck-menu-item.needs-thumbnail,
+.deck-menu-btn.needs-thumbnail {
+  animation: deck-menu-blink 3s ease-in-out infinite;
+}
+
 .deck-menu-item.needs-thumbnail {
   border: 1.5px solid transparent;
   background-image: linear-gradient(var(--surface), var(--surface)), var(--accent-grad);
@@ -1842,7 +1865,6 @@ button {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: deck-menu-blink 3s ease-in-out infinite;
 }
 
 .deck-menu-btn.needs-thumbnail {
@@ -1854,7 +1876,6 @@ button {
 
 .deck-menu-btn.needs-thumbnail .deck-menu-lines {
   stroke: url(#deck-menu-grad);
-  animation: deck-menu-blink 3s ease-in-out infinite;
 }
 
 @keyframes deck-menu-blink {
@@ -1868,29 +1889,48 @@ button {
   }
 }
 
-/* ---- Deck stats popup (マナカーブ / トリガー内訳) ---- */
+/* ---- Deck stats popup (必要エナジー分布 / トリガー内訳) ---- */
+
+/* .pane-title's own margin-bottom (10px) stacks with .modal-body-vertical's
+   flex gap (14px), leaving each section's title too far from its content
+   below -- this modal only wants the flex gap. */
+#deck-stats-modal .pane-title {
+  margin: 0;
+}
 
 .stats-mana-curve {
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stats-mana-row {
+  display: flex;
   gap: 6px;
-  height: 140px;
-  padding: 8px 4px 0;
+}
+
+.stats-mana-counts-row {
+  height: 1.1em;
+}
+
+.stats-mana-count {
+  flex: 1;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.stats-mana-bars-row {
+  align-items: flex-end;
+  height: 110px;
+  padding-top: 4px;
 }
 
 .stats-mana-bar-col {
   flex: 1;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
   height: 100%;
-}
-
-.stats-mana-count {
-  font-size: 0.75rem;
-  font-weight: 700;
-  min-height: 1.1em;
+  align-items: flex-end;
 }
 
 .stats-mana-bar {
@@ -1898,10 +1938,12 @@ button {
   min-height: 2px;
   border-radius: 4px 4px 0 0;
   background: var(--accent-grad);
+  transition: height 0.45s ease-out;
 }
 
 .stats-mana-label {
-  margin-top: 4px;
+  flex: 1;
+  text-align: center;
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--muted);
@@ -1911,19 +1953,55 @@ button {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  margin-top: 4px;
 }
 
 .stats-trigger-row {
   display: flex;
-  justify-content: space-between;
-  padding: 7px 12px;
-  background: var(--surface-2);
-  border-radius: var(--radius-sm);
-  font-size: 0.85rem;
+  align-items: center;
+  gap: 10px;
 }
 
-.stats-trigger-row strong {
+.stats-trigger-name {
+  flex: 0 0 84px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.stats-trigger-bar-wrap {
+  position: relative;
+  flex: 1;
+  height: 24px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  overflow: visible;
+}
+
+.stats-trigger-bar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 0%;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  background: var(--accent-grad);
+  transition: width 0.45s ease-out;
+}
+
+.stats-trigger-count {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  z-index: 1;
+  font-size: 0.78rem;
   font-weight: 700;
+  color: var(--text);
+  /* Readable whether it lands on the plain track (short/zero bars) or on
+     top of the gradient bar (long bars) -- a soft halo of the page's own
+     surface color instead of committing to one text color for both. */
+  text-shadow: 0 0 4px var(--surface), 0 0 4px var(--surface), 0 0 2px var(--surface);
 }
 
 .pane {

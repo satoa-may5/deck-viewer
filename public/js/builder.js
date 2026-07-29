@@ -210,8 +210,9 @@ let deckThumbnailMode = false;
 
 function enterDeckThumbnailMode() {
   deckThumbnailMode = true;
-  deckThumbnailModeLabel.textContent = "サムネイルにするカードを選択(キャンセル)";
+  deckThumbnailModeLabel.textContent = "選択をキャンセル";
   deckThumbnailModeBtn.classList.add("active");
+  deckGrid.classList.add("thumbnail-select-mode");
   closeDeckMenu();
   renderPanes();
 }
@@ -220,6 +221,7 @@ function exitDeckThumbnailMode() {
   deckThumbnailMode = false;
   deckThumbnailModeLabel.textContent = "サムネイルを設定";
   deckThumbnailModeBtn.classList.remove("active");
+  deckGrid.classList.remove("thumbnail-select-mode");
   renderPanes();
 }
 
@@ -246,10 +248,30 @@ const TRIGGER_LABELS = {
   color: "カラー",
 };
 
+// Display order for the stats popup -- deliberately not the same order as
+// TRIGGER_LABELS (which mirrors the type's internal/alphabetical grouping).
+const TRIGGER_DISPLAY_ORDER = ["", "get", "drow", "active", "raid", "color", "special", "final"];
+
 const deckStatsBtn = document.getElementById("deck-stats-btn");
 const deckStatsModal = document.getElementById("deck-stats-modal");
 const statsManaCurveEl = document.getElementById("stats-mana-curve");
 const statsTriggerListEl = document.getElementById("stats-trigger-list");
+
+// Bars start at 0 and grow to their real size on the next frame, so the
+// width/height CSS transition (see .stats-mana-bar/.stats-trigger-bar,
+// ease-out -- fast then decelerating) actually plays instead of snapping
+// straight to the final size.
+function animateGrow(el, prop, targetValue) {
+  el.style[prop] = "0%";
+  // A single rAF often isn't enough to guarantee the "0%" above was actually
+  // painted before the target value is applied (both can land in the same
+  // frame, which skips the transition entirely and just snaps to the final
+  // size) -- a short timeout is a more reliable way to force that first
+  // frame in before triggering the transition.
+  setTimeout(() => {
+    el.style[prop] = targetValue;
+  }, 20);
+}
 
 function renderDeckStats() {
   const cardById = Object.fromEntries(allCards.map((c) => [c.id, c]));
@@ -268,37 +290,65 @@ function renderDeckStats() {
 
   const maxBucket = Math.max(1, ...buckets);
   statsManaCurveEl.innerHTML = "";
+
+  const countsRow = document.createElement("div");
+  countsRow.className = "stats-mana-row stats-mana-counts-row";
+  const barsRow = document.createElement("div");
+  barsRow.className = "stats-mana-row stats-mana-bars-row";
+  const labelsRow = document.createElement("div");
+  labelsRow.className = "stats-mana-row stats-mana-labels-row";
+
+  const bars = [];
   buckets.forEach((count, cost) => {
-    const col = document.createElement("div");
-    col.className = "stats-mana-bar-col";
     const countEl = document.createElement("div");
     countEl.className = "stats-mana-count";
     countEl.textContent = count > 0 ? String(count) : "";
+    countsRow.appendChild(countEl);
+
+    const barCol = document.createElement("div");
+    barCol.className = "stats-mana-bar-col";
     const bar = document.createElement("div");
     bar.className = "stats-mana-bar";
-    bar.style.height = `${Math.max((count / maxBucket) * 100, count > 0 ? 3 : 0)}%`;
+    barCol.appendChild(bar);
+    barsRow.appendChild(barCol);
+    bars.push([bar, Math.max((count / maxBucket) * 100, count > 0 ? 3 : 0)]);
+
     const label = document.createElement("div");
     label.className = "stats-mana-label";
     label.textContent = cost === 8 ? "8+" : String(cost);
-    col.appendChild(countEl);
-    col.appendChild(bar);
-    col.appendChild(label);
-    statsManaCurveEl.appendChild(col);
+    labelsRow.appendChild(label);
   });
 
+  statsManaCurveEl.appendChild(countsRow);
+  statsManaCurveEl.appendChild(barsRow);
+  statsManaCurveEl.appendChild(labelsRow);
+  for (const [bar, pct] of bars) animateGrow(bar, "height", `${pct}%`);
+
   statsTriggerListEl.innerHTML = "";
-  const rows = [["", "トリガーなし"], ...Object.entries(TRIGGER_LABELS)];
-  for (const [key, label] of rows) {
+  const maxTrigger = Math.max(1, ...Object.values(triggerCounts));
+  const triggerBars = [];
+  for (const key of TRIGGER_DISPLAY_ORDER) {
+    const count = triggerCounts[key] || 0;
     const row = document.createElement("div");
     row.className = "stats-trigger-row";
     const nameEl = document.createElement("span");
-    nameEl.textContent = label;
+    nameEl.className = "stats-trigger-name";
+    nameEl.textContent = key === "" ? "トリガーなし" : TRIGGER_LABELS[key];
+    const barWrap = document.createElement("div");
+    barWrap.className = "stats-trigger-bar-wrap";
+    const bar = document.createElement("div");
+    bar.className = "stats-trigger-bar";
     const countEl = document.createElement("strong");
-    countEl.textContent = `${triggerCounts[key] || 0}枚`;
+    countEl.className = "stats-trigger-count";
+    countEl.textContent = `${count}枚`;
+    barWrap.appendChild(bar);
+    barWrap.appendChild(countEl);
     row.appendChild(nameEl);
-    row.appendChild(countEl);
+    row.appendChild(barWrap);
     statsTriggerListEl.appendChild(row);
+    triggerBars.push([bar, (count / maxTrigger) * 100]);
   }
+  for (const [bar, pct] of triggerBars) animateGrow(bar, "width", `${pct}%`);
 }
 
 function openDeckStats() {
