@@ -114,6 +114,12 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 15 * 1024 * 1024 },
 });
+// A pool export bundles every card's image into one zip, easily well past a
+// single card image's 15MB limit above for any pool of real size.
+const uploadZip = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 500 * 1024 * 1024 },
+});
 
 // ---- Card pools ----
 
@@ -465,7 +471,7 @@ app.get("/api/pools/:id/export-zip", (req, res) => {
   res.send(zip.toBuffer());
 });
 
-app.post("/api/pools/import-zip", upload.single("file"), (req, res) => {
+app.post("/api/pools/import-zip", uploadZip.single("file"), (req, res) => {
   if (!req.file) return res.status(400).json({ error: "ファイルが送信されていません" });
 
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dv-pool-import-"));
@@ -987,6 +993,19 @@ app.delete("/api/decks/:id", (req, res) => {
   if (!fs.existsSync(file)) return res.status(404).json({ error: "デッキが見つかりません" });
   fs.unlinkSync(file);
   res.status(204).end();
+});
+
+// Without this, a Multer error (e.g. a file over the configured size limit)
+// falls through to Express's default HTML error page instead of the JSON
+// every client here expects -- res.json() on the client then fails with
+// "Unexpected token '<', "<!DOCTYPE "... is not valid JSON", masking the
+// real "file too large" cause.
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    const message = err.code === "LIMIT_FILE_SIZE" ? "ファイルサイズが大きすぎます" : err.message;
+    return res.status(400).json({ error: message });
+  }
+  next(err);
 });
 
 function openBrowser(url) {
