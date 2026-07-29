@@ -180,7 +180,6 @@ function removeFromDeck(cardId) {
 
 const deckMenuBtn = document.getElementById("deck-menu-btn");
 const deckMenuDropdown = document.getElementById("deck-menu-dropdown");
-const deckMenuLines = deckMenuBtn.querySelector(".deck-menu-lines");
 
 function closeDeckMenu() {
   deckMenuDropdown.hidden = true;

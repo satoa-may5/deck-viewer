@@ -1789,17 +1789,25 @@ button {
   position: relative;
 }
 
-.deck-menu-btn svg {
-  display: block;
+/* Plain CSS bars instead of an SVG icon -- two different SVG-based attempts
+   (stroke inherited from a parent <g>, then stroke set directly on each
+   <line>) both turned out not to actually render, for reasons that couldn't
+   be pinned down without being able to see it -- this sidesteps SVG
+   rendering entirely. */
+.deck-menu-lines-wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 16px;
+  height: 12px;
 }
 
-/* Set directly on each <line> via CSS rather than relying on a parent <g>'s
-   stroke="currentColor" attribute to inherit down -- that inheritance
-   turned out not to render the lines visibly at all in practice. */
 .deck-menu-lines {
-  stroke: var(--text);
-  stroke-width: 2;
-  stroke-linecap: round;
+  display: block;
+  width: 100%;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--text);
 }
 
 .deck-menu-dropdown {
@@ -1877,7 +1885,7 @@ button {
 }
 
 .deck-menu-btn.needs-thumbnail .deck-menu-lines {
-  stroke: url(#deck-menu-grad);
+  background: var(--accent-grad);
   animation: deck-menu-blink 3s ease-in-out infinite;
 }
 
