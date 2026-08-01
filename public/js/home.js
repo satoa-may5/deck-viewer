@@ -203,10 +203,10 @@ async function toggleDeckFavorite(deck) {
   await renderDecks();
 }
 
-function createDeckFavoriteBtn(deck) {
+function createDeckFavoriteBtn(deck, { overlay = false } = {}) {
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "icon-btn favorite";
+  btn.className = overlay ? "icon-btn favorite card-frame-favorite-btn" : "icon-btn favorite";
   btn.classList.toggle("active", Boolean(deck.favorite));
   btn.title = deck.favorite ? "お気に入りから外す" : "お気に入りに追加";
   btn.textContent = deck.favorite ? "★" : "☆";
@@ -339,6 +339,7 @@ function createDeckGridItem(deck) {
   const frame = createThumbnailFrame(deck.thumbnailUrl, deck.name, () => {
     location.href = `builder.html?id=${encodeURIComponent(deck.id)}`;
   });
+  frame.appendChild(createDeckFavoriteBtn(deck, { overlay: true }));
   item.appendChild(frame);
 
   const caption = document.createElement("div");
@@ -411,7 +412,6 @@ function createDeckGridItem(deck) {
     await renderDecks();
   });
 
-  tileActions.appendChild(createDeckFavoriteBtn(deck));
   tileActions.appendChild(viewBtn);
   tileActions.appendChild(renameBtn);
   tileActions.appendChild(copyBtn);
@@ -462,10 +462,10 @@ async function toggleFavorite(pool) {
   await renderPools();
 }
 
-function createFavoriteBtn(pool) {
+function createFavoriteBtn(pool, { overlay = false } = {}) {
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "icon-btn favorite";
+  btn.className = overlay ? "icon-btn favorite card-frame-favorite-btn" : "icon-btn favorite";
   btn.classList.toggle("active", Boolean(pool.favorite));
   btn.title = pool.favorite ? "お気に入りから外す" : "お気に入りに追加";
   btn.textContent = pool.favorite ? "★" : "☆";
@@ -605,6 +605,7 @@ function createPoolGridItem(pool) {
   const frame = createThumbnailFrame(pool.thumbnailUrl, pool.name, () => {
     location.href = `pool-detail.html?id=${encodeURIComponent(pool.id)}`;
   });
+  frame.appendChild(createFavoriteBtn(pool, { overlay: true }));
 
   item.appendChild(frame);
 
@@ -649,7 +650,6 @@ function createPoolGridItem(pool) {
     await renderPools();
   });
 
-  tileActions.appendChild(createFavoriteBtn(pool));
   tileActions.appendChild(renameBtn);
   tileActions.appendChild(deleteBtn);
   item.appendChild(tileActions);
