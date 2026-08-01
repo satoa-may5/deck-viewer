@@ -321,6 +321,25 @@ button {
   border-color: var(--danger);
 }
 
+.icon-btn.favorite {
+  color: var(--muted);
+}
+
+.icon-btn.favorite.active {
+  color: #f5a623;
+  border-color: #f5a623;
+}
+
+.icon-btn.favorite.active:hover {
+  background: rgba(245, 166, 35, 0.12);
+}
+
+.favorites-only-btn.active {
+  background: #f5a623;
+  border-color: #f5a623;
+  color: #fff;
+}
+
 .btn.danger {
   color: var(--danger);
   border-color: var(--danger);

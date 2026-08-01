@@ -1,12 +1,5 @@
 [
   {
-    "id": "pool-1784891844675",
-    "name": "[UA] 仮面ライダー",
-    "favorite": false,
-    "thumbnailCardId": "card-1784891845141",
-    "createdAt": "2026-07-24T11:17:24.675Z"
-  },
-  {
     "id": "pool-1784932821100",
     "name": "[UA] 魔都精兵のスレイブ",
     "favorite": false,
@@ -40,5 +33,12 @@
     "favorite": false,
     "thumbnailCardId": "card-1785264375673",
     "createdAt": "2026-07-28T18:46:15.363Z"
+  },
+  {
+    "id": "pool-1785592644964",
+    "name": "[UA] 仮面ライダー",
+    "favorite": false,
+    "thumbnailCardId": "card-1785592645538",
+    "createdAt": "2026-08-01T13:57:24.964Z"
   }
 ]

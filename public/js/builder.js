@@ -683,13 +683,37 @@ function cardMatchesFilters(card) {
   return true;
 }
 
+const POOL_PICKER_FAVORITES_ONLY_KEY = "deck-viewer-pool-picker-favorites-only";
+let poolPickerFavoritesOnly = localStorage.getItem(POOL_PICKER_FAVORITES_ONLY_KEY) === "true";
+const poolPickerFavoritesOnlyBtn = document.getElementById("pool-picker-favorites-only-btn");
+
+function updatePoolPickerFavoritesOnlyUI() {
+  poolPickerFavoritesOnlyBtn.classList.toggle("active", poolPickerFavoritesOnly);
+  poolPickerFavoritesOnlyBtn.setAttribute("aria-pressed", String(poolPickerFavoritesOnly));
+}
+
+poolPickerFavoritesOnlyBtn.addEventListener("click", () => {
+  poolPickerFavoritesOnly = !poolPickerFavoritesOnly;
+  localStorage.setItem(POOL_PICKER_FAVORITES_ONLY_KEY, String(poolPickerFavoritesOnly));
+  updatePoolPickerFavoritesOnlyUI();
+  renderPoolPicker();
+});
+
 function renderPoolPicker() {
+  updatePoolPickerFavoritesOnlyUI();
   poolCheckboxList.innerHTML = "";
   if (allPools.length === 0) {
     poolCheckboxList.innerHTML = '<div class="empty-state">カードプールがありません。「カードプール管理」から作成してください。</div>';
     return;
   }
-  for (const pool of allPools) {
+  // 絞り込みは選択肢の表示/非表示だけに影響する(既に選択中のプールがお気に入りで
+  // なくなっても選択状態自体は保持される、他の絞り込み機能と同じ挙動)。
+  const visiblePools = poolPickerFavoritesOnly ? allPools.filter((p) => p.favorite) : allPools;
+  if (visiblePools.length === 0) {
+    poolCheckboxList.innerHTML = '<div class="empty-state">お気に入りのカードプールがありません。</div>';
+    return;
+  }
+  for (const pool of visiblePools) {
     const toggle = document.createElement("button");
     toggle.type = "button";
     toggle.className = "pool-toggle";

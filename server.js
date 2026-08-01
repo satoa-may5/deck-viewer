@@ -926,6 +926,7 @@ app.get("/api/decks", (req, res) => {
     .map((d) => ({
       id: d.id,
       name: d.name,
+      favorite: Boolean(d.favorite),
       totalCount: d.cards.reduce((sum, c) => sum + c.count, 0),
       thumbnailUrl: cardImageUrl(cards.find((c) => c.id === d.thumbnailCardId)),
       updatedAt: d.updatedAt,
@@ -970,6 +971,17 @@ app.post("/api/decks", (req, res) => {
   };
   writeDeck(deck);
   res.status(200).json(deck);
+});
+
+app.patch("/api/decks/:id", (req, res) => {
+  const deck = readDeck(req.params.id);
+  if (!deck) return res.status(404).json({ error: "デッキが見つかりません" });
+  if (req.body.favorite !== undefined) {
+    deck.favorite = Boolean(req.body.favorite);
+  }
+  deck.updatedAt = new Date().toISOString();
+  writeDeck(deck);
+  res.json(deck);
 });
 
 app.post("/api/decks/reorder", (req, res) => {

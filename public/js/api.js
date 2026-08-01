@@ -161,6 +161,17 @@ const Api = {
     return data;
   },
 
+  async updateDeck(id, patch) {
+    const res = await fetch(`/api/decks/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "デッキの更新に失敗しました");
+    return data;
+  },
+
   async deleteDeck(id) {
     await fetch(`/api/decks/${encodeURIComponent(id)}`, { method: "DELETE" });
   },

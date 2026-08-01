@@ -182,13 +182,55 @@ function createThumbnailFrame(thumbnailUrl, name, onClick) {
 
 // ---- Decks ----
 
+const DECK_FAVORITES_ONLY_KEY = "deck-viewer-deck-favorites-only";
+let deckFavoritesOnly = localStorage.getItem(DECK_FAVORITES_ONLY_KEY) === "true";
+const deckFavoritesOnlyBtn = document.getElementById("deck-favorites-only-btn");
+
+function updateDeckFavoritesOnlyUI() {
+  deckFavoritesOnlyBtn.classList.toggle("active", deckFavoritesOnly);
+  deckFavoritesOnlyBtn.setAttribute("aria-pressed", String(deckFavoritesOnly));
+}
+
+deckFavoritesOnlyBtn.addEventListener("click", () => {
+  deckFavoritesOnly = !deckFavoritesOnly;
+  localStorage.setItem(DECK_FAVORITES_ONLY_KEY, String(deckFavoritesOnly));
+  updateDeckFavoritesOnlyUI();
+  renderDecks();
+});
+
+async function toggleDeckFavorite(deck) {
+  await Api.updateDeck(deck.id, { favorite: !deck.favorite });
+  await renderDecks();
+}
+
+function createDeckFavoriteBtn(deck) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "icon-btn favorite";
+  btn.classList.toggle("active", Boolean(deck.favorite));
+  btn.title = deck.favorite ? "お気に入りから外す" : "お気に入りに追加";
+  btn.textContent = deck.favorite ? "★" : "☆";
+  btn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    await toggleDeckFavorite(deck);
+  });
+  return btn;
+}
+
 async function renderDecks() {
-  const decks = await Api.getDecks();
+  updateDeckFavoritesOnlyUI();
+  let decks = await Api.getDecks();
+  if (deckFavoritesOnly) decks = decks.filter((d) => d.favorite);
   if (decks.length === 0) {
     deckListEl.className = "";
-    deckListEl.innerHTML = '<div class="empty-state">まだデッキがありません。上の「＋ デッキを作る」から作成してください。</div>';
+    deckListEl.innerHTML = deckFavoritesOnly
+      ? '<div class="empty-state">お気に入りのデッキがありません。</div>'
+      : '<div class="empty-state">まだデッキがありません。上の「＋ デッキを作る」から作成してください。</div>';
     return;
   }
+  // お気に入りを常に先頭にまとめる(グループ内の並びはドラッグで決めた順序のまま
+  // 保たれるよう、安定ソートで favorite の有無だけを見る)。
+  decks = decks.slice().sort((a, b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
   if (deckViewMode === "grid") {
     deckListEl.className = "grid";
     deckListEl.innerHTML = "";
@@ -277,6 +319,7 @@ function createDeckRow(deck) {
 
   const menu = createMenu(deckMenuActions(deck, row));
 
+  actions.appendChild(createDeckFavoriteBtn(deck));
   actions.appendChild(viewLink);
   actions.appendChild(editLink);
   actions.appendChild(menu);
@@ -371,6 +414,7 @@ function createDeckGridItem(deck) {
     await renderDecks();
   });
 
+  tileActions.appendChild(createDeckFavoriteBtn(deck));
   tileActions.appendChild(viewBtn);
   tileActions.appendChild(renameBtn);
   tileActions.appendChild(copyBtn);
@@ -400,13 +444,55 @@ makeSortable(deckListEl, {
 
 // ---- Card pools ----
 
+const POOL_FAVORITES_ONLY_KEY = "deck-viewer-pool-favorites-only";
+let poolFavoritesOnly = localStorage.getItem(POOL_FAVORITES_ONLY_KEY) === "true";
+const poolFavoritesOnlyBtn = document.getElementById("pool-favorites-only-btn");
+
+function updatePoolFavoritesOnlyUI() {
+  poolFavoritesOnlyBtn.classList.toggle("active", poolFavoritesOnly);
+  poolFavoritesOnlyBtn.setAttribute("aria-pressed", String(poolFavoritesOnly));
+}
+
+poolFavoritesOnlyBtn.addEventListener("click", () => {
+  poolFavoritesOnly = !poolFavoritesOnly;
+  localStorage.setItem(POOL_FAVORITES_ONLY_KEY, String(poolFavoritesOnly));
+  updatePoolFavoritesOnlyUI();
+  renderPools();
+});
+
+async function toggleFavorite(pool) {
+  await Api.updatePool(pool.id, { favorite: !pool.favorite });
+  await renderPools();
+}
+
+function createFavoriteBtn(pool) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "icon-btn favorite";
+  btn.classList.toggle("active", Boolean(pool.favorite));
+  btn.title = pool.favorite ? "お気に入りから外す" : "お気に入りに追加";
+  btn.textContent = pool.favorite ? "★" : "☆";
+  btn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    await toggleFavorite(pool);
+  });
+  return btn;
+}
+
 async function renderPools() {
-  const pools = await Api.getPools();
+  updatePoolFavoritesOnlyUI();
+  let pools = await Api.getPools();
+  if (poolFavoritesOnly) pools = pools.filter((p) => p.favorite);
   if (pools.length === 0) {
     poolListEl.className = "";
-    poolListEl.innerHTML = '<div class="empty-state">まだカードプールがありません。上の「＋ カードプールを作る」から作成してください。</div>';
+    poolListEl.innerHTML = poolFavoritesOnly
+      ? '<div class="empty-state">お気に入りのカードプールがありません。</div>'
+      : '<div class="empty-state">まだカードプールがありません。上の「＋ カードプールを作る」から作成してください。</div>';
     return;
   }
+  // お気に入りを常に先頭にまとめる(グループ内の並びはドラッグで決めた順序のまま
+  // 保たれるよう、安定ソートで favorite の有無だけを見る)。
+  pools = pools.slice().sort((a, b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
   if (poolViewMode === "grid") {
     poolListEl.className = "grid";
     poolListEl.innerHTML = "";
@@ -503,6 +589,7 @@ function createPoolRow(pool) {
     await renderPools();
   });
 
+  actions.appendChild(createFavoriteBtn(pool));
   actions.appendChild(renameBtn);
   actions.appendChild(deleteBtn);
 
@@ -568,6 +655,7 @@ function createPoolGridItem(pool) {
     await renderPools();
   });
 
+  tileActions.appendChild(createFavoriteBtn(pool));
   tileActions.appendChild(renameBtn);
   tileActions.appendChild(deleteBtn);
   item.appendChild(tileActions);
