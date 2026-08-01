@@ -995,6 +995,157 @@ app.delete("/api/decks/:id", (req, res) => {
   res.status(204).end();
 });
 
+// ---- Deck export/import as a downloadable .dvdeck file ----
+//
+// A deck only ever references card ids that belong to whatever pool(s) it
+// was built from -- meaningless on a different install where those ids
+// don't exist. So exporting bundles each referenced card's own data +
+// image (not just the deck's own {cardId,count} list), and importing
+// recreates those cards fresh (new ids) in a brand-new pool made just for
+// this deck, then points the new deck at that.
+
+app.get("/api/decks/:id/export-zip", (req, res) => {
+  const deck = readDeck(req.params.id);
+  if (!deck) return res.status(404).json({ error: "デッキが見つかりません" });
+
+  const cardsById = new Map(readCards().map((c) => [c.id, c]));
+
+  const zip = new AdmZip();
+  const manifestCards = [];
+  let thumbnailImage = null;
+  for (const entry of deck.cards) {
+    const card = cardsById.get(entry.cardId);
+    if (!card || !card.imageExt) continue; // stale/orphaned reference -- skip, don't fail the whole export
+    const srcImage = path.join(IMAGES_DIR, `${card.id}.${card.imageExt}`);
+    if (!fs.existsSync(srcImage)) continue;
+    const imageName = `${card.id}.${card.imageExt}`;
+    zip.addFile(`images/${imageName}`, fs.readFileSync(srcImage));
+    manifestCards.push({
+      name: card.name,
+      cost: card.cost,
+      color: card.color || "",
+      parallel: Boolean(card.parallel),
+      type: normalizeCardType(card.type),
+      trigger: normalizeTrigger(card.trigger),
+      count: entry.count,
+      image: imageName,
+    });
+    if (card.id === deck.thumbnailCardId) thumbnailImage = imageName;
+  }
+
+  const manifest = {
+    deckName: deck.name,
+    thumbnail: thumbnailImage,
+    exportedAt: new Date().toISOString(),
+    cards: manifestCards,
+  };
+  zip.addFile("deck.json", Buffer.from(JSON.stringify(manifest, null, 2) + "\n"));
+
+  const filename = `${deck.name}.dvdeck`;
+  res.set({
+    "Content-Type": "application/octet-stream",
+    "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+  });
+  res.send(zip.toBuffer());
+});
+
+app.post("/api/decks/import-zip", uploadZip.single("file"), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "ファイルが送信されていません" });
+
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dv-deck-import-"));
+  try {
+    const zip = new AdmZip(req.file.buffer);
+    zip.extractAllTo(tempDir, true);
+  } catch (err) {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    return res.status(400).json({ error: "エクスポートファイルの読み込みに失敗しました" });
+  }
+
+  try {
+    const manifestFile = path.join(tempDir, "deck.json");
+    if (!fs.existsSync(manifestFile)) {
+      return res.status(400).json({ error: "deck.jsonの形式が不正です" });
+    }
+    let manifest;
+    try {
+      manifest = JSON.parse(fs.readFileSync(manifestFile, "utf8"));
+    } catch (err) {
+      return res.status(400).json({ error: "deck.jsonの形式が不正です" });
+    }
+    const manifestCards = Array.isArray(manifest.cards) ? manifest.cards : [];
+    if (manifestCards.length === 0) {
+      return res.status(400).json({ error: "インポートできるカードが見つかりません" });
+    }
+
+    const deckName = (req.body && req.body.name && req.body.name.trim()) || manifest.deckName || "インポートしたデッキ";
+
+    // A deck can't exist without its cards living in some pool -- give this
+    // import a fresh one of its own rather than trying to merge into an
+    // existing pool.
+    const pools = readPools();
+    const newPool = {
+      id: `pool-${Date.now()}`,
+      name: uniqueName(`${deckName} のカード`, pools.map((p) => p.name)),
+      favorite: false,
+      thumbnailCardId: null,
+      createdAt: new Date().toISOString(),
+    };
+    pools.push(newPool);
+
+    const cards = readCards();
+    let order = nextCardOrder(cards);
+    const imagesFolder = path.join(tempDir, "images");
+    const deckCards = [];
+    let thumbnailCardId = null;
+    manifestCards.forEach((item, index) => {
+      if (!item || !item.image) return;
+      const srcImage = path.join(imagesFolder, item.image);
+      if (!fs.existsSync(srcImage)) return;
+      const ext = path.extname(item.image).slice(1);
+      const id = `card-${Date.now() + index}`;
+      fs.writeFileSync(path.join(IMAGES_DIR, `${id}.${ext}`), fs.readFileSync(srcImage));
+      cards.push({
+        id,
+        name: (item.name && String(item.name).trim()) || defaultNameFromImage(item.image),
+        cost: item.cost ?? null,
+        color: (item.color && String(item.color).trim()) || "",
+        parallel: Boolean(item.parallel),
+        type: normalizeCardType(item.type),
+        trigger: normalizeTrigger(item.trigger),
+        poolId: newPool.id,
+        imageExt: ext,
+        order: order++,
+        createdAt: new Date().toISOString(),
+      });
+      const count = Number.isFinite(item.count) && item.count > 0 ? Math.floor(item.count) : 1;
+      deckCards.push({ cardId: id, count });
+      if (manifest.thumbnail && item.image === manifest.thumbnail) thumbnailCardId = id;
+    });
+    if (deckCards.length === 0) {
+      return res.status(400).json({ error: "インポートできる画像が見つかりません" });
+    }
+    newPool.thumbnailCardId = thumbnailCardId;
+    writePools(pools);
+    writeCards(cards);
+
+    const otherDeckNames = listDecks().map((d) => d.name);
+    const deck = {
+      id: `deck-${Date.now()}`,
+      name: uniqueName(deckName, otherDeckNames),
+      poolIds: [newPool.id],
+      cards: deckCards,
+      thumbnailCardId,
+      order: nextDeckOrder(),
+      updatedAt: new Date().toISOString(),
+    };
+    writeDeck(deck);
+
+    res.status(201).json({ deck, pool: newPool, cardCount: deckCards.length });
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
 // Without this, a Multer error (e.g. a file over the configured size limit)
 // falls through to Express's default HTML error page instead of the JSON
 // every client here expects -- res.json() on the client then fails with

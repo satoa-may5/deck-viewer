@@ -367,6 +367,47 @@ deckStatsBtn.addEventListener("click", openDeckStats);
 document.getElementById("deck-stats-close-btn").addEventListener("click", closeDeckStats);
 bindModalDismissal(deckStatsModal, { onCancel: closeDeckStats });
 
+// ---- Deck export/import as a .dvdeck zip file ----
+
+const deckExportZipBtn = document.getElementById("deck-export-zip-btn");
+const deckImportZipBtn = document.getElementById("deck-import-zip-btn");
+const deckImportZipInput = document.getElementById("deck-import-zip-input");
+
+deckExportZipBtn.addEventListener("click", () => {
+  closeDeckMenu();
+  if (!deckId) {
+    saveStatus.textContent = "エクスポートする前に一度保存してください";
+    saveStatus.className = "status-message error";
+    return;
+  }
+  const a = document.createElement("a");
+  a.href = Api.exportDeckZipUrl(deckId);
+  a.download = "";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+});
+
+deckImportZipBtn.addEventListener("click", () => {
+  closeDeckMenu();
+  deckImportZipInput.click();
+});
+
+deckImportZipInput.addEventListener("change", async () => {
+  const file = deckImportZipInput.files[0];
+  deckImportZipInput.value = "";
+  if (!file) return;
+  const result = await showConfirm("現在の変更は破棄されますがよろしいですか？", { confirmText: "インポート" });
+  if (!result.confirmed) return;
+  try {
+    const { deck } = await Api.importDeckZip(file);
+    location.href = `builder.html?id=${encodeURIComponent(deck.id)}`;
+  } catch (err) {
+    saveStatus.textContent = err.message;
+    saveStatus.className = "status-message error";
+  }
+});
+
 document.getElementById("deck-sort-cost-btn").addEventListener("click", () => {
   const cardById = Object.fromEntries(allCards.map((c) => [c.id, c]));
   const entries = [...deckCounts.entries()].sort(([idA], [idB]) => {

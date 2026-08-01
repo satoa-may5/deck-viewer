@@ -173,6 +173,20 @@ const Api = {
     });
   },
 
+  exportDeckZipUrl(deckId) {
+    return `/api/decks/${encodeURIComponent(deckId)}/export-zip`;
+  },
+
+  async importDeckZip(file, name) {
+    const form = new FormData();
+    form.append("file", file);
+    if (name) form.append("name", name);
+    const res = await fetch("/api/decks/import-zip", { method: "POST", body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "インポートに失敗しました");
+    return data;
+  },
+
   cardImageUrl(card) {
     return `/images/${card.id}.${card.imageExt}`;
   },

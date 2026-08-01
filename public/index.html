@@ -40,12 +40,15 @@
               <button type="button" class="view-toggle-btn" data-view="list" title="一覧表示">☰</button>
               <button type="button" class="view-toggle-btn" data-view="grid" title="グリッド表示">▦</button>
             </div>
+            <button type="button" class="btn" id="import-deck-btn">デッキをインポート</button>
           </div>
           <button type="button" class="ghost-row" id="create-deck-row">＋ デッキを作る</button>
           <div class="deck-list" id="deck-list"></div>
         </div>
       </div>
     </div>
+
+    <input type="file" id="import-deck-file-input" accept=".dvdeck" hidden />
 
     <div class="modal-overlay" id="import-pool-modal" hidden>
       <div class="modal-card">

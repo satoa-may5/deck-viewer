@@ -814,6 +814,25 @@ document.getElementById("close-export-modal-btn").addEventListener("click", clos
 bindModalDismissal(exportModal, { onCancel: closeExportModal });
 bindModalDismissal(importModal, { onCancel: closeImportModal });
 
+// ---- Import a .dvdeck file from the user's own device ----
+
+const importDeckBtn = document.getElementById("import-deck-btn");
+const importDeckFileInput = document.getElementById("import-deck-file-input");
+
+importDeckBtn.addEventListener("click", () => importDeckFileInput.click());
+
+importDeckFileInput.addEventListener("change", async () => {
+  const file = importDeckFileInput.files[0];
+  importDeckFileInput.value = "";
+  if (!file) return;
+  try {
+    await Api.importDeckZip(file);
+    await renderDecks();
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
 updateViewToggleUI(poolViewToggle, poolViewMode);
 updateViewToggleUI(deckViewToggle, deckViewMode);
 setActiveTab(activeTab);
