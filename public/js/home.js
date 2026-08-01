@@ -180,6 +180,25 @@ function createThumbnailFrame(thumbnailUrl, name, onClick) {
   return frame;
 }
 
+// 一覧表示(横並びの行)用の小さいサムネイル。グリッド表示の.card-frameと同じ
+// 画像/欠落時のフォールバック方針だが、クリックでの遷移は行全体(.deck-info)
+// 側が既に担っているためここには付けない。
+function createRowThumb(thumbnailUrl, name) {
+  const thumb = document.createElement("div");
+  thumb.className = "card-row-thumb";
+  if (thumbnailUrl) {
+    const img = document.createElement("img");
+    img.src = thumbnailUrl;
+    img.alt = name;
+    img.draggable = false;
+    thumb.appendChild(img);
+  } else {
+    thumb.classList.add("missing");
+    thumb.textContent = "🂠";
+  }
+  return thumb;
+}
+
 // ---- Decks ----
 
 const DECK_FAVORITES_ONLY_KEY = "deck-viewer-deck-favorites-only";
@@ -324,6 +343,7 @@ function createDeckRow(deck) {
   const main = document.createElement("div");
   main.className = "deck-row-main";
   main.appendChild(dragHandle());
+  main.appendChild(createRowThumb(deck.thumbnailUrl, deck.name));
   main.appendChild(info);
 
   row.appendChild(main);
@@ -590,6 +610,7 @@ function createPoolRow(pool) {
   const main = document.createElement("div");
   main.className = "deck-row-main";
   main.appendChild(dragHandle());
+  main.appendChild(createRowThumb(pool.thumbnailUrl, pool.name));
   main.appendChild(info);
 
   row.appendChild(main);
