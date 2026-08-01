@@ -334,7 +334,10 @@ button {
   background: rgba(245, 166, 35, 0.12);
 }
 
-.card-frame-favorite-btn {
+/* .icon-btn.favorite だけの2クラス指定より詳細度を上げるため、実際に
+   button に付く3クラス全部を指定している(でないと.icon-btn.favoriteの
+   color: var(--muted)に負けて、暗い背景の上で暗い星が見えなくなる)。 */
+.icon-btn.favorite.card-frame-favorite-btn {
   position: absolute;
   top: 4px;
   right: 4px;
@@ -343,23 +346,25 @@ button {
   height: 26px;
   font-size: 0.85rem;
   background: rgba(20, 21, 26, 0.45);
-  border-color: transparent;
-  color: rgba(255, 255, 255, 0.85);
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.9);
   box-shadow: none;
 }
 
-.card-frame-favorite-btn:hover {
+.icon-btn.favorite.card-frame-favorite-btn:hover {
   background: rgba(20, 21, 26, 0.65);
-  border-color: transparent;
+  border-color: #fff;
   color: #fff;
 }
 
-.card-frame-favorite-btn.active {
+.icon-btn.favorite.active.card-frame-favorite-btn {
   color: #f5a623;
+  border-color: rgba(255, 255, 255, 0.9);
 }
 
-.card-frame-favorite-btn.active:hover {
+.icon-btn.favorite.active.card-frame-favorite-btn:hover {
   background: rgba(20, 21, 26, 0.65);
+  border-color: #fff;
 }
 
 .favorites-only-btn.active {
