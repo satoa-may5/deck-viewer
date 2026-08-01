@@ -1438,12 +1438,29 @@ button {
 
 .pool-checkbox-list {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* お気に入りのみ表示をオン/オフしたときに縦の高さが変わらないよう、中身に
+     応じて伸縮しない固定値にしている(.pool-toggleの実測の高さに合わせた値)。*/
+  height: 40px;
+}
+
+.pool-checkbox-list .empty-state {
+  flex-shrink: 0;
+  padding: 0;
+  text-align: left;
+  background: none;
+  border: none;
+  white-space: nowrap;
+  line-height: 1;
 }
 
 .pool-toggle {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
@@ -1453,6 +1470,7 @@ button {
   color: var(--text);
   font-size: 0.85rem;
   font-weight: 600;
+  white-space: nowrap;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.12s var(--ease);
 }
 

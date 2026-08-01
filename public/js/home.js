@@ -228,9 +228,6 @@ async function renderDecks() {
       : '<div class="empty-state">まだデッキがありません。上の「＋ デッキを作る」から作成してください。</div>';
     return;
   }
-  // お気に入りを常に先頭にまとめる(グループ内の並びはドラッグで決めた順序のまま
-  // 保たれるよう、安定ソートで favorite の有無だけを見る)。
-  decks = decks.slice().sort((a, b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
   if (deckViewMode === "grid") {
     deckListEl.className = "grid";
     deckListEl.innerHTML = "";
@@ -490,9 +487,6 @@ async function renderPools() {
       : '<div class="empty-state">まだカードプールがありません。上の「＋ カードプールを作る」から作成してください。</div>';
     return;
   }
-  // お気に入りを常に先頭にまとめる(グループ内の並びはドラッグで決めた順序のまま
-  // 保たれるよう、安定ソートで favorite の有無だけを見る)。
-  pools = pools.slice().sort((a, b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
   if (poolViewMode === "grid") {
     poolListEl.className = "grid";
     poolListEl.innerHTML = "";
