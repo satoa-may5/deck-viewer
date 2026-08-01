@@ -406,14 +406,19 @@ const COST_RANGE_MAX = 15;
 const filterState = {
   types: new Set(),
   colors: new Set(),
+  triggers: new Set(),
   costMin: COST_RANGE_MIN,
   costMax: COST_RANGE_MAX,
   excludeParallel: false,
+  excludeAllColor: true, // on by default, unlike the other filters -- see updateFilterUI()
 };
 
 const filterTypeGroup = document.getElementById("filter-type-group");
 const filterColorGroup = document.getElementById("filter-color-group");
+const filterTriggerGroup = document.getElementById("filter-trigger-group");
 const filterParallelCheckbox = document.getElementById("filter-parallel-checkbox");
+const filterAllColorWrap = document.getElementById("filter-all-color-wrap");
+const filterAllColorCheckbox = document.getElementById("filter-all-color-checkbox");
 const filterClearBtn = document.getElementById("filter-clear-btn");
 const filterCostMinInput = document.getElementById("filter-cost-min");
 const filterCostMaxInput = document.getElementById("filter-cost-max");
@@ -579,8 +584,24 @@ function updateFilterUI() {
     filterColorGroup.appendChild(pill);
   }
 
+  filterTriggerGroup.innerHTML = "";
+  for (const [value, label] of Object.entries({ "": "トリガーなし", ...TRIGGER_LABELS })) {
+    filterTriggerGroup.appendChild(
+      createFilterCheckbox(label, filterState.triggers.has(value), () => {
+        toggleInSet(filterState.triggers, value);
+        renderPanes();
+      })
+    );
+  }
+
   updateCostSliderUI();
   filterParallelCheckbox.checked = filterState.excludeParallel;
+  // Only shown once there's actually something for it to filter out, same as
+  // pool-detail.js -- scoped to the currently-selected pools' cards, not
+  // every card in the collection.
+  const poolCardsForFilter = allCards.filter((c) => selectedPoolIds.has(c.poolId));
+  filterAllColorWrap.hidden = !poolCardsForFilter.some((c) => c.color === "全て");
+  filterAllColorCheckbox.checked = filterState.excludeAllColor;
 }
 
 filterParallelCheckbox.addEventListener("change", () => {
@@ -588,12 +609,19 @@ filterParallelCheckbox.addEventListener("change", () => {
   renderPanes();
 });
 
+filterAllColorCheckbox.addEventListener("change", () => {
+  filterState.excludeAllColor = filterAllColorCheckbox.checked;
+  renderPanes();
+});
+
 filterClearBtn.addEventListener("click", () => {
   filterState.types.clear();
   filterState.colors.clear();
+  filterState.triggers.clear();
   filterState.costMin = COST_RANGE_MIN;
   filterState.costMax = COST_RANGE_MAX;
   filterState.excludeParallel = false;
+  filterState.excludeAllColor = false;
   updateFilterUI();
   renderPanes();
 });
@@ -602,6 +630,10 @@ function cardMatchesFilters(card) {
   if (filterState.types.size > 0 && !filterState.types.has(card.type)) return false;
   // "全て"(ALL/colorless) cards match every color filter, not just an "全て" pill.
   if (filterState.colors.size > 0 && card.color !== "全て" && !filterState.colors.has(card.color)) return false;
+  if (filterState.excludeAllColor && card.color === "全て") return false;
+  // card.trigger is undefined on cards saved before this field existed --
+  // treat that the same as "" (no trigger) rather than as a non-match.
+  if (filterState.triggers.size > 0 && !filterState.triggers.has(card.trigger || "")) return false;
   if (filterState.costMin > COST_RANGE_MIN || filterState.costMax < COST_RANGE_MAX) {
     if (card.cost === null || card.cost === undefined) return false;
     if (card.cost < filterState.costMin || card.cost > filterState.costMax) return false;
