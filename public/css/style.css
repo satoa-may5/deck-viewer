@@ -1582,7 +1582,7 @@ button {
   grid-row: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .filter-box {
@@ -1603,6 +1603,96 @@ button {
 
 .filter-box-body {
   padding: 10px 12px;
+}
+
+/* 折りたたみ式の絞り込み条件一覧。全条件が閉じた状態でちょうど収まる高さに
+   JS(lockFilterAccordionHeight)で固定し、はみ出した分だけスクロールする
+   (スクロールバー自体は非表示)。 */
+.filter-accordion-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.filter-accordion-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-accordion {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.filter-accordion summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 12px;
+  background: var(--surface-2);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.filter-accordion summary::-webkit-details-marker {
+  display: none;
+}
+
+.filter-accordion summary::after {
+  content: "▼";
+  font-size: 0.65em;
+  color: var(--muted);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.filter-accordion[open] summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.filter-accordion[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.filter-accordion-body {
+  padding: 10px 12px;
+}
+
+.filter-sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* レアリティ/特徴用: ピルを横並びにせず、横幅いっぱいのボタンを縦に積む。 */
+.filter-block-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-block-list .filter-pill {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.filter-pill:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .filter-vertical {

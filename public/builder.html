@@ -72,94 +72,89 @@
           </div>
 
           <aside class="filter-sidebar" id="filter-bar">
-            <div class="filter-box">
-              <div class="filter-box-title">カード名/効果で検索</div>
-              <div class="filter-box-body">
-                <input type="text" id="filter-search-input" placeholder="キーワードを入力" />
-              </div>
-            </div>
+            <div class="filter-accordion-scroll" id="filter-accordion-scroll">
+              <details class="filter-accordion">
+                <summary>カード名/効果で検索</summary>
+                <div class="filter-accordion-body">
+                  <input type="text" id="filter-search-input" placeholder="キーワードを入力" />
+                </div>
+              </details>
 
-            <div class="filter-box">
-              <div class="filter-box-title">タイプ</div>
-              <div class="filter-box-body filter-vertical" id="filter-type-group"></div>
-            </div>
+              <details class="filter-accordion">
+                <summary>カード種類</summary>
+                <div class="filter-accordion-body filter-vertical" id="filter-type-group"></div>
+              </details>
 
-            <div class="filter-box">
-              <div class="filter-box-title">色</div>
-              <div class="filter-box-body filter-horizontal" id="filter-color-group"></div>
-            </div>
-
-            <div class="filter-box">
-              <div class="filter-box-title">レアリティ</div>
-              <div class="filter-box-body filter-pills-wrap" id="filter-rarity-group"></div>
-            </div>
-
-            <div class="filter-box">
-              <div class="filter-box-title">特徴</div>
-              <div class="filter-box-body filter-pills-wrap" id="filter-attribute-group"></div>
-            </div>
-
-            <div class="filter-box">
-              <div class="filter-box-title">トリガー</div>
-              <div class="filter-box-body filter-vertical" id="filter-trigger-group"></div>
-            </div>
-
-            <div class="filter-box">
-              <div class="filter-box-title">必要エナジー</div>
-              <div class="filter-box-body">
-                <div class="range-slider-wrap">
-                  <div class="range-slider-track">
-                    <div class="range-slider-fill" id="filter-cost-fill"></div>
+              <details class="filter-accordion">
+                <summary>カードの色／必要エナジー</summary>
+                <div class="filter-accordion-body">
+                  <div class="filter-horizontal" id="filter-color-group"></div>
+                  <div class="range-slider-wrap" style="margin-top: 10px">
+                    <div class="range-slider-track">
+                      <div class="range-slider-fill" id="filter-cost-fill"></div>
+                    </div>
+                    <input type="range" id="filter-cost-min" min="0" max="15" step="1" value="0" />
+                    <input type="range" id="filter-cost-max" min="0" max="15" step="1" value="15" />
                   </div>
-                  <input type="range" id="filter-cost-min" min="0" max="15" step="1" value="0" />
-                  <input type="range" id="filter-cost-max" min="0" max="15" step="1" value="15" />
-                </div>
-                <div class="range-slider-labels">
-                  <span id="filter-cost-min-label">0</span>
-                  <span id="filter-cost-max-label">15</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="filter-box">
-              <div class="filter-box-title">消費AP</div>
-              <div class="filter-box-body filter-pills-wrap" id="filter-ap-group"></div>
-            </div>
-
-            <div class="filter-box">
-              <div class="filter-box-title">BP</div>
-              <div class="filter-box-body">
-                <div class="range-slider-wrap">
-                  <div class="range-slider-track">
-                    <div class="range-slider-fill" id="filter-bp-fill"></div>
+                  <div class="range-slider-labels">
+                    <span id="filter-cost-min-label">0</span>
+                    <span id="filter-cost-max-label">15</span>
                   </div>
-                  <input type="range" id="filter-bp-min" min="0" max="6000" step="100" value="0" />
-                  <input type="range" id="filter-bp-max" min="0" max="6000" step="100" value="6000" />
                 </div>
-                <div class="range-slider-labels">
-                  <span id="filter-bp-min-label">0</span>
-                  <span id="filter-bp-max-label">6000</span>
+              </details>
+
+              <details class="filter-accordion">
+                <summary>発生エナジー</summary>
+                <div class="filter-accordion-body filter-pills-wrap" id="filter-generated-energy-group"></div>
+              </details>
+
+              <details class="filter-accordion">
+                <summary>消費AP</summary>
+                <div class="filter-accordion-body filter-pills-wrap" id="filter-ap-group"></div>
+              </details>
+
+              <details class="filter-accordion">
+                <summary>BP</summary>
+                <div class="filter-accordion-body">
+                  <div class="range-slider-wrap">
+                    <div class="range-slider-track">
+                      <div class="range-slider-fill" id="filter-bp-fill"></div>
+                    </div>
+                    <input type="range" id="filter-bp-min" min="0" max="500" step="500" value="0" />
+                    <input type="range" id="filter-bp-max" min="0" max="500" step="500" value="500" />
+                  </div>
+                  <div class="range-slider-labels">
+                    <span id="filter-bp-min-label">0</span>
+                    <span id="filter-bp-max-label">500</span>
+                  </div>
                 </div>
-              </div>
+              </details>
+
+              <details class="filter-accordion">
+                <summary>トリガー効果</summary>
+                <div class="filter-accordion-body filter-vertical" id="filter-trigger-group"></div>
+              </details>
+
+              <details class="filter-accordion" id="filter-attribute-accordion">
+                <summary>特徴</summary>
+                <div class="filter-accordion-body filter-block-list" id="filter-attribute-group"></div>
+              </details>
+
+              <details class="filter-accordion" id="filter-rarity-accordion">
+                <summary>レアリティ</summary>
+                <div class="filter-accordion-body filter-block-list" id="filter-rarity-group"></div>
+              </details>
             </div>
 
-            <div class="filter-box">
-              <div class="filter-box-title">発生エナジー</div>
-              <div class="filter-box-body filter-pills-wrap" id="filter-generated-energy-group"></div>
+            <div class="filter-sidebar-footer">
+              <label class="filter-checkbox">
+                <input type="checkbox" id="filter-parallel-checkbox" /> パラレルを除外
+              </label>
+              <label class="filter-checkbox" id="filter-all-color-wrap" hidden>
+                <input type="checkbox" id="filter-all-color-checkbox" /> プロモファイナルを除外
+              </label>
+              <button type="button" class="btn" id="filter-clear-btn">検索条件をリセット</button>
             </div>
-
-            <div class="filter-box">
-              <div class="filter-box-body">
-                <label class="filter-checkbox">
-                  <input type="checkbox" id="filter-parallel-checkbox" /> パラレルを除外
-                </label>
-                <label class="filter-checkbox" id="filter-all-color-wrap" hidden>
-                  <input type="checkbox" id="filter-all-color-checkbox" /> プロモファイナルを除外
-                </label>
-              </div>
-            </div>
-
-            <button type="button" class="btn" id="filter-clear-btn">リセット</button>
           </aside>
         </div>
       </div>

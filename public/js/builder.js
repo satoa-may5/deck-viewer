@@ -442,9 +442,23 @@ const COLOR_SWATCHES = {
 };
 
 const COST_RANGE_MIN = 0;
-const COST_RANGE_MAX = 15;
 const BP_RANGE_MIN = 0;
-const BP_RANGE_MAX = 6000;
+// 必要エナジー/BPの上限は固定値ではなく、選択中カードプールの実データにある
+// 最大値まで(BPは500刻み、必要エナジーは1刻み)。filterState.costRangeMax/
+// bpRangeMaxに都度計算して入れる -- 詳細はrefreshRangeBounds()参照。
+const BP_STEP = 500;
+
+// 消費APは1/2/3で固定。発生エナジーは1/1+/2/2+/3で固定。プールに存在しない値は
+// ピルをdisabledにする(選べないことが見た目でも分かるように)。
+const AP_VALUES = [1, 2, 3];
+const GENERATED_ENERGY_VALUES = ["1", "1+", "2", "2+", "3"];
+
+// レアリティは★の有無を統合して扱う(例: "R"と"R★"は同じ"R"として絞り込む)。
+// 選択肢自体はプールの実データに関わらずこの固定順で常に表示する。
+const RARITY_ORDER = ["SR", "R", "U", "C", "PcSR", "PcR", "PcC", "UR", "SP", "PR"];
+function baseRarity(rarity) {
+  return (rarity || "").replace(/★+$/, "");
+}
 
 const filterState = {
   types: new Set(),
@@ -455,13 +469,32 @@ const filterState = {
   attributes: new Set(),
   generatedEnergies: new Set(),
   costMin: COST_RANGE_MIN,
-  costMax: COST_RANGE_MAX,
+  costMax: COST_RANGE_MIN,
+  costRangeMax: COST_RANGE_MIN,
   bpMin: BP_RANGE_MIN,
-  bpMax: BP_RANGE_MAX,
+  bpMax: BP_RANGE_MIN,
+  bpRangeMax: BP_RANGE_MIN,
   excludeParallel: false,
   excludeAllColor: true, // on by default, unlike the other filters -- see updateFilterUI()
   searchQuery: "", // matches against cardName / effect, see cardMatchesFilters
 };
+
+// 必要エナジー/BPの上限をプールの実データの最大値に追従させる。以前の上限
+// ちょうどに絞り込みのmaxが合わせてあった場合(=「上限なし」の意味で使われていた
+// 場合)は新しい上限に追従させ、ユーザーが意図的にそれより低い値へ絞っていた
+// 場合はそのまま維持する(ただし新しい上限を超えていたらクランプする)。
+function refreshRangeBounds(cards, getValue, step, state, minKey, maxKey, rangeMaxKey) {
+  let max = 0;
+  for (const card of cards) {
+    const v = getValue(card);
+    if (v !== null && v !== undefined) max = Math.max(max, v);
+  }
+  const newRangeMax = Math.max(step, Math.ceil(max / step) * step);
+  const wasUnrestricted = state[maxKey] >= state[rangeMaxKey];
+  state[rangeMaxKey] = newRangeMax;
+  if (wasUnrestricted || state[maxKey] > newRangeMax) state[maxKey] = newRangeMax;
+  if (state[minKey] > newRangeMax) state[minKey] = newRangeMax;
+}
 
 const filterTypeGroup = document.getElementById("filter-type-group");
 const filterColorGroup = document.getElementById("filter-color-group");
@@ -561,12 +594,14 @@ function toggleInSet(set, value) {
 //
 // Shared between the 必要エナジー (cost) and BP sliders (see pool-detail.js's
 // identical helper).
-function setupRangeSlider({ minInput, maxInput, fillEl, minLabel, maxLabel, rangeMin, rangeMax, getMin, setMin, getMax, setMax, onChange }) {
+function setupRangeSlider({ minInput, maxInput, fillEl, minLabel, maxLabel, getRangeMin, getRangeMax, getMin, setMin, getMax, setMax, onChange }) {
   const wrap = minInput.closest(".range-slider-wrap");
   let draggingThumb = null; // "min" | "max" | null
   let dragTiedValue = null; // set while a down-on-tied-thumbs drag hasn't picked a direction yet
 
   function valueFromClientX(clientX) {
+    const rangeMin = getRangeMin();
+    const rangeMax = getRangeMax();
     const rect = wrap.getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     return Math.round(rangeMin + pct * (rangeMax - rangeMin));
@@ -581,7 +616,13 @@ function setupRangeSlider({ minInput, maxInput, fillEl, minLabel, maxLabel, rang
   }
 
   function updateUI() {
-    const range = rangeMax - rangeMin;
+    const rangeMin = getRangeMin();
+    const rangeMax = getRangeMax();
+    minInput.min = rangeMin;
+    minInput.max = rangeMax;
+    maxInput.min = rangeMin;
+    maxInput.max = rangeMax;
+    const range = rangeMax - rangeMin || 1;
     const minVal = getMin();
     const maxVal = getMax();
     const leftPct = ((minVal - rangeMin) / range) * 100;
@@ -662,8 +703,8 @@ const costSlider = setupRangeSlider({
   fillEl: filterCostFill,
   minLabel: filterCostMinLabel,
   maxLabel: filterCostMaxLabel,
-  rangeMin: COST_RANGE_MIN,
-  rangeMax: COST_RANGE_MAX,
+  getRangeMin: () => COST_RANGE_MIN,
+  getRangeMax: () => filterState.costRangeMax,
   getMin: () => filterState.costMin,
   setMin: (v) => (filterState.costMin = v),
   getMax: () => filterState.costMax,
@@ -677,8 +718,8 @@ const bpSlider = setupRangeSlider({
   fillEl: filterBpFill,
   minLabel: filterBpMinLabel,
   maxLabel: filterBpMaxLabel,
-  rangeMin: BP_RANGE_MIN,
-  rangeMax: BP_RANGE_MAX,
+  getRangeMin: () => BP_RANGE_MIN,
+  getRangeMax: () => filterState.bpRangeMax,
   getMin: () => filterState.bpMin,
   setMin: (v) => (filterState.bpMin = v),
   getMax: () => filterState.bpMax,
@@ -722,8 +763,10 @@ function updateFilterUI() {
   // と同じく現在選択中のカードプールのカードだけを対象に動的生成する。
   const poolCardsForFilter = allCards.filter((c) => selectedPoolIds.has(c.poolId));
 
+  // レアリティは★の有無を問わず固定順で常に全部表示する(distinctValuesの動的収集
+  // 対象外 -- baseRarity()で統合するため候補自体が実データに依存しない)。
   filterRarityGroup.innerHTML = "";
-  for (const rarity of distinctValues(poolCardsForFilter, "rarity")) {
+  for (const rarity of RARITY_ORDER) {
     filterRarityGroup.appendChild(
       createFilterPill(rarity, filterState.rarities.has(rarity), () => {
         toggleInSet(filterState.rarities, rarity);
@@ -731,15 +774,18 @@ function updateFilterUI() {
       })
     );
   }
+  shrinkPillTextToFit(filterRarityGroup);
 
+  // 消費APは1/2/3固定、プールに存在しない値はボタンをdisabledにする。
+  const presentAps = new Set(poolCardsForFilter.map((c) => c.ap).filter((v) => v !== null && v !== undefined));
   filterApGroup.innerHTML = "";
-  for (const ap of distinctValues(poolCardsForFilter, "ap")) {
-    filterApGroup.appendChild(
-      createFilterPill(String(ap), filterState.aps.has(ap), () => {
-        toggleInSet(filterState.aps, ap);
-        renderPanes();
-      })
-    );
+  for (const ap of AP_VALUES) {
+    const pill = createFilterPill(String(ap), filterState.aps.has(ap), () => {
+      toggleInSet(filterState.aps, ap);
+      renderPanes();
+    });
+    if (!presentAps.has(ap)) pill.disabled = true;
+    filterApGroup.appendChild(pill);
   }
 
   filterAttributeGroup.innerHTML = "";
@@ -751,17 +797,22 @@ function updateFilterUI() {
       })
     );
   }
+  shrinkPillTextToFit(filterAttributeGroup);
 
+  // 発生エナジーは1/1+/2/2+/3固定、プールに存在しない値はボタンをdisabledにする。
+  const presentGeneratedEnergies = new Set(poolCardsForFilter.map((c) => c.generatedEnergy).filter(Boolean));
   filterGeneratedEnergyGroup.innerHTML = "";
-  for (const ge of distinctValues(poolCardsForFilter, "generatedEnergy")) {
-    filterGeneratedEnergyGroup.appendChild(
-      createFilterPill(ge, filterState.generatedEnergies.has(ge), () => {
-        toggleInSet(filterState.generatedEnergies, ge);
-        renderPanes();
-      })
-    );
+  for (const ge of GENERATED_ENERGY_VALUES) {
+    const pill = createFilterPill(ge, filterState.generatedEnergies.has(ge), () => {
+      toggleInSet(filterState.generatedEnergies, ge);
+      renderPanes();
+    });
+    if (!presentGeneratedEnergies.has(ge)) pill.disabled = true;
+    filterGeneratedEnergyGroup.appendChild(pill);
   }
 
+  refreshRangeBounds(poolCardsForFilter, (c) => c.cost, 1, filterState, "costMin", "costMax", "costRangeMax");
+  refreshRangeBounds(poolCardsForFilter, (c) => parseBpValue(c.bp), BP_STEP, filterState, "bpMin", "bpMax", "bpRangeMax");
   costSlider.updateUI();
   bpSlider.updateUI();
   filterParallelCheckbox.checked = filterState.excludeParallel;
@@ -796,9 +847,9 @@ filterClearBtn.addEventListener("click", () => {
   filterState.attributes.clear();
   filterState.generatedEnergies.clear();
   filterState.costMin = COST_RANGE_MIN;
-  filterState.costMax = COST_RANGE_MAX;
+  filterState.costMax = filterState.costRangeMax;
   filterState.bpMin = BP_RANGE_MIN;
-  filterState.bpMax = BP_RANGE_MAX;
+  filterState.bpMax = filterState.bpRangeMax;
   filterState.excludeParallel = false;
   filterState.excludeAllColor = false;
   filterState.searchQuery = "";
@@ -815,7 +866,7 @@ function cardMatchesFilters(card) {
   // card.trigger is undefined on cards saved before this field existed --
   // treat that the same as "" (no trigger) rather than as a non-match.
   if (filterState.triggers.size > 0 && !filterState.triggers.has(card.trigger || "")) return false;
-  if (filterState.rarities.size > 0 && !filterState.rarities.has(card.rarity || "")) return false;
+  if (filterState.rarities.size > 0 && !filterState.rarities.has(baseRarity(card.rarity))) return false;
   if (filterState.aps.size > 0 && !filterState.aps.has(card.ap ?? null)) return false;
   if (filterState.generatedEnergies.size > 0 && !filterState.generatedEnergies.has(card.generatedEnergy || "")) {
     return false;
@@ -824,11 +875,11 @@ function cardMatchesFilters(card) {
     const cardAttributes = card.attribute || [];
     if (![...filterState.attributes].some((a) => cardAttributes.includes(a))) return false;
   }
-  if (filterState.costMin > COST_RANGE_MIN || filterState.costMax < COST_RANGE_MAX) {
+  if (filterState.costMin > COST_RANGE_MIN || filterState.costMax < filterState.costRangeMax) {
     if (card.cost === null || card.cost === undefined) return false;
     if (card.cost < filterState.costMin || card.cost > filterState.costMax) return false;
   }
-  if (filterState.bpMin > BP_RANGE_MIN || filterState.bpMax < BP_RANGE_MAX) {
+  if (filterState.bpMin > BP_RANGE_MIN || filterState.bpMax < filterState.bpRangeMax) {
     const bpValue = parseBpValue(card.bp);
     if (bpValue === null) return false;
     if (bpValue < filterState.bpMin || bpValue > filterState.bpMax) return false;
@@ -841,6 +892,41 @@ function cardMatchesFilters(card) {
   }
   return true;
 }
+
+// レアリティ/特徴のボタンは横幅いっぱいで縦に並ぶため、長い文字列(特に特徴)が
+// 入りきらないことがある。折りたたみが開いた瞬間(閉じている間は幅の計測ができない
+// ため)にだけ計測し、はみ出していれば収まるまでフォントサイズを下げる。
+function shrinkPillTextToFit(container) {
+  for (const pill of container.querySelectorAll(".filter-pill")) {
+    pill.style.fontSize = "";
+    let fontSize = parseFloat(getComputedStyle(pill).fontSize);
+    const minPx = 10;
+    while (pill.scrollWidth > pill.clientWidth && fontSize > minPx) {
+      fontSize -= 1;
+      pill.style.fontSize = `${fontSize}px`;
+    }
+  }
+}
+
+const filterRarityAccordion = document.getElementById("filter-rarity-accordion");
+const filterAttributeAccordion = document.getElementById("filter-attribute-accordion");
+filterRarityAccordion.addEventListener("toggle", () => {
+  if (filterRarityAccordion.open) shrinkPillTextToFit(filterRarityGroup);
+});
+filterAttributeAccordion.addEventListener("toggle", () => {
+  if (filterAttributeAccordion.open) shrinkPillTextToFit(filterAttributeGroup);
+});
+
+// 折りたたみ一覧を「全部閉じた状態でちょうど収まる高さ」に固定し、それ以上は
+// スクロールで見せる(スクロールバー自体はCSSで非表示)。閉じている<details>の
+// 中身はレイアウトに寄与しないため、この高さは実際にどんな絞り込み候補が
+// 入っているかに関係なく一定 -- ページ読み込み時に一度だけ測って固定すればよい。
+function lockFilterAccordionHeight() {
+  const el = document.getElementById("filter-accordion-scroll");
+  el.style.height = "auto";
+  el.style.height = `${el.scrollHeight}px`;
+}
+lockFilterAccordionHeight();
 
 const POOL_PICKER_FAVORITES_ONLY_KEY = "deck-viewer-pool-picker-favorites-only";
 let poolPickerFavoritesOnly = localStorage.getItem(POOL_PICKER_FAVORITES_ONLY_KEY) === "true";
