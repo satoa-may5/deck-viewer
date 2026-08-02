@@ -8,3 +8,11 @@ __pycache__/
 # カード画像は著作権/サイズの都合でgit管理外にする(README参照)
 images/*
 !images/.gitkeep
+
+# 個人のカードプール/デッキデータはgit管理外にする(公開リポジトリなので、他人の
+# データではなく自分の使用データを載せたくない場合はここに追記する。クローン直後は
+# server.js が空配列/空フォルダで自動初期化する)
+data/cards.json
+data/cardpools.json
+data/decks/*
+!data/decks/.gitkeep
