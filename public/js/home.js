@@ -772,7 +772,13 @@ document.getElementById("create-pool-row").addEventListener("click", async () =>
   );
 });
 
-// ---- Import card pool (pre-bundled, read-only) ----
+// ---- Import a pre-made card pool from GitHub (pool-exports/*.dvpool) ----
+
+function formatFileSize(bytes) {
+  if (!Number.isFinite(bytes)) return "";
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
 
 const importPoolBtn = document.getElementById("import-pool-btn");
 const importModal = document.getElementById("import-pool-modal");
@@ -786,15 +792,20 @@ async function openImportModal() {
   importModal.hidden = false;
   importListEl.innerHTML = "読み込み中...";
 
-  const exportsList = await Api.getPoolExports();
-  if (exportsList.length === 0) {
-    importListEl.innerHTML =
-      '<div class="empty-state">インポートできるカードプールがありません。pool-exports/ フォルダにエクスポート済みのプールを置いてください。</div>';
+  let githubPools;
+  try {
+    githubPools = await Api.getGithubPools();
+  } catch (err) {
+    importListEl.innerHTML = '<div class="empty-state">GitHubからの取得に失敗しました。</div>';
+    return;
+  }
+  if (!Array.isArray(githubPools) || githubPools.length === 0) {
+    importListEl.innerHTML = '<div class="empty-state">インポートできるカードプールがありません。</div>';
     return;
   }
 
   importListEl.innerHTML = "";
-  for (const item of exportsList) {
+  for (const item of githubPools) {
     const row = document.createElement("div");
     row.className = "deck-row";
 
@@ -803,7 +814,7 @@ async function openImportModal() {
     const title = document.createElement("strong");
     title.textContent = item.poolName;
     const small = document.createElement("small");
-    small.textContent = `${item.cardCount}枚`;
+    small.textContent = formatFileSize(item.size);
     info.appendChild(title);
     info.appendChild(small);
 
@@ -813,13 +824,15 @@ async function openImportModal() {
     importBtn.textContent = "インポート";
     importBtn.addEventListener("click", async () => {
       importBtn.disabled = true;
+      importBtn.textContent = "ダウンロード中...";
       try {
-        await Api.importPoolExport(item.folderId);
+        await Api.importGithubPool(item.name);
         closeImportModal();
         await renderPools();
       } catch (err) {
         alert(err.message);
         importBtn.disabled = false;
+        importBtn.textContent = "インポート";
       }
     });
 

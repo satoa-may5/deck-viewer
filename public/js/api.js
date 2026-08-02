@@ -110,16 +110,16 @@ const Api = {
     return data;
   },
 
-  async getPoolExports() {
-    const res = await fetch("/api/pool-exports");
+  async getGithubPools() {
+    const res = await fetch("/api/github-pools");
     return res.json();
   },
 
-  async importPoolExport(folderId, name) {
-    const res = await fetch(`/api/pool-exports/${encodeURIComponent(folderId)}/import`, {
+  async importGithubPool(fileName, name) {
+    const res = await fetch("/api/github-pools/import", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ fileName, name }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "インポートに失敗しました");

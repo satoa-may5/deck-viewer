@@ -18,23 +18,15 @@ const DECKS_DIR = path.join(DATA_DIR, "decks");
 const IMAGES_DIR = path.join(APP_ROOT, "images");
 const CARDS_FILE = path.join(DATA_DIR, "cards.json");
 const POOLS_FILE = path.join(DATA_DIR, "cardpools.json");
-// pool-exports/ ships pre-made card pools: read-only content the developer prepares
-// ahead of time (via the export endpoint, run locally — there's no export UI) and
-// bundles into the exe snapshot at build time via pkg's assets config, the same way
-// public/ is bundled. That's why it's resolved from ASSETS_ROOT rather than
-// APP_ROOT — a packaged exe's snapshot is read-only, so this can only ever be a
-// read source at runtime for whoever downloads and runs the exe; there is no
-// network fetch or git operation involved on their end at all.
-const EXPORTS_DIR = path.join(ASSETS_ROOT, "pool-exports");
+// Pre-made card pools now live as committed pool-exports/*.dvpool files in the
+// (public) GitHub repo and are fetched live at import time — see the
+// "Pre-made card pool import from GitHub" section below. Nothing is bundled
+// into the exe for this anymore.
+const GITHUB_REPO = "satoa-may5/deck-viewer";
+const GITHUB_BRANCH = "master";
 
 for (const dir of [DATA_DIR, DECKS_DIR, IMAGES_DIR]) {
   fs.mkdirSync(dir, { recursive: true });
-}
-if (!process.pkg) {
-  // Only creatable on a real filesystem — a packaged exe's snapshot is read-only,
-  // and by the time it's packaged this either already has bundled content or is
-  // legitimately absent (handled gracefully by the read side below).
-  fs.mkdirSync(EXPORTS_DIR, { recursive: true });
 }
 if (!fs.existsSync(CARDS_FILE)) {
   fs.writeFileSync(CARDS_FILE, "[]\n");
@@ -220,16 +212,16 @@ app.delete("/api/pools/:id", (req, res) => {
   res.status(204).end();
 });
 
-// ---- Card pool import (pre-bundled, read-only) ----
+// ---- Pre-made card pool import from GitHub ----
 //
-// There is no export UI — pools are prepared ahead of time either by dropping a
-// folder of images straight into pool-exports/<name>/images/ (manifest.json is
-// optional: card names default to their image filename, and the pool name
-// defaults to the folder name), or by calling the export endpoint directly (e.g.
-// with curl) against an existing pool. Either way the result gets bundled into the
-// exe at build time via pkg's assets config, and whoever downloads and runs the
-// exe only ever sees the import side: picking a bundled pool and clicking a
-// button. No network fetch, no git, no commands on their end.
+// Pools are prepared ahead of time by exporting them as a .dvpool file (the
+// "カードプールをエクスポート" button, see the export-zip endpoint below) and
+// committing that file under pool-exports/ in this GitHub repo (public, so no
+// auth is needed to fetch it). The app fetches the current file listing and,
+// on import, the raw file bytes, straight from GitHub at runtime -- nothing
+// is bundled into the exe, and whoever downloads and runs the exe only ever
+// sees the import side: picking a pool from the list and clicking a button.
+// No git, no commands on their end.
 
 function defaultNameFromImage(image) {
   return image ? path.basename(image, path.extname(image)) : "";
@@ -290,75 +282,10 @@ function resolveManifestCards(folder, manifest) {
     }));
 }
 
-app.get("/api/pool-exports", (req, res) => {
-  if (!fs.existsSync(EXPORTS_DIR)) return res.json([]);
-  const entries = fs.readdirSync(EXPORTS_DIR, { withFileTypes: true }).filter((e) => e.isDirectory());
-  const exportList = [];
-  for (const entry of entries) {
-    const folder = path.join(EXPORTS_DIR, entry.name);
-    const manifest = readManifest(folder);
-    if (manifest === null) continue; // malformed manifest.json
-    const cards = resolveManifestCards(folder, manifest);
-    if (cards.length === 0) continue; // nothing importable here
-    exportList.push({
-      folderId: entry.name,
-      poolName: manifest.poolName || entry.name,
-      cardCount: cards.length,
-      exportedAt: manifest.exportedAt || null,
-    });
-  }
-  res.json(exportList);
-});
-
-// Dev-only: no button calls this. Run it locally (e.g. via curl) to prepare a
-// pool-exports/<poolId>/ folder before `npm run build:exe` bundles it in.
-app.post("/api/pools/:id/export", (req, res) => {
-  const pools = readPools();
-  const pool = pools.find((p) => p.id === req.params.id);
-  if (!pool) return res.status(404).json({ error: "カードプールが見つかりません" });
-
-  const cards = readCards()
-    .filter((c) => c.poolId === pool.id)
-    .sort((a, b) => (typeof a.order === "number" ? a.order : 0) - (typeof b.order === "number" ? b.order : 0));
-
-  const folder = path.join(EXPORTS_DIR, pool.id);
-  const imagesFolder = path.join(folder, "images");
-  fs.mkdirSync(imagesFolder, { recursive: true });
-
-  const manifestCards = [];
-  let thumbnailImage = null;
-  for (const card of cards) {
-    const srcImage = path.join(IMAGES_DIR, `${card.id}.${card.imageExt}`);
-    if (!fs.existsSync(srcImage)) continue;
-    const imageName = `${card.id}.${card.imageExt}`;
-    fs.writeFileSync(path.join(imagesFolder, imageName), fs.readFileSync(srcImage));
-    manifestCards.push({
-      name: card.name,
-      cost: card.cost,
-      color: card.color || "",
-      parallel: Boolean(card.parallel),
-      type: normalizeCardType(card.type),
-      trigger: normalizeTrigger(card.trigger),
-      image: imageName,
-    });
-    if (card.id === pool.thumbnailCardId) thumbnailImage = imageName;
-  }
-
-  const manifest = {
-    poolName: pool.name,
-    thumbnail: thumbnailImage,
-    exportedAt: new Date().toISOString(),
-    cards: manifestCards,
-  };
-  fs.writeFileSync(path.join(folder, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
-
-  res.json({ folderId: pool.id, poolName: pool.name, cardCount: manifestCards.length });
-});
-
-// Shared by the pre-bundled pool-exports/ import and the user-facing zip
-// import below -- both end up with a manifest + an images/ folder on disk
-// (the zip path extracts to a temp dir first), so the actual
-// pool/card-creation logic is identical either way.
+// Shared by the GitHub-hosted .dvpool import and the user-facing local-file
+// zip import below -- both end up with a manifest + an images/ folder on
+// disk (extracted to a temp dir first), so the actual pool/card-creation
+// logic is identical either way.
 function importPoolFromFolder(folder, manifest, manifestCards, desiredName) {
   const pools = readPools();
   const newPool = {
@@ -402,22 +329,66 @@ function importPoolFromFolder(folder, manifest, manifestCards, desiredName) {
   return { pool: newPool, cardCount: imported };
 }
 
-app.post("/api/pool-exports/:folderId/import", (req, res) => {
-  const folder = path.join(EXPORTS_DIR, req.params.folderId);
-  if (!fs.existsSync(folder)) {
-    return res.status(404).json({ error: "インポート元が見つかりません" });
+const GITHUB_DVPOOL_NAME = /^[A-Za-z0-9._-]+\.dvpool$/;
+
+app.get("/api/github-pools", async (req, res) => {
+  try {
+    const listUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/pool-exports?ref=${GITHUB_BRANCH}`;
+    const listRes = await fetch(listUrl, {
+      headers: { "User-Agent": "deck-viewer", Accept: "application/vnd.github+json" },
+    });
+    if (!listRes.ok) {
+      return res.status(502).json({ error: "GitHubからの取得に失敗しました" });
+    }
+    const entries = await listRes.json();
+    const pools = (Array.isArray(entries) ? entries : [])
+      .filter((e) => e.type === "file" && GITHUB_DVPOOL_NAME.test(e.name))
+      .map((e) => ({
+        name: e.name,
+        poolName: path.basename(e.name, ".dvpool"),
+        size: e.size,
+      }));
+    res.json(pools);
+  } catch (err) {
+    res.status(502).json({ error: "GitHubからの取得に失敗しました" });
   }
-  const manifest = readManifest(folder);
-  if (manifest === null) {
-    return res.status(400).json({ error: "manifest.jsonの形式が不正です" });
-  }
-  const manifestCards = resolveManifestCards(folder, manifest);
-  if (manifestCards.length === 0) {
-    return res.status(400).json({ error: "インポートできる画像が見つかりません" });
+});
+
+app.post("/api/github-pools/import", async (req, res) => {
+  const name = req.body && req.body.fileName;
+  if (!name || !GITHUB_DVPOOL_NAME.test(name)) {
+    return res.status(400).json({ error: "不正なファイル名です" });
   }
 
-  const poolName = (req.body && req.body.name && req.body.name.trim()) || manifest.poolName || req.params.folderId;
-  res.status(201).json(importPoolFromFolder(folder, manifest, manifestCards, poolName));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dv-github-pool-"));
+  try {
+    const rawUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/pool-exports/${name}`;
+    const fileRes = await fetch(rawUrl, { headers: { "User-Agent": "deck-viewer" } });
+    if (!fileRes.ok) {
+      return res.status(502).json({ error: "GitHubからのダウンロードに失敗しました" });
+    }
+    const buffer = Buffer.from(await fileRes.arrayBuffer());
+    try {
+      new AdmZip(buffer).extractAllTo(tempDir, true);
+    } catch (err) {
+      return res.status(400).json({ error: "ファイルの読み込みに失敗しました" });
+    }
+    const manifest = readManifest(tempDir);
+    if (manifest === null) {
+      return res.status(400).json({ error: "manifest.jsonの形式が不正です" });
+    }
+    const manifestCards = resolveManifestCards(tempDir, manifest);
+    if (manifestCards.length === 0) {
+      return res.status(400).json({ error: "インポートできる画像が見つかりません" });
+    }
+    const poolName =
+      (req.body && req.body.name && req.body.name.trim()) || manifest.poolName || path.basename(name, ".dvpool");
+    res.status(201).json(importPoolFromFolder(tempDir, manifest, manifestCards, poolName));
+  } catch (err) {
+    res.status(502).json({ error: "GitHubからのダウンロードに失敗しました" });
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
 });
 
 // ---- Card pool export/import as a downloadable .dvpool file ----

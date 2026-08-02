@@ -22,7 +22,6 @@
   "pkg": {
     "assets": [
       "public/**/*",
-      "pool-exports/**/*",
       "tools/**/*"
     ]
   }

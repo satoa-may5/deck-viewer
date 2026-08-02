@@ -1050,7 +1050,58 @@ export→manifestへの書き戻し確認、まで一通り実機検証済み。
 既に確認する**運用を徹底し、以降このセッションでは開発サーバーを誤って落とす事故は
 再発していない(前回のセッションで一度事故を起こした反省を踏まえた対応)。
 
-## 残っている未着手項目(2026-08-01時点)
+## リポジトリを再度public化し、カードプールインポートをGitHub直DL方式に刷新(2026-08-02)
+
+「公開状況(2026-07-24)」で一度private運用に戻したが、このセッションでユーザーから
+「git上に.dvpoolを多数用意し、カードプールをそこからDLする形でインポートすることに
+したい、全てUI上で解決するように、既存のpool-exportsからインポートする形は廃止で」
+という要望があった。private repoのままだと匿名でのraw file取得ができず(exeを受け取る
+友人側にGitHub認証を持たせる必要が出てしまい、トークンをexeに埋め込む方式は誰でも
+抜き出せてしまうセキュリティ上の懸念がある)、この要望とは相性が悪かったため、事前に
+「exe配布相手にもこの機能を使わせたいか、privateのままでよいか」を確認したところ
+「publicリポジトリにするつもりだった、もうしていい」との回答を得て、**リポジトリを
+再びpublicに変更した**(`gh repo edit --visibility public`)。
+
+これに伴い、旧来の「開発者があらかじめ`pool-exports/<名前>/`フォルダ(または
+`POST /api/pools/:id/export`で生成した生フォルダ)を用意し、`npm run build:exe`で
+pkgのスナップショットにバンドルする」という配布方式は完全に廃止した:
+
+- **バックエンド**: `GET /api/pool-exports`・`POST /api/pool-exports/:folderId/import`・
+  `POST /api/pools/:id/export`(生フォルダへのdev専用エクスポート)を削除。代わりに
+  `GET /api/github-pools`(GitHub Contents API `https://api.github.com/repos/<owner>/<repo>/
+  contents/pool-exports?ref=<branch>` を叩き、`.dvpool`ファイルだけを抽出して
+  `{name, poolName, size}`の一覧を返す)と`POST /api/github-pools/import`
+  (`{fileName}`を受け取り、ファイル名を`/^[A-Za-z0-9._-]+\.dvpool$/`で検証した上で
+  `https://raw.githubusercontent.com/<owner>/<repo>/<branch>/pool-exports/<fileName>`
+  から生バイト列を取得し、一時フォルダに展開して`.dvpool`ローカルアップロード
+  (`POST /api/pools/import-zip`)と同じ`importPoolFromFolder()`を共有して使う)を新設した。
+  リポジトリ名・ブランチは`GITHUB_REPO`/`GITHUB_BRANCH`定数(`satoa-may5/deck-viewer`/
+  `master`)にハードコード。Node 22時点で`fetch`はグローバルに使えるため追加の依存関係は
+  不要だった。`EXPORTS_DIR`・起動時の`pool-exports/`ディレクトリ作成処理も不要になり削除。
+- **`package.json`**: `pkg.assets`から`"pool-exports/**/*"`を削除(もうexeに同梱しない。
+  実行時にGitHubから都度取得するため)。
+- **フロントエンド**: `js/api.js`の`getPoolExports`/`importPoolExport`を
+  `getGithubPools`/`importGithubPool`に置き換え、`home.js`の「カードプールをインポート」
+  モーダル(`openImportModal`)がGitHubの一覧を表示するように変更(カード枚数の代わりに
+  ファイルサイズ[KB/MB]を表示。GitHubの一覧APIはファイルサイズしか返さず、枚数を
+  出すには全ファイルをダウンロードする必要がありコストが見合わないため)。「＋
+  ローカルからカードプールをインポート」(ローカル`.dvpool`ファイルのアップロード)は
+  この変更と無関係の別機能なのでそのまま維持。
+- **実機検証**: 開発サーバーで`GET /api/github-pools`が実際に7つの`.dvpool`
+  (CSM/IYS/KGD/KJN/KMR/MSS/MST)を正しいサイズ付きで返すこと、`POST /api/github-pools/import`
+  で実際にMST.dvpool(110枚)をGitHubから取得→展開→新規カードプールとして取り込めること
+  (カード名・画像拡張子が正しいことも確認)、旧`/api/pool-exports`が404になったことを
+  `curl`で確認。ブラウザ上でも「カードプールをインポート」モーダルが7件のファイルサイズ
+  付き一覧を表示することを確認済み。検証用に作成したテストプールは削除済み。
+- **今後の運用**: 新しいカードプールを配布ラインナップに追加したい場合、通常通り
+  ホーム画面の「カードプールをエクスポート」ボタンで`.dvpool`をダウンロード→
+  `pool-exports/<名前>.dvpool`として`git add`・commit・push するだけでよい
+  (`npm run build:exe`でのバンドル作業や`curl`でのdevエンドポイント直叩きは不要になった)。
+  生の`pool-exports/<名前>/manifest.json`+`images/`フォルダ自体は`.dvpool`を作るための
+  ソースとしてローカルに残しているが、git管理外・exeバンドル対象外のまま(今後
+  `.dvpool`を作り直す際の元データとして使う以外の役割はない)。
+
+## 残っている未着手項目(2026-08-02時点)
 
 現時点で判明している未着手・要フォローアップ項目はなし。今後新たに要望や不具合が
 出た場合はこの節に追記していくこと。
