@@ -443,29 +443,72 @@ const COLOR_SWATCHES = {
 
 const COST_RANGE_MIN = 0;
 const COST_RANGE_MAX = 15;
+const BP_RANGE_MIN = 0;
+const BP_RANGE_MAX = 6000;
 
 const filterState = {
   types: new Set(),
   colors: new Set(),
   triggers: new Set(),
+  rarities: new Set(),
+  aps: new Set(),
+  attributes: new Set(),
+  generatedEnergies: new Set(),
   costMin: COST_RANGE_MIN,
   costMax: COST_RANGE_MAX,
+  bpMin: BP_RANGE_MIN,
+  bpMax: BP_RANGE_MAX,
   excludeParallel: false,
   excludeAllColor: true, // on by default, unlike the other filters -- see updateFilterUI()
+  searchQuery: "", // matches against cardName / effect, see cardMatchesFilters
 };
 
 const filterTypeGroup = document.getElementById("filter-type-group");
 const filterColorGroup = document.getElementById("filter-color-group");
 const filterTriggerGroup = document.getElementById("filter-trigger-group");
+const filterRarityGroup = document.getElementById("filter-rarity-group");
+const filterApGroup = document.getElementById("filter-ap-group");
+const filterAttributeGroup = document.getElementById("filter-attribute-group");
+const filterGeneratedEnergyGroup = document.getElementById("filter-generated-energy-group");
 const filterParallelCheckbox = document.getElementById("filter-parallel-checkbox");
 const filterAllColorWrap = document.getElementById("filter-all-color-wrap");
 const filterAllColorCheckbox = document.getElementById("filter-all-color-checkbox");
 const filterClearBtn = document.getElementById("filter-clear-btn");
+const filterSearchInput = document.getElementById("filter-search-input");
 const filterCostMinInput = document.getElementById("filter-cost-min");
 const filterCostMaxInput = document.getElementById("filter-cost-max");
 const filterCostFill = document.getElementById("filter-cost-fill");
 const filterCostMinLabel = document.getElementById("filter-cost-min-label");
 const filterCostMaxLabel = document.getElementById("filter-cost-max-label");
+const filterBpMinInput = document.getElementById("filter-bp-min");
+const filterBpMaxInput = document.getElementById("filter-bp-max");
+const filterBpFill = document.getElementById("filter-bp-fill");
+const filterBpMinLabel = document.getElementById("filter-bp-min-label");
+const filterBpMaxLabel = document.getElementById("filter-bp-max-label");
+
+// BPは"2000"のような普通の数値のほか"4000+"/"4000-"(接尾辞)、値自体が無い"-"も
+// 入りうる自由入力の文字列。絞り込みのスライダーは先頭の数値部分だけを見る。
+function parseBpValue(bp) {
+  if (!bp) return null;
+  const m = /^(\d+)/.exec(String(bp).trim());
+  return m ? parseInt(m[1], 10) : null;
+}
+
+// プール個別ページ(pool-detail.js)のdistinctValuesと同じ: rarity/ap/attribute/
+// generatedEnergyは固定の選択肢ではなく実データから動的に集める。ここでは
+// 「現在選択中のカードプール」に属するカードだけを対象にする(色の絞り込みの
+// 「全て」除外チェックボックスの表示判定と同じ範囲)。
+function distinctValues(cards, field, { isArray = false } = {}) {
+  const values = new Set();
+  for (const card of cards) {
+    if (isArray) {
+      for (const v of card[field] || []) values.add(v);
+    } else if (card[field] !== null && card[field] !== undefined && card[field] !== "") {
+      values.add(card[field]);
+    }
+  }
+  return [...values].sort((a, b) => String(a).localeCompare(String(b), "ja"));
+}
 
 function createFilterCheckbox(label, checked, onChange) {
   const wrapper = document.createElement("label");
@@ -504,18 +547,6 @@ function toggleInSet(set, value) {
   else set.add(value);
 }
 
-function updateCostSliderUI() {
-  const range = COST_RANGE_MAX - COST_RANGE_MIN;
-  const leftPct = ((filterState.costMin - COST_RANGE_MIN) / range) * 100;
-  const rightPct = ((filterState.costMax - COST_RANGE_MIN) / range) * 100;
-  filterCostFill.style.left = `${leftPct}%`;
-  filterCostFill.style.width = `${rightPct - leftPct}%`;
-  filterCostMinLabel.textContent = filterState.costMin;
-  filterCostMaxLabel.textContent = filterState.costMax;
-  filterCostMinInput.value = filterState.costMin;
-  filterCostMaxInput.value = filterState.costMax;
-}
-
 // See the identical block in pool-detail.js for why: two overlapping native
 // range inputs can only ever hand a click/drag to whichever paint order
 // currently favors, which without this permanently strands the other thumb
@@ -527,80 +558,132 @@ function updateCostSliderUI() {
 // drag, since no movement has happened yet to reveal intent), so it stays
 // undecided until the first move that actually goes to a different value,
 // and that direction picks the thumb.
-const filterCostSliderWrap = filterCostMinInput.closest(".range-slider-wrap");
-let draggingCostThumb = null; // "min" | "max" | null
-let costDragTiedValue = null; // set while a down-on-tied-thumbs drag hasn't picked a direction yet
+//
+// Shared between the 必要エナジー (cost) and BP sliders (see pool-detail.js's
+// identical helper).
+function setupRangeSlider({ minInput, maxInput, fillEl, minLabel, maxLabel, rangeMin, rangeMax, getMin, setMin, getMax, setMax, onChange }) {
+  const wrap = minInput.closest(".range-slider-wrap");
+  let draggingThumb = null; // "min" | "max" | null
+  let dragTiedValue = null; // set while a down-on-tied-thumbs drag hasn't picked a direction yet
 
-function costValueFromClientX(clientX) {
-  const rect = filterCostSliderWrap.getBoundingClientRect();
-  const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-  return Math.round(COST_RANGE_MIN + pct * (COST_RANGE_MAX - COST_RANGE_MIN));
+  function valueFromClientX(clientX) {
+    const rect = wrap.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    return Math.round(rangeMin + pct * (rangeMax - rangeMin));
+  }
+
+  function pickThumb(clientX) {
+    const pointerValue = valueFromClientX(clientX);
+    const minVal = getMin();
+    const maxVal = getMax();
+    if (minVal === maxVal) return pointerValue <= minVal ? "min" : "max";
+    return Math.abs(pointerValue - minVal) < Math.abs(pointerValue - maxVal) ? "min" : "max";
+  }
+
+  function updateUI() {
+    const range = rangeMax - rangeMin;
+    const minVal = getMin();
+    const maxVal = getMax();
+    const leftPct = ((minVal - rangeMin) / range) * 100;
+    const rightPct = ((maxVal - rangeMin) / range) * 100;
+    fillEl.style.left = `${leftPct}%`;
+    fillEl.style.width = `${rightPct - leftPct}%`;
+    minLabel.textContent = minVal;
+    maxLabel.textContent = maxVal;
+    minInput.value = minVal;
+    maxInput.value = maxVal;
+  }
+
+  function moveThumb(clientX) {
+    const value = valueFromClientX(clientX);
+    if (draggingThumb === "min") setMin(Math.min(value, getMax()));
+    else setMax(Math.max(value, getMin()));
+    updateUI();
+    onChange();
+  }
+
+  wrap.addEventListener("pointerdown", (e) => {
+    const minVal = getMin();
+    const maxVal = getMax();
+    if (minVal === maxVal) {
+      draggingThumb = null;
+      dragTiedValue = minVal;
+    } else {
+      draggingThumb = pickThumb(e.clientX);
+      dragTiedValue = null;
+      moveThumb(e.clientX);
+    }
+    wrap.setPointerCapture(e.pointerId);
+  });
+  wrap.addEventListener("pointermove", (e) => {
+    if (draggingThumb) {
+      moveThumb(e.clientX);
+    } else if (dragTiedValue !== null) {
+      const value = valueFromClientX(e.clientX);
+      if (value < dragTiedValue) draggingThumb = "min";
+      else if (value > dragTiedValue) draggingThumb = "max";
+      if (draggingThumb) moveThumb(e.clientX);
+    }
+  });
+  wrap.addEventListener("pointerup", (e) => {
+    if (!draggingThumb && dragTiedValue !== null) {
+      draggingThumb = pickThumb(e.clientX);
+      moveThumb(e.clientX);
+    }
+    draggingThumb = null;
+    dragTiedValue = null;
+  });
+  wrap.addEventListener("pointercancel", () => {
+    draggingThumb = null;
+    dragTiedValue = null;
+  });
+
+  minInput.addEventListener("input", () => {
+    let value = Number(minInput.value);
+    if (value > getMax()) value = getMax();
+    setMin(value);
+    updateUI();
+    onChange();
+  });
+  maxInput.addEventListener("input", () => {
+    let value = Number(maxInput.value);
+    if (value < getMin()) value = getMin();
+    setMax(value);
+    updateUI();
+    onChange();
+  });
+
+  return { updateUI };
 }
 
-function pickCostThumb(clientX) {
-  const pointerValue = costValueFromClientX(clientX);
-  const minVal = Number(filterCostMinInput.value);
-  const maxVal = Number(filterCostMaxInput.value);
-  if (minVal === maxVal) return pointerValue <= minVal ? "min" : "max";
-  return Math.abs(pointerValue - minVal) < Math.abs(pointerValue - maxVal) ? "min" : "max";
-}
-
-function moveCostThumb(clientX) {
-  const input = draggingCostThumb === "min" ? filterCostMinInput : filterCostMaxInput;
-  input.value = costValueFromClientX(clientX);
-  input.dispatchEvent(new Event("input", { bubbles: true }));
-}
-
-filterCostSliderWrap.addEventListener("pointerdown", (e) => {
-  const minVal = Number(filterCostMinInput.value);
-  const maxVal = Number(filterCostMaxInput.value);
-  if (minVal === maxVal) {
-    draggingCostThumb = null;
-    costDragTiedValue = minVal;
-  } else {
-    draggingCostThumb = pickCostThumb(e.clientX);
-    costDragTiedValue = null;
-    moveCostThumb(e.clientX);
-  }
-  filterCostSliderWrap.setPointerCapture(e.pointerId);
-});
-filterCostSliderWrap.addEventListener("pointermove", (e) => {
-  if (draggingCostThumb) {
-    moveCostThumb(e.clientX);
-  } else if (costDragTiedValue !== null) {
-    const value = costValueFromClientX(e.clientX);
-    if (value < costDragTiedValue) draggingCostThumb = "min";
-    else if (value > costDragTiedValue) draggingCostThumb = "max";
-    if (draggingCostThumb) moveCostThumb(e.clientX);
-  }
-});
-filterCostSliderWrap.addEventListener("pointerup", (e) => {
-  if (!draggingCostThumb && costDragTiedValue !== null) {
-    draggingCostThumb = pickCostThumb(e.clientX);
-    moveCostThumb(e.clientX);
-  }
-  draggingCostThumb = null;
-  costDragTiedValue = null;
-});
-filterCostSliderWrap.addEventListener("pointercancel", () => {
-  draggingCostThumb = null;
-  costDragTiedValue = null;
+const costSlider = setupRangeSlider({
+  minInput: filterCostMinInput,
+  maxInput: filterCostMaxInput,
+  fillEl: filterCostFill,
+  minLabel: filterCostMinLabel,
+  maxLabel: filterCostMaxLabel,
+  rangeMin: COST_RANGE_MIN,
+  rangeMax: COST_RANGE_MAX,
+  getMin: () => filterState.costMin,
+  setMin: (v) => (filterState.costMin = v),
+  getMax: () => filterState.costMax,
+  setMax: (v) => (filterState.costMax = v),
+  onChange: renderPanes,
 });
 
-filterCostMinInput.addEventListener("input", () => {
-  let value = Number(filterCostMinInput.value);
-  if (value > filterState.costMax) value = filterState.costMax;
-  filterState.costMin = value;
-  updateCostSliderUI();
-  renderPanes();
-});
-
-filterCostMaxInput.addEventListener("input", () => {
-  let value = Number(filterCostMaxInput.value);
-  if (value < filterState.costMin) value = filterState.costMin;
-  filterState.costMax = value;
-  updateCostSliderUI();
-  renderPanes();
+const bpSlider = setupRangeSlider({
+  minInput: filterBpMinInput,
+  maxInput: filterBpMaxInput,
+  fillEl: filterBpFill,
+  minLabel: filterBpMinLabel,
+  maxLabel: filterBpMaxLabel,
+  rangeMin: BP_RANGE_MIN,
+  rangeMax: BP_RANGE_MAX,
+  getMin: () => filterState.bpMin,
+  setMin: (v) => (filterState.bpMin = v),
+  getMax: () => filterState.bpMax,
+  setMax: (v) => (filterState.bpMax = v),
+  onChange: renderPanes,
 });
 
 function updateFilterUI() {
@@ -635,15 +718,64 @@ function updateFilterUI() {
     );
   }
 
-  updateCostSliderUI();
+  // rarity/ap/attribute/generatedEnergyの選択肢も、色の「全て」除外チェックボックス
+  // と同じく現在選択中のカードプールのカードだけを対象に動的生成する。
+  const poolCardsForFilter = allCards.filter((c) => selectedPoolIds.has(c.poolId));
+
+  filterRarityGroup.innerHTML = "";
+  for (const rarity of distinctValues(poolCardsForFilter, "rarity")) {
+    filterRarityGroup.appendChild(
+      createFilterPill(rarity, filterState.rarities.has(rarity), () => {
+        toggleInSet(filterState.rarities, rarity);
+        renderPanes();
+      })
+    );
+  }
+
+  filterApGroup.innerHTML = "";
+  for (const ap of distinctValues(poolCardsForFilter, "ap")) {
+    filterApGroup.appendChild(
+      createFilterPill(String(ap), filterState.aps.has(ap), () => {
+        toggleInSet(filterState.aps, ap);
+        renderPanes();
+      })
+    );
+  }
+
+  filterAttributeGroup.innerHTML = "";
+  for (const attribute of distinctValues(poolCardsForFilter, "attribute", { isArray: true })) {
+    filterAttributeGroup.appendChild(
+      createFilterPill(attribute, filterState.attributes.has(attribute), () => {
+        toggleInSet(filterState.attributes, attribute);
+        renderPanes();
+      })
+    );
+  }
+
+  filterGeneratedEnergyGroup.innerHTML = "";
+  for (const ge of distinctValues(poolCardsForFilter, "generatedEnergy")) {
+    filterGeneratedEnergyGroup.appendChild(
+      createFilterPill(ge, filterState.generatedEnergies.has(ge), () => {
+        toggleInSet(filterState.generatedEnergies, ge);
+        renderPanes();
+      })
+    );
+  }
+
+  costSlider.updateUI();
+  bpSlider.updateUI();
   filterParallelCheckbox.checked = filterState.excludeParallel;
   // Only shown once there's actually something for it to filter out, same as
   // pool-detail.js -- scoped to the currently-selected pools' cards, not
   // every card in the collection.
-  const poolCardsForFilter = allCards.filter((c) => selectedPoolIds.has(c.poolId));
   filterAllColorWrap.hidden = !poolCardsForFilter.some((c) => c.color === "全て");
   filterAllColorCheckbox.checked = filterState.excludeAllColor;
 }
+
+filterSearchInput.addEventListener("input", () => {
+  filterState.searchQuery = filterSearchInput.value.trim();
+  renderPanes();
+});
 
 filterParallelCheckbox.addEventListener("change", () => {
   filterState.excludeParallel = filterParallelCheckbox.checked;
@@ -659,10 +791,18 @@ filterClearBtn.addEventListener("click", () => {
   filterState.types.clear();
   filterState.colors.clear();
   filterState.triggers.clear();
+  filterState.rarities.clear();
+  filterState.aps.clear();
+  filterState.attributes.clear();
+  filterState.generatedEnergies.clear();
   filterState.costMin = COST_RANGE_MIN;
   filterState.costMax = COST_RANGE_MAX;
+  filterState.bpMin = BP_RANGE_MIN;
+  filterState.bpMax = BP_RANGE_MAX;
   filterState.excludeParallel = false;
   filterState.excludeAllColor = false;
+  filterState.searchQuery = "";
+  filterSearchInput.value = "";
   updateFilterUI();
   renderPanes();
 });
@@ -675,11 +815,30 @@ function cardMatchesFilters(card) {
   // card.trigger is undefined on cards saved before this field existed --
   // treat that the same as "" (no trigger) rather than as a non-match.
   if (filterState.triggers.size > 0 && !filterState.triggers.has(card.trigger || "")) return false;
+  if (filterState.rarities.size > 0 && !filterState.rarities.has(card.rarity || "")) return false;
+  if (filterState.aps.size > 0 && !filterState.aps.has(card.ap ?? null)) return false;
+  if (filterState.generatedEnergies.size > 0 && !filterState.generatedEnergies.has(card.generatedEnergy || "")) {
+    return false;
+  }
+  if (filterState.attributes.size > 0) {
+    const cardAttributes = card.attribute || [];
+    if (![...filterState.attributes].some((a) => cardAttributes.includes(a))) return false;
+  }
   if (filterState.costMin > COST_RANGE_MIN || filterState.costMax < COST_RANGE_MAX) {
     if (card.cost === null || card.cost === undefined) return false;
     if (card.cost < filterState.costMin || card.cost > filterState.costMax) return false;
   }
+  if (filterState.bpMin > BP_RANGE_MIN || filterState.bpMax < BP_RANGE_MAX) {
+    const bpValue = parseBpValue(card.bp);
+    if (bpValue === null) return false;
+    if (bpValue < filterState.bpMin || bpValue > filterState.bpMax) return false;
+  }
   if (filterState.excludeParallel && card.parallel) return false;
+  if (filterState.searchQuery) {
+    const query = filterState.searchQuery.toLowerCase();
+    const haystack = `${card.cardName || ""} ${card.effect || ""}`.toLowerCase();
+    if (!haystack.includes(query)) return false;
+  }
   return true;
 }
 

@@ -1397,7 +1397,8 @@ button {
 }
 
 .field input,
-.field select {
+.field select,
+.field textarea {
   width: 100%;
   padding: 11px 14px;
   border-radius: var(--radius-md);
@@ -1405,11 +1406,13 @@ button {
   background: var(--surface-2);
   color: var(--text);
   font: inherit;
+  resize: vertical;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .field input:focus,
-.field select:focus {
+.field select:focus,
+.field textarea:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-tint);
@@ -1618,6 +1621,36 @@ button {
   flex: 1;
   padding: 5px 0;
   justify-content: center;
+}
+
+/* filter-horizontalは固定5色の色ピル用(常に横一列、均等幅)。レアリティ/特徴/
+   発生エナジー/消費APはプール内の実データから動的に生成され、個数も文字幅も
+   一定でないため、折り返し前提のこちらを使う。 */
+.filter-pills-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filter-pills-wrap .filter-pill {
+  flex: 0 0 auto;
+}
+
+#filter-search-input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+#filter-search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-tint);
 }
 
 .filter-checkbox-item {

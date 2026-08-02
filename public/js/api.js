@@ -5,14 +5,37 @@ const Api = {
     return res.json();
   },
 
-  async addCard({ name, cost, color, parallel, type, trigger, poolId, imageBlob }) {
+  async addCard({
+    name,
+    cardName,
+    cost,
+    color,
+    parallel,
+    type,
+    trigger,
+    rarity,
+    ap,
+    bp,
+    attribute,
+    generatedEnergy,
+    effect,
+    poolId,
+    imageBlob,
+  }) {
     const form = new FormData();
     if (name) form.append("name", name);
+    if (cardName) form.append("cardName", cardName);
     if (cost !== null && cost !== undefined && cost !== "") form.append("cost", cost);
     if (color) form.append("color", color);
     if (parallel) form.append("parallel", "true");
     if (type) form.append("type", type);
     if (trigger) form.append("trigger", trigger);
+    if (rarity) form.append("rarity", rarity);
+    if (ap !== null && ap !== undefined && ap !== "") form.append("ap", ap);
+    if (bp) form.append("bp", bp);
+    if (attribute && attribute.length > 0) form.append("attribute", JSON.stringify(attribute));
+    if (generatedEnergy) form.append("generatedEnergy", generatedEnergy);
+    if (effect) form.append("effect", effect);
     form.append("poolId", poolId);
     form.append("image", imageBlob, "card.jpg");
     const res = await fetch("/api/cards", { method: "POST", body: form });

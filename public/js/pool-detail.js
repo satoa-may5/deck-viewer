@@ -44,7 +44,16 @@ function dragHandle() {
 }
 
 function displayName(card) {
-  return card.name || "(名称未設定)";
+  return card.cardName || card.name || "(名称未設定)";
+}
+
+// BPは"2000"のような普通の数値のほか"4000+"/"4000-"(以上/以下を表す接尾辞)、
+// カードによっては値自体が無い"-"も入りうる自由入力の文字列。絞り込みのスライダーは
+// 先頭の数値部分だけを見る(接尾辞は表示上そのまま残し、比較には使わない)。
+function parseBpValue(bp) {
+  if (!bp) return null;
+  const m = /^(\d+)/.exec(String(bp).trim());
+  return m ? parseInt(m[1], 10) : null;
 }
 
 // ---- Auto card naming (CARD-001, CARD-002, ...) ----
@@ -188,29 +197,48 @@ const COLOR_SWATCHES = {
 
 const COST_RANGE_MIN = 0;
 const COST_RANGE_MAX = 15;
+const BP_RANGE_MIN = 0;
+const BP_RANGE_MAX = 6000;
 
 const filterState = {
   types: new Set(),
   colors: new Set(),
   triggers: new Set(),
+  rarities: new Set(),
+  aps: new Set(),
+  attributes: new Set(),
+  generatedEnergies: new Set(),
   costMin: COST_RANGE_MIN,
   costMax: COST_RANGE_MAX,
+  bpMin: BP_RANGE_MIN,
+  bpMax: BP_RANGE_MAX,
   excludeParallel: false,
   excludeAllColor: true, // on by default, unlike the other filters -- see updateFilterUI()
+  searchQuery: "", // matches against cardName / effect, see cardMatchesFilters
 };
 
 const filterTypeGroup = document.getElementById("filter-type-group");
 const filterColorGroup = document.getElementById("filter-color-group");
 const filterTriggerGroup = document.getElementById("filter-trigger-group");
+const filterRarityGroup = document.getElementById("filter-rarity-group");
+const filterApGroup = document.getElementById("filter-ap-group");
+const filterAttributeGroup = document.getElementById("filter-attribute-group");
+const filterGeneratedEnergyGroup = document.getElementById("filter-generated-energy-group");
 const filterParallelCheckbox = document.getElementById("filter-parallel-checkbox");
 const filterAllColorWrap = document.getElementById("filter-all-color-wrap");
 const filterAllColorCheckbox = document.getElementById("filter-all-color-checkbox");
 const filterClearBtn = document.getElementById("filter-clear-btn");
+const filterSearchInput = document.getElementById("filter-search-input");
 const filterCostMinInput = document.getElementById("filter-cost-min");
 const filterCostMaxInput = document.getElementById("filter-cost-max");
 const filterCostFill = document.getElementById("filter-cost-fill");
 const filterCostMinLabel = document.getElementById("filter-cost-min-label");
 const filterCostMaxLabel = document.getElementById("filter-cost-max-label");
+const filterBpMinInput = document.getElementById("filter-bp-min");
+const filterBpMaxInput = document.getElementById("filter-bp-max");
+const filterBpFill = document.getElementById("filter-bp-fill");
+const filterBpMinLabel = document.getElementById("filter-bp-min-label");
+const filterBpMaxLabel = document.getElementById("filter-bp-max-label");
 
 function createFilterCheckbox(label, checked, onChange) {
   const wrapper = document.createElement("label");
@@ -249,18 +277,6 @@ function toggleInSet(set, value) {
   else set.add(value);
 }
 
-function updateCostSliderUI() {
-  const range = COST_RANGE_MAX - COST_RANGE_MIN;
-  const leftPct = ((filterState.costMin - COST_RANGE_MIN) / range) * 100;
-  const rightPct = ((filterState.costMax - COST_RANGE_MIN) / range) * 100;
-  filterCostFill.style.left = `${leftPct}%`;
-  filterCostFill.style.width = `${rightPct - leftPct}%`;
-  filterCostMinLabel.textContent = filterState.costMin;
-  filterCostMaxLabel.textContent = filterState.costMax;
-  filterCostMinInput.value = filterState.costMin;
-  filterCostMaxInput.value = filterState.costMax;
-}
-
 // Two overlapping native <input type="range"> elements can only ever hand a
 // click/drag to whichever one paint order currently favors -- when both
 // thumbs land on the same value, that's a single fixed choice, so the other
@@ -278,84 +294,156 @@ function updateCostSliderUI() {
 // down on a tied pair stays undecided until the first move that actually
 // goes to a different value, and *that* direction picks the thumb -- so
 // grabbing the exact overlap point and dragging either way works.
-const filterCostSliderWrap = filterCostMinInput.closest(".range-slider-wrap");
-let draggingCostThumb = null; // "min" | "max" | null
-let costDragTiedValue = null; // set while a down-on-tied-thumbs drag hasn't picked a direction yet
+//
+// Shared between the 必要エナジー (cost) and BP sliders, which are otherwise
+// identical in every way except their range and where they read/write in
+// filterState -- pulled out into one generic controller once a second range
+// slider needed the exact same delicate drag logic as the first.
+function setupRangeSlider({ minInput, maxInput, fillEl, minLabel, maxLabel, rangeMin, rangeMax, getMin, setMin, getMax, setMax, onChange }) {
+  const wrap = minInput.closest(".range-slider-wrap");
+  let draggingThumb = null; // "min" | "max" | null
+  let dragTiedValue = null; // set while a down-on-tied-thumbs drag hasn't picked a direction yet
 
-function costValueFromClientX(clientX) {
-  const rect = filterCostSliderWrap.getBoundingClientRect();
-  const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-  return Math.round(COST_RANGE_MIN + pct * (COST_RANGE_MAX - COST_RANGE_MIN));
+  function valueFromClientX(clientX) {
+    const rect = wrap.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    return Math.round(rangeMin + pct * (rangeMax - rangeMin));
+  }
+
+  function pickThumb(clientX) {
+    const pointerValue = valueFromClientX(clientX);
+    const minVal = getMin();
+    const maxVal = getMax();
+    if (minVal === maxVal) return pointerValue <= minVal ? "min" : "max";
+    return Math.abs(pointerValue - minVal) < Math.abs(pointerValue - maxVal) ? "min" : "max";
+  }
+
+  function updateUI() {
+    const range = rangeMax - rangeMin;
+    const minVal = getMin();
+    const maxVal = getMax();
+    const leftPct = ((minVal - rangeMin) / range) * 100;
+    const rightPct = ((maxVal - rangeMin) / range) * 100;
+    fillEl.style.left = `${leftPct}%`;
+    fillEl.style.width = `${rightPct - leftPct}%`;
+    minLabel.textContent = minVal;
+    maxLabel.textContent = maxVal;
+    minInput.value = minVal;
+    maxInput.value = maxVal;
+  }
+
+  function moveThumb(clientX) {
+    const value = valueFromClientX(clientX);
+    if (draggingThumb === "min") setMin(Math.min(value, getMax()));
+    else setMax(Math.max(value, getMin()));
+    updateUI();
+    onChange();
+  }
+
+  wrap.addEventListener("pointerdown", (e) => {
+    const minVal = getMin();
+    const maxVal = getMax();
+    if (minVal === maxVal) {
+      draggingThumb = null;
+      dragTiedValue = minVal;
+    } else {
+      draggingThumb = pickThumb(e.clientX);
+      dragTiedValue = null;
+      moveThumb(e.clientX);
+    }
+    wrap.setPointerCapture(e.pointerId);
+  });
+  wrap.addEventListener("pointermove", (e) => {
+    if (draggingThumb) {
+      moveThumb(e.clientX);
+    } else if (dragTiedValue !== null) {
+      const value = valueFromClientX(e.clientX);
+      if (value < dragTiedValue) draggingThumb = "min";
+      else if (value > dragTiedValue) draggingThumb = "max";
+      if (draggingThumb) moveThumb(e.clientX);
+    }
+  });
+  wrap.addEventListener("pointerup", (e) => {
+    // A plain click (no drag) on a tied pair never resolved a direction above
+    // -- fall back to the down-position tie-break so a simple click-to-jump
+    // still does something.
+    if (!draggingThumb && dragTiedValue !== null) {
+      draggingThumb = pickThumb(e.clientX);
+      moveThumb(e.clientX);
+    }
+    draggingThumb = null;
+    dragTiedValue = null;
+  });
+  wrap.addEventListener("pointercancel", () => {
+    draggingThumb = null;
+    dragTiedValue = null;
+  });
+
+  minInput.addEventListener("input", () => {
+    let value = Number(minInput.value);
+    if (value > getMax()) value = getMax();
+    setMin(value);
+    updateUI();
+    onChange();
+  });
+  maxInput.addEventListener("input", () => {
+    let value = Number(maxInput.value);
+    if (value < getMin()) value = getMin();
+    setMax(value);
+    updateUI();
+    onChange();
+  });
+
+  return { updateUI };
 }
 
-function pickCostThumb(clientX) {
-  const pointerValue = costValueFromClientX(clientX);
-  const minVal = Number(filterCostMinInput.value);
-  const maxVal = Number(filterCostMaxInput.value);
-  if (minVal === maxVal) return pointerValue <= minVal ? "min" : "max";
-  return Math.abs(pointerValue - minVal) < Math.abs(pointerValue - maxVal) ? "min" : "max";
+const costSlider = setupRangeSlider({
+  minInput: filterCostMinInput,
+  maxInput: filterCostMaxInput,
+  fillEl: filterCostFill,
+  minLabel: filterCostMinLabel,
+  maxLabel: filterCostMaxLabel,
+  rangeMin: COST_RANGE_MIN,
+  rangeMax: COST_RANGE_MAX,
+  getMin: () => filterState.costMin,
+  setMin: (v) => (filterState.costMin = v),
+  getMax: () => filterState.costMax,
+  setMax: (v) => (filterState.costMax = v),
+  onChange: renderCards,
+});
+
+const bpSlider = setupRangeSlider({
+  minInput: filterBpMinInput,
+  maxInput: filterBpMaxInput,
+  fillEl: filterBpFill,
+  minLabel: filterBpMinLabel,
+  maxLabel: filterBpMaxLabel,
+  rangeMin: BP_RANGE_MIN,
+  rangeMax: BP_RANGE_MAX,
+  getMin: () => filterState.bpMin,
+  setMin: (v) => (filterState.bpMin = v),
+  getMax: () => filterState.bpMax,
+  setMax: (v) => (filterState.bpMax = v),
+  onChange: renderCards,
+});
+
+// Gathers the distinct non-empty values actually present across `cards` for
+// `field` (or, for an array field like attribute, every distinct element),
+// sorted for stable pill ordering -- used for rarity/ap/attribute/
+// generatedEnergy, whose possible values aren't a small fixed set the way
+// type/color/trigger are, so the filter pills are built from whatever's
+// actually in this pool rather than a hardcoded list.
+function distinctValues(cards, field, { isArray = false } = {}) {
+  const values = new Set();
+  for (const card of cards) {
+    if (isArray) {
+      for (const v of card[field] || []) values.add(v);
+    } else if (card[field] !== null && card[field] !== undefined && card[field] !== "") {
+      values.add(card[field]);
+    }
+  }
+  return [...values].sort((a, b) => String(a).localeCompare(String(b), "ja"));
 }
-
-function moveCostThumb(clientX) {
-  const input = draggingCostThumb === "min" ? filterCostMinInput : filterCostMaxInput;
-  input.value = costValueFromClientX(clientX);
-  input.dispatchEvent(new Event("input", { bubbles: true }));
-}
-
-filterCostSliderWrap.addEventListener("pointerdown", (e) => {
-  const minVal = Number(filterCostMinInput.value);
-  const maxVal = Number(filterCostMaxInput.value);
-  if (minVal === maxVal) {
-    draggingCostThumb = null;
-    costDragTiedValue = minVal;
-  } else {
-    draggingCostThumb = pickCostThumb(e.clientX);
-    costDragTiedValue = null;
-    moveCostThumb(e.clientX);
-  }
-  filterCostSliderWrap.setPointerCapture(e.pointerId);
-});
-filterCostSliderWrap.addEventListener("pointermove", (e) => {
-  if (draggingCostThumb) {
-    moveCostThumb(e.clientX);
-  } else if (costDragTiedValue !== null) {
-    const value = costValueFromClientX(e.clientX);
-    if (value < costDragTiedValue) draggingCostThumb = "min";
-    else if (value > costDragTiedValue) draggingCostThumb = "max";
-    if (draggingCostThumb) moveCostThumb(e.clientX);
-  }
-});
-filterCostSliderWrap.addEventListener("pointerup", (e) => {
-  // A plain click (no drag) on a tied pair never resolved a direction above
-  // -- fall back to the down-position tie-break so a simple click-to-jump
-  // still does something.
-  if (!draggingCostThumb && costDragTiedValue !== null) {
-    draggingCostThumb = pickCostThumb(e.clientX);
-    moveCostThumb(e.clientX);
-  }
-  draggingCostThumb = null;
-  costDragTiedValue = null;
-});
-filterCostSliderWrap.addEventListener("pointercancel", () => {
-  draggingCostThumb = null;
-  costDragTiedValue = null;
-});
-
-filterCostMinInput.addEventListener("input", () => {
-  let value = Number(filterCostMinInput.value);
-  if (value > filterState.costMax) value = filterState.costMax;
-  filterState.costMin = value;
-  updateCostSliderUI();
-  renderCards();
-});
-
-filterCostMaxInput.addEventListener("input", () => {
-  let value = Number(filterCostMaxInput.value);
-  if (value < filterState.costMin) value = filterState.costMin;
-  filterState.costMax = value;
-  updateCostSliderUI();
-  renderCards();
-});
 
 function updateFilterUI() {
   filterTypeGroup.innerHTML = "";
@@ -389,12 +477,58 @@ function updateFilterUI() {
     );
   }
 
-  updateCostSliderUI();
+  filterRarityGroup.innerHTML = "";
+  for (const rarity of distinctValues(latestCards, "rarity")) {
+    filterRarityGroup.appendChild(
+      createFilterPill(rarity, filterState.rarities.has(rarity), () => {
+        toggleInSet(filterState.rarities, rarity);
+        renderCards();
+      })
+    );
+  }
+
+  filterApGroup.innerHTML = "";
+  for (const ap of distinctValues(latestCards, "ap")) {
+    filterApGroup.appendChild(
+      createFilterPill(String(ap), filterState.aps.has(ap), () => {
+        toggleInSet(filterState.aps, ap);
+        renderCards();
+      })
+    );
+  }
+
+  filterAttributeGroup.innerHTML = "";
+  for (const attribute of distinctValues(latestCards, "attribute", { isArray: true })) {
+    filterAttributeGroup.appendChild(
+      createFilterPill(attribute, filterState.attributes.has(attribute), () => {
+        toggleInSet(filterState.attributes, attribute);
+        renderCards();
+      })
+    );
+  }
+
+  filterGeneratedEnergyGroup.innerHTML = "";
+  for (const ge of distinctValues(latestCards, "generatedEnergy")) {
+    filterGeneratedEnergyGroup.appendChild(
+      createFilterPill(ge, filterState.generatedEnergies.has(ge), () => {
+        toggleInSet(filterState.generatedEnergies, ge);
+        renderCards();
+      })
+    );
+  }
+
+  costSlider.updateUI();
+  bpSlider.updateUI();
   filterParallelCheckbox.checked = filterState.excludeParallel;
   // Only shown once there's actually something for it to filter out.
   filterAllColorWrap.hidden = !latestCards.some((c) => c.color === "全て");
   filterAllColorCheckbox.checked = filterState.excludeAllColor;
 }
+
+filterSearchInput.addEventListener("input", () => {
+  filterState.searchQuery = filterSearchInput.value.trim();
+  renderCards();
+});
 
 filterParallelCheckbox.addEventListener("change", () => {
   filterState.excludeParallel = filterParallelCheckbox.checked;
@@ -410,10 +544,18 @@ filterClearBtn.addEventListener("click", () => {
   filterState.types.clear();
   filterState.colors.clear();
   filterState.triggers.clear();
+  filterState.rarities.clear();
+  filterState.aps.clear();
+  filterState.attributes.clear();
+  filterState.generatedEnergies.clear();
   filterState.costMin = COST_RANGE_MIN;
   filterState.costMax = COST_RANGE_MAX;
+  filterState.bpMin = BP_RANGE_MIN;
+  filterState.bpMax = BP_RANGE_MAX;
   filterState.excludeParallel = false;
   filterState.excludeAllColor = false;
+  filterState.searchQuery = "";
+  filterSearchInput.value = "";
   updateFilterUI();
   renderCards();
 });
@@ -427,10 +569,29 @@ function cardMatchesFilters(card) {
     if (card.cost === null || card.cost === undefined) return false;
     if (card.cost < filterState.costMin || card.cost > filterState.costMax) return false;
   }
+  if (filterState.bpMin > BP_RANGE_MIN || filterState.bpMax < BP_RANGE_MAX) {
+    const bpValue = parseBpValue(card.bp);
+    if (bpValue === null) return false;
+    if (bpValue < filterState.bpMin || bpValue > filterState.bpMax) return false;
+  }
   if (filterState.excludeParallel && card.parallel) return false;
   // card.trigger is undefined on cards saved before this field existed --
   // treat that the same as "" (no trigger) rather than as a non-match.
   if (filterState.triggers.size > 0 && !filterState.triggers.has(card.trigger || "")) return false;
+  if (filterState.rarities.size > 0 && !filterState.rarities.has(card.rarity || "")) return false;
+  if (filterState.aps.size > 0 && !filterState.aps.has(card.ap ?? null)) return false;
+  if (filterState.generatedEnergies.size > 0 && !filterState.generatedEnergies.has(card.generatedEnergy || "")) {
+    return false;
+  }
+  if (filterState.attributes.size > 0) {
+    const cardAttributes = card.attribute || [];
+    if (![...filterState.attributes].some((a) => cardAttributes.includes(a))) return false;
+  }
+  if (filterState.searchQuery) {
+    const query = filterState.searchQuery.toLowerCase();
+    const haystack = `${card.cardName || ""} ${card.effect || ""}`.toLowerCase();
+    if (!haystack.includes(query)) return false;
+  }
   return true;
 }
 
@@ -450,8 +611,13 @@ const TRIGGER_LABELS = {
 function cardCaption(card) {
   const parts = [];
   if (card.type && CARD_TYPE_LABELS[card.type]) parts.push(CARD_TYPE_LABELS[card.type]);
+  if (card.rarity) parts.push(card.rarity);
   if (card.cost !== null && card.cost !== undefined) parts.push(`必要エナジー ${card.cost}`);
+  if (card.ap !== null && card.ap !== undefined) parts.push(`AP ${card.ap}`);
+  if (card.bp) parts.push(`BP ${card.bp}`);
   if (card.color) parts.push(card.color);
+  if (card.generatedEnergy) parts.push(`発生エナジー ${card.generatedEnergy}`);
+  if (card.attribute && card.attribute.length > 0) parts.push(card.attribute.join("/"));
   if (card.trigger && TRIGGER_LABELS[card.trigger]) parts.push(`トリガー: ${TRIGGER_LABELS[card.trigger]}`);
   if (card.parallel) parts.push("パラレル");
   return parts.join(" ・ ");
@@ -673,11 +839,27 @@ const modalTitle = document.getElementById("modal-title");
 const modalImageArea = document.getElementById("modal-image-area");
 const modalFileInput = document.getElementById("modal-file-input");
 const modalNameInput = document.getElementById("modal-card-name");
+const modalCardNameInput = document.getElementById("modal-card-cardname");
 const modalTypeInput = document.getElementById("modal-card-type");
 const modalCostInput = document.getElementById("modal-card-cost");
 const modalColorInput = document.getElementById("modal-card-color");
 const modalTriggerInput = document.getElementById("modal-card-trigger");
 const modalParallelInput = document.getElementById("modal-card-parallel");
+const modalRarityInput = document.getElementById("modal-card-rarity");
+const modalApInput = document.getElementById("modal-card-ap");
+const modalBpInput = document.getElementById("modal-card-bp");
+const modalAttributeInput = document.getElementById("modal-card-attribute");
+const modalGeneratedEnergyInput = document.getElementById("modal-card-generated-energy");
+const modalEffectInput = document.getElementById("modal-card-effect");
+
+// 特徴(attribute)はカンマ区切りのテキスト欄で入力する(タグピッカー等は今回作らず、
+// マニュアル入力時は簡易さを優先)。
+function parseAttributeInput(value) {
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 const modalSaveBtn = document.getElementById("modal-save-btn");
 const modalStatus = document.getElementById("modal-status");
 const modalActionsNormal = document.getElementById("modal-actions-normal");
@@ -889,11 +1071,18 @@ function openAddCardModal() {
   cropTool = null;
   modalNameInput.value = "";
   modalNameInput.placeholder = formatCardName(computeNextCardNumber(latestCards));
+  modalCardNameInput.value = "";
   modalTypeInput.value = "";
   modalCostInput.value = "";
   modalColorInput.value = "";
   modalTriggerInput.value = "";
   modalParallelInput.checked = false;
+  modalRarityInput.value = "";
+  modalApInput.value = "";
+  modalBpInput.value = "";
+  modalAttributeInput.value = "";
+  modalGeneratedEnergyInput.value = "";
+  modalEffectInput.value = "";
   setModalStatus("", "");
   modalTitle.textContent = "カードを追加";
   setModalReviewMode(false);
@@ -913,11 +1102,18 @@ function openEditCardModal(card, options) {
   cropTool = null;
   modalNameInput.value = card.name || "";
   modalNameInput.placeholder = formatCardName(computeNextCardNumber(latestCards));
+  modalCardNameInput.value = card.cardName || "";
   modalTypeInput.value = card.type || "";
   modalCostInput.value = card.cost !== null && card.cost !== undefined ? card.cost : "";
   modalColorInput.value = card.color || "";
   modalTriggerInput.value = card.trigger || "";
   modalParallelInput.checked = Boolean(card.parallel);
+  modalRarityInput.value = card.rarity || "";
+  modalApInput.value = card.ap !== null && card.ap !== undefined ? card.ap : "";
+  modalBpInput.value = card.bp || "";
+  modalAttributeInput.value = (card.attribute || []).join(", ");
+  modalGeneratedEnergyInput.value = card.generatedEnergy || "";
+  modalEffectInput.value = card.effect || "";
   setModalStatus("", "");
   modalTitle.textContent = "カードを編集";
   setModalReviewMode(review);
@@ -952,11 +1148,18 @@ bindModalDismissal(cropPopup, {
 // on failure either way.
 async function saveEditingCard(applyToParallels) {
   const name = modalNameInput.value.trim() || modalNameInput.placeholder;
+  const cardName = modalCardNameInput.value.trim();
   const type = modalTypeInput.value;
   const cost = modalCostInput.value;
   const color = modalColorInput.value.trim();
   const trigger = modalTriggerInput.value;
   const parallel = modalParallelInput.checked;
+  const rarity = modalRarityInput.value.trim();
+  const ap = modalApInput.value;
+  const bp = modalBpInput.value.trim();
+  const attribute = parseAttributeInput(modalAttributeInput.value);
+  const generatedEnergy = modalGeneratedEnergyInput.value.trim();
+  const effect = modalEffectInput.value.trim();
 
   setModalStatus("保存中...", "");
   try {
@@ -965,11 +1168,18 @@ async function saveEditingCard(applyToParallels) {
     }
     await Api.updateCard(editingCard.id, {
       name,
+      cardName,
       type,
       cost,
       color,
       trigger,
       parallel,
+      rarity,
+      ap,
+      bp,
+      attribute,
+      generatedEnergy,
+      effect,
       applyToParallels: Boolean(applyToParallels),
     });
     return true;
@@ -1018,11 +1228,18 @@ modalReviewBackBtn.addEventListener("click", () => commitReviewStep("back"));
 
 modalSaveBtn.addEventListener("click", async () => {
   const name = modalNameInput.value.trim() || modalNameInput.placeholder;
+  const cardName = modalCardNameInput.value.trim();
   const type = modalTypeInput.value;
   const cost = modalCostInput.value;
   const color = modalColorInput.value.trim();
   const trigger = modalTriggerInput.value;
   const parallel = modalParallelInput.checked;
+  const rarity = modalRarityInput.value.trim();
+  const ap = modalApInput.value;
+  const bp = modalBpInput.value.trim();
+  const attribute = parseAttributeInput(modalAttributeInput.value);
+  const generatedEnergy = modalGeneratedEnergyInput.value.trim();
+  const effect = modalEffectInput.value.trim();
 
   if (editingCard) {
     if (await saveEditingCard()) {
@@ -1039,16 +1256,39 @@ modalSaveBtn.addEventListener("click", async () => {
 
   setModalStatus("保存中...", "");
   try {
-    const card = await Api.addCard({ name, cost, color, trigger, parallel, type, poolId, imageBlob: croppedBlob });
+    const card = await Api.addCard({
+      name,
+      cardName,
+      cost,
+      color,
+      trigger,
+      parallel,
+      type,
+      rarity,
+      ap,
+      bp,
+      attribute,
+      generatedEnergy,
+      effect,
+      poolId,
+      imageBlob: croppedBlob,
+    });
     setModalStatus(`「${displayName(card)}」を登録しました。続けて追加できます。`, "success");
     croppedBlob = null;
     cropTool = null;
     modalNameInput.value = "";
+    modalCardNameInput.value = "";
     modalTypeInput.value = "";
     modalCostInput.value = "";
     modalColorInput.value = "";
     modalTriggerInput.value = "";
     modalParallelInput.checked = false;
+    modalRarityInput.value = "";
+    modalApInput.value = "";
+    modalBpInput.value = "";
+    modalAttributeInput.value = "";
+    modalGeneratedEnergyInput.value = "";
+    modalEffectInput.value = "";
     modalFileInput.value = "";
     showImagePlaceholder();
     await renderCards();

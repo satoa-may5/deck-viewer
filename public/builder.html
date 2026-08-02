@@ -73,6 +73,13 @@
 
           <aside class="filter-sidebar" id="filter-bar">
             <div class="filter-box">
+              <div class="filter-box-title">カード名/効果で検索</div>
+              <div class="filter-box-body">
+                <input type="text" id="filter-search-input" placeholder="キーワードを入力" />
+              </div>
+            </div>
+
+            <div class="filter-box">
               <div class="filter-box-title">タイプ</div>
               <div class="filter-box-body filter-vertical" id="filter-type-group"></div>
             </div>
@@ -80,6 +87,16 @@
             <div class="filter-box">
               <div class="filter-box-title">色</div>
               <div class="filter-box-body filter-horizontal" id="filter-color-group"></div>
+            </div>
+
+            <div class="filter-box">
+              <div class="filter-box-title">レアリティ</div>
+              <div class="filter-box-body filter-pills-wrap" id="filter-rarity-group"></div>
+            </div>
+
+            <div class="filter-box">
+              <div class="filter-box-title">特徴</div>
+              <div class="filter-box-body filter-pills-wrap" id="filter-attribute-group"></div>
             </div>
 
             <div class="filter-box">
@@ -102,6 +119,33 @@
                   <span id="filter-cost-max-label">15</span>
                 </div>
               </div>
+            </div>
+
+            <div class="filter-box">
+              <div class="filter-box-title">消費AP</div>
+              <div class="filter-box-body filter-pills-wrap" id="filter-ap-group"></div>
+            </div>
+
+            <div class="filter-box">
+              <div class="filter-box-title">BP</div>
+              <div class="filter-box-body">
+                <div class="range-slider-wrap">
+                  <div class="range-slider-track">
+                    <div class="range-slider-fill" id="filter-bp-fill"></div>
+                  </div>
+                  <input type="range" id="filter-bp-min" min="0" max="6000" step="100" value="0" />
+                  <input type="range" id="filter-bp-max" min="0" max="6000" step="100" value="6000" />
+                </div>
+                <div class="range-slider-labels">
+                  <span id="filter-bp-min-label">0</span>
+                  <span id="filter-bp-max-label">6000</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="filter-box">
+              <div class="filter-box-title">発生エナジー</div>
+              <div class="filter-box-body filter-pills-wrap" id="filter-generated-energy-group"></div>
             </div>
 
             <div class="filter-box">

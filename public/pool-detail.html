@@ -49,6 +49,13 @@
 
       <aside class="filter-sidebar" id="filter-bar">
         <div class="filter-box">
+          <div class="filter-box-title">カード名/効果で検索</div>
+          <div class="filter-box-body">
+            <input type="text" id="filter-search-input" placeholder="キーワードを入力" />
+          </div>
+        </div>
+
+        <div class="filter-box">
           <div class="filter-box-title">タイプ</div>
           <div class="filter-box-body filter-vertical" id="filter-type-group"></div>
         </div>
@@ -56,6 +63,16 @@
         <div class="filter-box">
           <div class="filter-box-title">色</div>
           <div class="filter-box-body filter-horizontal" id="filter-color-group"></div>
+        </div>
+
+        <div class="filter-box">
+          <div class="filter-box-title">レアリティ</div>
+          <div class="filter-box-body filter-pills-wrap" id="filter-rarity-group"></div>
+        </div>
+
+        <div class="filter-box">
+          <div class="filter-box-title">特徴</div>
+          <div class="filter-box-body filter-pills-wrap" id="filter-attribute-group"></div>
         </div>
 
         <div class="filter-box">
@@ -78,6 +95,33 @@
               <span id="filter-cost-max-label">15</span>
             </div>
           </div>
+        </div>
+
+        <div class="filter-box">
+          <div class="filter-box-title">消費AP</div>
+          <div class="filter-box-body filter-pills-wrap" id="filter-ap-group"></div>
+        </div>
+
+        <div class="filter-box">
+          <div class="filter-box-title">BP</div>
+          <div class="filter-box-body">
+            <div class="range-slider-wrap">
+              <div class="range-slider-track">
+                <div class="range-slider-fill" id="filter-bp-fill"></div>
+              </div>
+              <input type="range" id="filter-bp-min" min="0" max="6000" step="100" value="0" />
+              <input type="range" id="filter-bp-max" min="0" max="6000" step="100" value="6000" />
+            </div>
+            <div class="range-slider-labels">
+              <span id="filter-bp-min-label">0</span>
+              <span id="filter-bp-max-label">6000</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-box">
+          <div class="filter-box-title">発生エナジー</div>
+          <div class="filter-box-body filter-pills-wrap" id="filter-generated-energy-group"></div>
         </div>
 
         <div class="filter-box">
@@ -114,7 +158,11 @@
           <div class="modal-image-area" id="modal-image-area"></div>
           <div class="modal-info-area">
             <div class="field">
-              <label for="modal-card-name">カード名(任意)</label>
+              <label for="modal-card-cardname">カード名(任意)</label>
+              <input type="text" id="modal-card-cardname" placeholder="例: 千川 ちひろ" />
+            </div>
+            <div class="field">
+              <label for="modal-card-name">識別コード(任意)</label>
               <input type="text" id="modal-card-name" placeholder="" maxlength="20" />
             </div>
             <div class="field">
@@ -128,13 +176,37 @@
             </div>
             <div class="field-row">
               <div class="field">
-                <label for="modal-card-cost">必要エナジー(任意)</label>
-                <input type="number" id="modal-card-cost" min="0" step="1" />
+                <label for="modal-card-rarity">レアリティ(任意)</label>
+                <input type="text" id="modal-card-rarity" placeholder="例: SR" />
               </div>
               <div class="field">
                 <label for="modal-card-color">色(任意)</label>
                 <input type="text" id="modal-card-color" placeholder="例: 青" />
               </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="modal-card-cost">必要エナジー(任意)</label>
+                <input type="number" id="modal-card-cost" min="0" step="1" />
+              </div>
+              <div class="field">
+                <label for="modal-card-ap">消費AP(任意)</label>
+                <input type="number" id="modal-card-ap" min="0" step="1" />
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="modal-card-bp">BP(任意)</label>
+                <input type="text" id="modal-card-bp" placeholder="例: 2000+" />
+              </div>
+              <div class="field">
+                <label for="modal-card-generated-energy">発生エナジー(任意)</label>
+                <input type="text" id="modal-card-generated-energy" placeholder="例: 1+" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="modal-card-attribute">特徴(任意、カンマ区切りで複数可)</label>
+              <input type="text" id="modal-card-attribute" placeholder="例: LiPPS, ポジティブパッション" />
             </div>
             <div class="field">
               <label for="modal-card-trigger">トリガー(任意)</label>
@@ -148,6 +220,10 @@
                 <option value="special">スペシャル</option>
                 <option value="color">カラー</option>
               </select>
+            </div>
+            <div class="field">
+              <label for="modal-card-effect">効果(任意)</label>
+              <textarea id="modal-card-effect" rows="4"></textarea>
             </div>
             <div class="field checkbox-field">
               <label><input type="checkbox" id="modal-card-parallel" /> パラレル</label>

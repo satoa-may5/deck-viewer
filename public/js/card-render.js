@@ -14,7 +14,7 @@ function createCardElement(card, id, count, opts) {
   if (card && card.imageExt) {
     const img = document.createElement("img");
     img.src = Api.cardImageUrl(card);
-    img.alt = card.name;
+    img.alt = card.cardName || card.name;
     img.draggable = false;
     img.addEventListener("error", () => {
       img.remove();
@@ -47,7 +47,7 @@ function createCardElement(card, id, count, opts) {
 
   const caption = document.createElement("div");
   caption.className = "card-caption";
-  caption.textContent = card ? card.name || "(名称未設定)" : id;
+  caption.textContent = card ? card.cardName || card.name || "(名称未設定)" : id;
 
   item.appendChild(frame);
   item.appendChild(caption);

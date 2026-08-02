@@ -238,6 +238,22 @@ function normalizeTrigger(trigger) {
   return TRIGGER_TYPES.includes(trigger) ? trigger : "";
 }
 
+// attribute (特徴) arrives as a real array in a JSON body (PATCH) but has to be
+// JSON-stringified by the client for multipart form submission (POST with an
+// image file), so this accepts either.
+function normalizeAttribute(attribute) {
+  let arr = attribute;
+  if (typeof arr === "string") {
+    try {
+      arr = JSON.parse(arr);
+    } catch (err) {
+      return [];
+    }
+  }
+  if (!Array.isArray(arr)) return [];
+  return arr.filter((a) => typeof a === "string" && a.trim()).map((a) => a.trim());
+}
+
 function readManifest(folder) {
   const manifestFile = path.join(folder, "manifest.json");
   if (!fs.existsSync(manifestFile)) return {};
@@ -248,21 +264,40 @@ function readManifest(folder) {
   }
 }
 
-// Explicit manifest.cards wins (lets you pick names/order/cost/color/parallel by
-// hand); otherwise every image file found in images/ is used, sorted by filename,
-// with cost/color/parallel left at their defaults (unknown from a filename alone).
+// Explicit manifest.cards wins (lets you pick cardName/order/cost/color/parallel
+// by hand); otherwise every image file found in images/ is used, sorted by
+// filename, with everything else left at its default (unknown from a filename
+// alone).
+//
+// `name` (the app's internal identifier -- shown as a fallback caption, used
+// for CARD-001-style auto-numbering and parallel-print detection) is always
+// derived from the image filename, never from manifest.cards[].name. That
+// field instead populates `cardName`, the real/display card name -- earlier
+// manifests used `name` for both roles at once, but once a manifest can also
+// carry a genuine display name (rarity/ap/bp/attribute/generatedEnergy/effect
+// packs), those two things need to be kept separate.
 function resolveManifestCards(folder, manifest) {
   if (Array.isArray(manifest.cards)) {
     return manifest.cards
       .filter((item) => item && item.image)
       .map((item) => ({
         image: item.image,
-        name: (item.name && String(item.name).trim()) || defaultNameFromImage(item.image),
+        name: defaultNameFromImage(item.image),
+        cardName: (item.name && String(item.name).trim()) || "",
         cost: item.cost ?? null,
         color: (item.color && String(item.color).trim()) || "",
         parallel: Boolean(item.parallel),
         type: normalizeCardType(item.type),
         trigger: normalizeTrigger(item.trigger),
+        rarity: (item.rarity && String(item.rarity).trim()) || "",
+        ap: typeof item.ap === "number" ? item.ap : null,
+        bp: item.bp !== undefined && item.bp !== null ? String(item.bp).trim() : "",
+        attribute: normalizeAttribute(item.attribute),
+        generatedEnergy:
+          item.generatedEnergy !== undefined && item.generatedEnergy !== null
+            ? String(item.generatedEnergy).trim()
+            : "",
+        effect: (item.effect && String(item.effect).trim()) || "",
       }));
   }
   const imagesFolder = path.join(folder, "images");
@@ -274,11 +309,18 @@ function resolveManifestCards(folder, manifest) {
     .map((image) => ({
       image,
       name: defaultNameFromImage(image),
+      cardName: "",
       cost: null,
       color: "",
       parallel: false,
       type: "",
       trigger: "",
+      rarity: "",
+      ap: null,
+      bp: "",
+      attribute: [],
+      generatedEnergy: "",
+      effect: "",
     }));
 }
 
@@ -310,11 +352,18 @@ function importPoolFromFolder(folder, manifest, manifestCards, desiredName) {
     cards.push({
       id,
       name: item.name,
+      cardName: item.cardName || "",
       cost: item.cost,
       color: item.color,
       parallel: item.parallel,
       type: item.type,
       trigger: item.trigger,
+      rarity: item.rarity || "",
+      ap: item.ap ?? null,
+      bp: item.bp || "",
+      attribute: item.attribute || [],
+      generatedEnergy: item.generatedEnergy || "",
+      effect: item.effect || "",
       poolId: newPool.id,
       imageExt: ext,
       order: order++,
@@ -415,13 +464,22 @@ app.get("/api/pools/:id/export-zip", (req, res) => {
     if (!fs.existsSync(srcImage)) continue;
     const imageName = `${card.id}.${card.imageExt}`;
     zip.addFile(`images/${imageName}`, fs.readFileSync(srcImage));
+    // manifest.json's "name" key round-trips through cardName, not the app's
+    // internal name/identifier -- see resolveManifestCards for why (import
+    // always re-derives that identifier from the image filename instead).
     manifestCards.push({
-      name: card.name,
+      name: card.cardName || "",
       cost: card.cost,
       color: card.color || "",
       parallel: Boolean(card.parallel),
       type: normalizeCardType(card.type),
       trigger: normalizeTrigger(card.trigger),
+      rarity: card.rarity || "",
+      ap: typeof card.ap === "number" ? card.ap : null,
+      bp: card.bp || "",
+      attribute: Array.isArray(card.attribute) ? card.attribute : [],
+      generatedEnergy: card.generatedEnergy || "",
+      effect: card.effect || "",
       image: imageName,
     });
     if (card.id === pool.thumbnailCardId) thumbnailImage = imageName;
@@ -485,7 +543,8 @@ app.get("/api/cards", (req, res) => {
 });
 
 app.post("/api/cards", upload.single("image"), (req, res) => {
-  const { name, cost, poolId, color, parallel, type, trigger } = req.body;
+  const { name, cardName, cost, poolId, color, parallel, type, trigger, rarity, ap, bp, attribute, generatedEnergy, effect } =
+    req.body;
 
   if (!poolId) {
     return res.status(400).json({ error: "カードプールを選択してください" });
@@ -509,11 +568,18 @@ app.post("/api/cards", upload.single("image"), (req, res) => {
   const card = {
     id,
     name: (name || "").trim(),
+    cardName: (cardName || "").trim(),
     cost: cost === undefined || cost === "" ? null : Number(cost),
     color: (color || "").trim(),
     parallel: parallel === true || parallel === "true",
     type: normalizeCardType(type),
     trigger: normalizeTrigger(trigger),
+    rarity: (rarity || "").trim(),
+    ap: ap === undefined || ap === "" ? null : Number(ap),
+    bp: (bp || "").trim(),
+    attribute: normalizeAttribute(attribute),
+    generatedEnergy: (generatedEnergy || "").trim(),
+    effect: (effect || "").trim(),
     poolId,
     imageExt: ext,
     order: nextCardOrder(cards),
@@ -532,6 +598,9 @@ app.patch("/api/cards/:id", (req, res) => {
   if (req.body.name !== undefined) {
     card.name = (req.body.name || "").trim();
   }
+  if (req.body.cardName !== undefined) {
+    card.cardName = (req.body.cardName || "").trim();
+  }
   if (req.body.cost !== undefined) {
     card.cost = req.body.cost === "" || req.body.cost === null ? null : Number(req.body.cost);
   }
@@ -546,6 +615,24 @@ app.patch("/api/cards/:id", (req, res) => {
   }
   if (req.body.trigger !== undefined) {
     card.trigger = normalizeTrigger(req.body.trigger);
+  }
+  if (req.body.rarity !== undefined) {
+    card.rarity = (req.body.rarity || "").trim();
+  }
+  if (req.body.ap !== undefined) {
+    card.ap = req.body.ap === "" || req.body.ap === null ? null : Number(req.body.ap);
+  }
+  if (req.body.bp !== undefined) {
+    card.bp = (req.body.bp || "").trim();
+  }
+  if (req.body.attribute !== undefined) {
+    card.attribute = normalizeAttribute(req.body.attribute);
+  }
+  if (req.body.generatedEnergy !== undefined) {
+    card.generatedEnergy = (req.body.generatedEnergy || "").trim();
+  }
+  if (req.body.effect !== undefined) {
+    card.effect = (req.body.effect || "").trim();
   }
   // A manual edit to any auto-detected field counts as the user having
   // reviewed it, so the "自動取得の結果が怪しい" warning mark no longer applies.
@@ -1004,12 +1091,18 @@ app.get("/api/decks/:id/export-zip", (req, res) => {
     const imageName = `${card.id}.${card.imageExt}`;
     zip.addFile(`images/${imageName}`, fs.readFileSync(srcImage));
     manifestCards.push({
-      name: card.name,
+      name: card.cardName || "",
       cost: card.cost,
       color: card.color || "",
       parallel: Boolean(card.parallel),
       type: normalizeCardType(card.type),
       trigger: normalizeTrigger(card.trigger),
+      rarity: card.rarity || "",
+      ap: typeof card.ap === "number" ? card.ap : null,
+      bp: card.bp || "",
+      attribute: Array.isArray(card.attribute) ? card.attribute : [],
+      generatedEnergy: card.generatedEnergy || "",
+      effect: card.effect || "",
       count: entry.count,
       image: imageName,
     });
@@ -1089,12 +1182,22 @@ app.post("/api/decks/import-zip", uploadZip.single("file"), (req, res) => {
       fs.writeFileSync(path.join(IMAGES_DIR, `${id}.${ext}`), fs.readFileSync(srcImage));
       cards.push({
         id,
-        name: (item.name && String(item.name).trim()) || defaultNameFromImage(item.image),
+        name: defaultNameFromImage(item.image),
+        cardName: (item.name && String(item.name).trim()) || "",
         cost: item.cost ?? null,
         color: (item.color && String(item.color).trim()) || "",
         parallel: Boolean(item.parallel),
         type: normalizeCardType(item.type),
         trigger: normalizeTrigger(item.trigger),
+        rarity: (item.rarity && String(item.rarity).trim()) || "",
+        ap: typeof item.ap === "number" ? item.ap : null,
+        bp: item.bp !== undefined && item.bp !== null ? String(item.bp).trim() : "",
+        attribute: normalizeAttribute(item.attribute),
+        generatedEnergy:
+          item.generatedEnergy !== undefined && item.generatedEnergy !== null
+            ? String(item.generatedEnergy).trim()
+            : "",
+        effect: (item.effect && String(item.effect).trim()) || "",
         poolId: newPool.id,
         imageExt: ext,
         order: order++,
