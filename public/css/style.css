@@ -1605,6 +1605,18 @@ button {
   padding: 10px 12px;
 }
 
+/* 絞り込み条件全体を囲む「枠」。中に折りたたみ一覧+パラレル除外等のボタンを
+   まとめて入れることで、ひと目で「ここが絞り込みエリアだ」と分かるようにする。 */
+.filter-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+
 /* 折りたたみ式の絞り込み条件一覧。全条件が閉じた状態でちょうど収まる高さに
    JS(lockFilterAccordionHeight)で固定し、はみ出した分だけスクロールする
    (スクロールバー自体は非表示)。 */
@@ -1634,10 +1646,10 @@ button {
   justify-content: space-between;
   gap: 6px;
   padding: 7px 12px;
-  background: var(--surface-2);
-  font-size: 0.78rem;
+  background: var(--surface);
+  font-size: 0.8rem;
   font-weight: 700;
-  color: var(--muted);
+  color: var(--text);
   cursor: pointer;
   user-select: none;
   list-style: none;
@@ -1665,12 +1677,49 @@ button {
 
 .filter-accordion-body {
   padding: 10px 12px;
+  background: var(--surface);
 }
 
-.filter-sidebar-footer {
+.filter-frame-controls {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex-shrink: 0;
+}
+
+/* パラレルを除外/プロモファイナルを除外: チェックボックス自体は残しつつ、
+   見た目は「検索条件をリセット」等の.btnボタンと揃える。 */
+.filter-checkbox-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.filter-checkbox-btn:hover {
+  border-color: var(--accent);
+}
+
+.filter-checkbox-btn:has(input:checked) {
+  background: var(--accent-grad);
+  border-color: transparent;
+  color: #fff;
+}
+
+.filter-checkbox-btn input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
 }
 
 /* レアリティ/特徴用: ピルを横並びにせず、横幅いっぱいのボタンを縦に積む。 */
@@ -1726,7 +1775,8 @@ button {
   flex: 0 0 auto;
 }
 
-#filter-search-input {
+#filter-search-input,
+#import-pool-search-input {
   width: 100%;
   padding: 8px 10px;
   border-radius: var(--radius-md);
@@ -1737,7 +1787,12 @@ button {
   font-size: 0.85rem;
 }
 
-#filter-search-input:focus {
+#import-pool-search-input {
+  margin: 10px 0;
+}
+
+#filter-search-input:focus,
+#import-pool-search-input:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-tint);
@@ -1899,13 +1954,10 @@ button {
 
   .filter-sidebar {
     grid-row: 2;
-    flex-direction: row;
-    flex-wrap: wrap;
   }
 
-  .filter-sidebar .filter-box {
-    flex: 1;
-    min-width: 140px;
+  .filter-frame {
+    max-height: 50vh;
   }
 }
 

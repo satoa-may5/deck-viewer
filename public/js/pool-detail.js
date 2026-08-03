@@ -44,7 +44,7 @@ function dragHandle() {
 }
 
 function displayName(card) {
-  return card.cardName || card.name || "(名称未設定)";
+  return card.name || "(名称未設定)";
 }
 
 // BPは"2000"のような普通の数値のほか"4000+"/"4000-"(以上/以下を表す接尾辞)、

@@ -783,6 +783,9 @@ function formatFileSize(bytes) {
 const importPoolBtn = document.getElementById("import-pool-btn");
 const importModal = document.getElementById("import-pool-modal");
 const importListEl = document.getElementById("import-pool-list");
+const importPoolSearchInput = document.getElementById("import-pool-search-input");
+
+let latestGithubPools = [];
 
 function closeImportModal() {
   importModal.hidden = true;
@@ -790,17 +793,30 @@ function closeImportModal() {
 
 async function openImportModal() {
   importModal.hidden = false;
+  importPoolSearchInput.value = "";
   importListEl.innerHTML = "読み込み中...";
 
-  let githubPools;
   try {
-    githubPools = await Api.getGithubPools();
+    latestGithubPools = await Api.getGithubPools();
   } catch (err) {
+    latestGithubPools = [];
     importListEl.innerHTML = '<div class="empty-state">GitHubからの取得に失敗しました。</div>';
     return;
   }
-  if (!Array.isArray(githubPools) || githubPools.length === 0) {
+  renderImportList();
+}
+
+function renderImportList() {
+  if (!Array.isArray(latestGithubPools) || latestGithubPools.length === 0) {
     importListEl.innerHTML = '<div class="empty-state">インポートできるカードプールがありません。</div>';
+    return;
+  }
+  const query = importPoolSearchInput.value.trim().toLowerCase();
+  const githubPools = query
+    ? latestGithubPools.filter((item) => item.poolName.toLowerCase().includes(query))
+    : latestGithubPools;
+  if (githubPools.length === 0) {
+    importListEl.innerHTML = '<div class="empty-state">該当するカードプールが見つかりません。</div>';
     return;
   }
 
@@ -845,6 +861,8 @@ async function openImportModal() {
     importListEl.appendChild(row);
   }
 }
+
+importPoolSearchInput.addEventListener("input", renderImportList);
 
 importPoolBtn.addEventListener("click", openImportModal);
 document.getElementById("close-import-modal-btn").addEventListener("click", closeImportModal);

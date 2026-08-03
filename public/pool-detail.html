@@ -48,6 +48,7 @@
       </div>
 
       <aside class="filter-sidebar" id="filter-bar">
+        <div class="filter-frame" id="filter-frame">
         <div class="filter-accordion-scroll" id="filter-accordion-scroll">
           <details class="filter-accordion">
             <summary>カード名/効果で検索</summary>
@@ -122,16 +123,17 @@
           </details>
         </div>
 
-        <div class="filter-sidebar-footer">
-          <label class="filter-checkbox">
+        <div class="filter-frame-controls">
+          <label class="filter-checkbox-btn">
             <input type="checkbox" id="filter-parallel-checkbox" /> パラレルを除外
           </label>
-          <label class="filter-checkbox" id="filter-all-color-wrap" hidden>
+          <label class="filter-checkbox-btn" id="filter-all-color-wrap" hidden>
             <input type="checkbox" id="filter-all-color-checkbox" /> プロモファイナルを除外
           </label>
           <button type="button" class="btn" id="filter-clear-btn">検索条件をリセット</button>
-          <button type="button" class="btn" id="thumbnail-mode-btn">サムネイルを設定</button>
         </div>
+        </div>
+        <button type="button" class="btn" id="thumbnail-mode-btn">サムネイルを設定</button>
       </aside>
     </div>
 
@@ -153,58 +155,64 @@
           <div class="modal-image-area" id="modal-image-area"></div>
           <div class="modal-info-area">
             <div class="field">
-              <label for="modal-card-cardname">カード名(任意)</label>
+              <label for="modal-card-cardname">カード名</label>
               <input type="text" id="modal-card-cardname" placeholder="例: 千川 ちひろ" />
-            </div>
-            <div class="field">
-              <label for="modal-card-name">識別コード(任意)</label>
-              <input type="text" id="modal-card-name" placeholder="" maxlength="20" />
-            </div>
-            <div class="field">
-              <label for="modal-card-type">タイプ(任意)</label>
-              <select id="modal-card-type">
-                <option value="">(未設定)</option>
-                <option value="character">キャラクター</option>
-                <option value="event">イベント</option>
-                <option value="field">フィールド</option>
-              </select>
             </div>
             <div class="field-row">
               <div class="field">
-                <label for="modal-card-rarity">レアリティ(任意)</label>
-                <input type="text" id="modal-card-rarity" placeholder="例: SR" />
+                <label for="modal-card-name">カード番号</label>
+                <input type="text" id="modal-card-name" placeholder="" maxlength="20" />
               </div>
               <div class="field">
-                <label for="modal-card-color">色(任意)</label>
+                <label for="modal-card-rarity">レアリティ</label>
+                <input type="text" id="modal-card-rarity" placeholder="例: SR" />
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="modal-card-type">タイプ</label>
+                <select id="modal-card-type">
+                  <option value="">(未設定)</option>
+                  <option value="character">キャラクター</option>
+                  <option value="event">イベント</option>
+                  <option value="field">フィールド</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="modal-card-color">色</label>
                 <input type="text" id="modal-card-color" placeholder="例: 青" />
               </div>
             </div>
             <div class="field-row">
               <div class="field">
-                <label for="modal-card-cost">必要エナジー(任意)</label>
+                <label for="modal-card-cost">必要エナジー</label>
                 <input type="number" id="modal-card-cost" min="0" step="1" />
               </div>
               <div class="field">
-                <label for="modal-card-ap">消費AP(任意)</label>
+                <label for="modal-card-ap">消費AP</label>
                 <input type="number" id="modal-card-ap" min="0" step="1" />
               </div>
             </div>
             <div class="field-row">
               <div class="field">
-                <label for="modal-card-bp">BP(任意)</label>
+                <label for="modal-card-bp">BP</label>
                 <input type="text" id="modal-card-bp" placeholder="例: 2000+" />
               </div>
               <div class="field">
-                <label for="modal-card-generated-energy">発生エナジー(任意)</label>
+                <label for="modal-card-generated-energy">発生エナジー</label>
                 <input type="text" id="modal-card-generated-energy" placeholder="例: 1+" />
               </div>
             </div>
             <div class="field">
-              <label for="modal-card-attribute">特徴(任意、カンマ区切りで複数可)</label>
+              <label for="modal-card-attribute">特徴(カンマ区切りで複数可)</label>
               <input type="text" id="modal-card-attribute" placeholder="例: LiPPS, ポジティブパッション" />
             </div>
             <div class="field">
-              <label for="modal-card-trigger">トリガー(任意)</label>
+              <label for="modal-card-effect">効果</label>
+              <textarea id="modal-card-effect" rows="4"></textarea>
+            </div>
+            <div class="field">
+              <label for="modal-card-trigger">トリガー</label>
               <select id="modal-card-trigger">
                 <option value="">(未設定/なし)</option>
                 <option value="active">アクティブ</option>
@@ -215,10 +223,6 @@
                 <option value="special">スペシャル</option>
                 <option value="color">カラー</option>
               </select>
-            </div>
-            <div class="field">
-              <label for="modal-card-effect">効果(任意)</label>
-              <textarea id="modal-card-effect" rows="4"></textarea>
             </div>
             <div class="field checkbox-field">
               <label><input type="checkbox" id="modal-card-parallel" /> パラレル</label>

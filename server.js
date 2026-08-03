@@ -380,6 +380,25 @@ function importPoolFromFolder(folder, manifest, manifestCards, desiredName) {
 
 const GITHUB_DVPOOL_NAME = /^[A-Za-z0-9._-]+\.dvpool$/;
 
+// GitHubのContents APIはファイルサイズ以上の情報(manifest.jsonの中身)を返さない
+// ため、実際のpoolNameを一覧に出すには結局ファイル本体を読む必要がある。毎回
+// 全ファイルを落とすのは大きい(.dvpoolは数十MB)ので、GitHub側のblob sha
+// (内容が変わらない限り不変)をキーにキャッシュし、同じ内容のファイルを二度と
+// 落とさないようにする。
+const githubPoolNameCache = new Map(); // fileName -> { sha, poolName }
+
+async function fetchGithubPoolName(fileName) {
+  const rawUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/pool-exports/${fileName}`;
+  const fileRes = await fetch(rawUrl, { headers: { "User-Agent": "deck-viewer" } });
+  if (!fileRes.ok) throw new Error(`raw fetch failed: ${fileRes.status}`);
+  const buffer = Buffer.from(await fileRes.arrayBuffer());
+  const zip = new AdmZip(buffer);
+  const manifestEntry = zip.getEntry("manifest.json");
+  if (!manifestEntry) return null;
+  const manifest = JSON.parse(manifestEntry.getData().toString("utf8"));
+  return manifest.poolName || null;
+}
+
 app.get("/api/github-pools", async (req, res) => {
   try {
     const listUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/pool-exports?ref=${GITHUB_BRANCH}`;
@@ -390,13 +409,25 @@ app.get("/api/github-pools", async (req, res) => {
       return res.status(502).json({ error: "GitHubからの取得に失敗しました" });
     }
     const entries = await listRes.json();
-    const pools = (Array.isArray(entries) ? entries : [])
-      .filter((e) => e.type === "file" && GITHUB_DVPOOL_NAME.test(e.name))
-      .map((e) => ({
-        name: e.name,
-        poolName: path.basename(e.name, ".dvpool"),
-        size: e.size,
-      }));
+    const dvpoolEntries = (Array.isArray(entries) ? entries : []).filter(
+      (e) => e.type === "file" && GITHUB_DVPOOL_NAME.test(e.name)
+    );
+
+    const pools = await Promise.all(
+      dvpoolEntries.map(async (e) => {
+        const cached = githubPoolNameCache.get(e.name);
+        let poolName = cached && cached.sha === e.sha ? cached.poolName : null;
+        if (!poolName) {
+          try {
+            poolName = await fetchGithubPoolName(e.name);
+          } catch (err) {
+            poolName = null;
+          }
+          githubPoolNameCache.set(e.name, { sha: e.sha, poolName });
+        }
+        return { name: e.name, poolName: poolName || path.basename(e.name, ".dvpool"), size: e.size };
+      })
+    );
     res.json(pools);
   } catch (err) {
     res.status(502).json({ error: "GitHubからの取得に失敗しました" });
