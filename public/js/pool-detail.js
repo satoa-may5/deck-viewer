@@ -332,7 +332,7 @@ function toggleInSet(set, value) {
 // identical in every way except their range and where they read/write in
 // filterState -- pulled out into one generic controller once a second range
 // slider needed the exact same delicate drag logic as the first.
-function setupRangeSlider({ minInput, maxInput, fillEl, minLabel, maxLabel, getRangeMin, getRangeMax, getMin, setMin, getMax, setMax, onChange }) {
+function setupRangeSlider({ minInput, maxInput, fillEl, minLabel, maxLabel, getRangeMin, getRangeMax, getMin, setMin, getMax, setMax, onChange, step = 1 }) {
   const wrap = minInput.closest(".range-slider-wrap");
   let draggingThumb = null; // "min" | "max" | null
   let dragTiedValue = null; // set while a down-on-tied-thumbs drag hasn't picked a direction yet
@@ -342,7 +342,10 @@ function setupRangeSlider({ minInput, maxInput, fillEl, minLabel, maxLabel, getR
     const rangeMax = getRangeMax();
     const rect = wrap.getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    return Math.round(rangeMin + pct * (rangeMax - rangeMin));
+    const raw = rangeMin + pct * (rangeMax - rangeMin);
+    // BPは500刻みなど、ドラッグで動く値自体をstep単位に丸める(表示ラベルの
+    // 数字とスライダーの見た目のステップ幅を一致させるため)。
+    return Math.round((raw - rangeMin) / step) * step + rangeMin;
   }
 
   function pickThumb(clientX) {
@@ -466,6 +469,7 @@ const bpSlider = setupRangeSlider({
   getMax: () => filterState.bpMax,
   setMax: (v) => (filterState.bpMax = v),
   onChange: renderCards,
+  step: BP_STEP,
 });
 
 // Gathers the distinct non-empty values actually present across `cards` for
@@ -574,6 +578,14 @@ function updateFilterUI() {
   // Only shown once there's actually something for it to filter out.
   filterAllColorWrap.hidden = !latestCards.some((c) => c.color === "全て");
   filterAllColorCheckbox.checked = filterState.excludeAllColor;
+
+  // 高さの固定は、filterAllColorWrapの表示/非表示が確定した後(=このupdateFilterUI
+  // が一度実行された後)でないと正しく測れない(先に測ると、後から表示される分の
+  // 高さが計算に含まれず「検索条件をリセット」が枠からはみ出てしまう)。
+  if (!filterHeightLocked) {
+    filterHeightLocked = true;
+    lockFilterAccordionHeight();
+  }
 }
 
 filterSearchInput.addEventListener("input", () => {
@@ -673,13 +685,15 @@ filterAttributeAccordion.addEventListener("toggle", () => {
 // 折りたたみ一覧を「全部閉じた状態でちょうど収まる高さ」に固定し、それ以上は
 // スクロールで見せる(スクロールバー自体はCSSで非表示)。閉じている<details>の
 // 中身はレイアウトに寄与しないため、この高さは実際にどんな絞り込み候補が
-// 入っているかに関係なく一定 -- ページ読み込み時に一度だけ測って固定すればよい。
+// 入っているかに関係なく一定 -- ただし、プロモファイナル除外チェックボックスの
+// 表示/非表示のようにupdateFilterUI()が確定させる要素もあるため、初回の
+// updateFilterUI()実行後に一度だけ測って固定する(呼び出し箇所はupdateFilterUI内)。
+let filterHeightLocked = false;
 function lockFilterAccordionHeight() {
   const el = document.getElementById("filter-accordion-scroll");
   el.style.height = "auto";
   el.style.height = `${el.scrollHeight}px`;
 }
-lockFilterAccordionHeight();
 
 // ---- List view ----
 

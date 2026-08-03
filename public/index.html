@@ -59,7 +59,12 @@
           <button type="button" class="icon-btn" id="close-import-modal-btn">✕</button>
         </div>
         <button type="button" class="ghost-row" id="import-pool-local-row">＋ ローカルからカードプールをインポート</button>
-        <input type="text" id="import-pool-search-input" placeholder="カードプール名で検索" />
+        <div class="import-pool-search-row">
+          <input type="text" id="import-pool-search-input" placeholder="カードプール名で検索" />
+          <select id="import-pool-year-select" title="vol.1の発売日で検索">
+            <option value="">年</option>
+          </select>
+        </div>
         <div id="import-pool-list"></div>
       </div>
     </div>

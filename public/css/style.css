@@ -1791,12 +1791,32 @@ button {
   font-size: 0.85rem;
 }
 
-#import-pool-search-input {
+.import-pool-search-row {
+  display: flex;
+  gap: 8px;
   margin: 10px 0;
 }
 
+.import-pool-search-row #import-pool-search-input {
+  flex: 1;
+  width: auto;
+  margin: 0;
+}
+
+#import-pool-year-select {
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
 #filter-search-input:focus,
-#import-pool-search-input:focus {
+#import-pool-search-input:focus,
+#import-pool-year-select:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-tint);

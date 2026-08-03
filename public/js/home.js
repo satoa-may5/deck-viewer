@@ -792,6 +792,7 @@ const importPoolBtn = document.getElementById("import-pool-btn");
 const importModal = document.getElementById("import-pool-modal");
 const importListEl = document.getElementById("import-pool-list");
 const importPoolSearchInput = document.getElementById("import-pool-search-input");
+const importPoolYearSelect = document.getElementById("import-pool-year-select");
 
 let latestGithubPools = [];
 
@@ -799,9 +800,25 @@ function closeImportModal() {
   importModal.hidden = true;
 }
 
+function updateImportYearOptions() {
+  const years = [...new Set(latestGithubPools.map((p) => (p.release || "").slice(0, 4)).filter(Boolean))].sort(
+    (a, b) => b.localeCompare(a)
+  );
+  const previousValue = importPoolYearSelect.value;
+  importPoolYearSelect.innerHTML = '<option value="">年</option>';
+  for (const year of years) {
+    const option = document.createElement("option");
+    option.value = year;
+    option.textContent = `${year}年`;
+    importPoolYearSelect.appendChild(option);
+  }
+  importPoolYearSelect.value = years.includes(previousValue) ? previousValue : "";
+}
+
 async function openImportModal() {
   importModal.hidden = false;
   importPoolSearchInput.value = "";
+  importPoolYearSelect.value = "";
   importListEl.innerHTML = "読み込み中...";
 
   try {
@@ -813,6 +830,7 @@ async function openImportModal() {
   }
   // リリース日が新しい順(同じ場合の順序は問わない)。releaseが無いものは末尾に回す。
   latestGithubPools.sort((a, b) => (b.release || "").localeCompare(a.release || ""));
+  updateImportYearOptions();
   renderImportList();
 }
 
@@ -822,9 +840,12 @@ function renderImportList() {
     return;
   }
   const query = importPoolSearchInput.value.trim().toLowerCase();
-  const githubPools = query
-    ? latestGithubPools.filter((item) => item.poolName.toLowerCase().includes(query))
-    : latestGithubPools;
+  const year = importPoolYearSelect.value;
+  const githubPools = latestGithubPools.filter((item) => {
+    if (query && !item.poolName.toLowerCase().includes(query)) return false;
+    if (year && (item.release || "").slice(0, 4) !== year) return false;
+    return true;
+  });
   if (githubPools.length === 0) {
     importListEl.innerHTML = '<div class="empty-state">該当するカードプールが見つかりません。</div>';
     return;
@@ -873,7 +894,16 @@ function renderImportList() {
   }
 }
 
-importPoolSearchInput.addEventListener("input", renderImportList);
+// IME変換中(例:「ア」を打とうとしている途中の「あ」)にも"input"イベントは
+// 発火するため、変換確定前に検索が走って毎打鍵ちらつくのを避ける。変換中かどうかは
+// isComposingで判定し、変換確定時(compositionend)に改めて検索をかける。
+importPoolSearchInput.addEventListener("input", (e) => {
+  if (e.isComposing) return;
+  renderImportList();
+});
+importPoolSearchInput.addEventListener("compositionend", renderImportList);
+
+importPoolYearSelect.addEventListener("change", renderImportList);
 
 importPoolBtn.addEventListener("click", openImportModal);
 document.getElementById("close-import-modal-btn").addEventListener("click", closeImportModal);
