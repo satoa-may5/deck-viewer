@@ -1803,15 +1803,42 @@ button {
   margin: 0;
 }
 
+/* ネイティブ<select>そのままの見た目だと浮いて見えるため、他のボタン類と
+   揃うピル型に作り直す(矢印もブラウザ標準のものを消して自前のものに差し替え)。 */
 #import-pool-year-select {
   flex: 0 0 auto;
-  padding: 8px 10px;
-  border-radius: var(--radius-md);
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 8px 30px 8px 16px;
+  border-radius: 999px;
   border: 1px solid var(--border);
-  background: var(--surface-2);
+  background-color: var(--surface);
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%236b7080' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 10px 7px;
   color: var(--text);
   font: inherit;
   font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s var(--ease);
+}
+
+#import-pool-year-select:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+#import-pool-year-select:has(option:checked:not([value=""])) {
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='white' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"),
+    var(--accent-grad);
+  background-repeat: no-repeat, no-repeat;
+  background-position: right 12px center, 0 0;
+  background-size: 10px 7px, auto;
+  border-color: transparent;
+  color: #fff;
 }
 
 #filter-search-input:focus,

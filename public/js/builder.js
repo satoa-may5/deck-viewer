@@ -820,10 +820,9 @@ function updateFilterUI() {
   costSlider.updateUI();
   bpSlider.updateUI();
   filterParallelCheckbox.checked = filterState.excludeParallel;
-  // Only shown once there's actually something for it to filter out, same as
-  // pool-detail.js -- scoped to the currently-selected pools' cards, not
-  // every card in the collection.
-  filterAllColorWrap.hidden = !poolCardsForFilter.some((c) => c.color === "全て");
+  // 以前は「全て」カラーのカードがあるプールだけ表示していたが、判定条件が
+  // 分かりにくく「出たり出なかったり」に見えて紛らわしかったため、常に表示する
+  // ことにした(該当カードが無いプールでは単に何も除外しないだけで無害)。
   filterAllColorCheckbox.checked = filterState.excludeAllColor;
 
   // 高さの固定は、filterAllColorWrapの表示/非表示が確定した後(=このupdateFilterUI
