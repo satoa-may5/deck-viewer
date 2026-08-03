@@ -1687,6 +1687,10 @@ button {
   flex-shrink: 0;
 }
 
+.filter-frame-controls #filter-clear-btn {
+  justify-content: center;
+}
+
 /* パラレルを除外/プロモファイナルを除外: チェックボックス自体は残しつつ、
    見た目は「検索条件をリセット」等の.btnボタンと揃える。 */
 .filter-checkbox-btn {

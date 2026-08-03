@@ -780,6 +780,14 @@ function formatFileSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
+// manifest.releaseは"2026-07-31"のようなISO日付文字列。
+function formatReleaseDate(release) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(release || "");
+  if (!m) return "";
+  const [, y, mo, d] = m;
+  return `${y}年${Number(mo)}月${Number(d)}日`;
+}
+
 const importPoolBtn = document.getElementById("import-pool-btn");
 const importModal = document.getElementById("import-pool-modal");
 const importListEl = document.getElementById("import-pool-list");
@@ -803,6 +811,8 @@ async function openImportModal() {
     importListEl.innerHTML = '<div class="empty-state">GitHubからの取得に失敗しました。</div>';
     return;
   }
+  // リリース日が新しい順(同じ場合の順序は問わない)。releaseが無いものは末尾に回す。
+  latestGithubPools.sort((a, b) => (b.release || "").localeCompare(a.release || ""));
   renderImportList();
 }
 
@@ -830,7 +840,8 @@ function renderImportList() {
     const title = document.createElement("strong");
     title.textContent = item.poolName;
     const small = document.createElement("small");
-    small.textContent = formatFileSize(item.size);
+    const releaseText = formatReleaseDate(item.release);
+    small.textContent = releaseText ? `${releaseText} ・ ${formatFileSize(item.size)}` : formatFileSize(item.size);
     info.appendChild(title);
     info.appendChild(small);
 

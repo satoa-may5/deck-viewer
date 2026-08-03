@@ -385,18 +385,18 @@ const GITHUB_DVPOOL_NAME = /^[A-Za-z0-9._-]+\.dvpool$/;
 // 全ファイルを落とすのは大きい(.dvpoolは数十MB)ので、GitHub側のblob sha
 // (内容が変わらない限り不変)をキーにキャッシュし、同じ内容のファイルを二度と
 // 落とさないようにする。
-const githubPoolNameCache = new Map(); // fileName -> { sha, poolName }
+const githubPoolMetaCache = new Map(); // fileName -> { sha, poolName, release }
 
-async function fetchGithubPoolName(fileName) {
+async function fetchGithubPoolMeta(fileName) {
   const rawUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/pool-exports/${fileName}`;
   const fileRes = await fetch(rawUrl, { headers: { "User-Agent": "deck-viewer" } });
   if (!fileRes.ok) throw new Error(`raw fetch failed: ${fileRes.status}`);
   const buffer = Buffer.from(await fileRes.arrayBuffer());
   const zip = new AdmZip(buffer);
   const manifestEntry = zip.getEntry("manifest.json");
-  if (!manifestEntry) return null;
+  if (!manifestEntry) return { poolName: null, release: null };
   const manifest = JSON.parse(manifestEntry.getData().toString("utf8"));
-  return manifest.poolName || null;
+  return { poolName: manifest.poolName || null, release: manifest.release || null };
 }
 
 app.get("/api/github-pools", async (req, res) => {
@@ -415,17 +415,24 @@ app.get("/api/github-pools", async (req, res) => {
 
     const pools = await Promise.all(
       dvpoolEntries.map(async (e) => {
-        const cached = githubPoolNameCache.get(e.name);
-        let poolName = cached && cached.sha === e.sha ? cached.poolName : null;
-        if (!poolName) {
+        const cached = githubPoolMetaCache.get(e.name);
+        let meta = cached && cached.sha === e.sha ? cached : null;
+        if (!meta) {
+          let fetched;
           try {
-            poolName = await fetchGithubPoolName(e.name);
+            fetched = await fetchGithubPoolMeta(e.name);
           } catch (err) {
-            poolName = null;
+            fetched = { poolName: null, release: null };
           }
-          githubPoolNameCache.set(e.name, { sha: e.sha, poolName });
+          meta = { sha: e.sha, ...fetched };
+          githubPoolMetaCache.set(e.name, meta);
         }
-        return { name: e.name, poolName: poolName || path.basename(e.name, ".dvpool"), size: e.size };
+        return {
+          name: e.name,
+          poolName: meta.poolName || path.basename(e.name, ".dvpool"),
+          release: meta.release || null,
+          size: e.size,
+        };
       })
     );
     res.json(pools);
