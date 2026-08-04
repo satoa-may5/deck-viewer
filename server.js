@@ -1290,15 +1290,24 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-function openBrowser(url) {
+// callbackは省略可(通常起動時は使わない)。EADDRINUSE時のように直後に
+// process.exit()する場合は必ずcallback経由で呼ぶこと -- exec()は子プロセスの
+// 起動を待たずに即座にreturnする非同期処理なので、呼び出し直後に
+// process.exit()すると、OSに子プロセスを渡しきる前にイベントループごと
+// 強制終了させてしまい、ブラウザが開かないことがある。
+function openBrowser(url, callback) {
   const { exec } = require("child_process");
-  if (process.platform === "win32") {
-    exec(`start "" "${url}"`);
-  } else if (process.platform === "darwin") {
-    exec(`open "${url}"`);
-  } else {
-    exec(`xdg-open "${url}"`);
-  }
+  const command =
+    process.platform === "win32"
+      ? `start "" "${url}"`
+      : process.platform === "darwin"
+        ? `open "${url}"`
+        : `xdg-open "${url}"`;
+  // exec(command, undefined) throws under pkg's child_process shim ("callback
+  // argument must be of type function") even though plain Node accepts it --
+  // only pass the second argument when there actually is one.
+  if (callback) exec(command, callback);
+  else exec(command);
 }
 
 const PORT = process.env.PORT || 3000;
@@ -1336,8 +1345,9 @@ const server = app.listen(PORT, "0.0.0.0", () => {
 // 終了する -- 実行するたびに必ずブラウザが開く、という体験を優先する。
 server.on("error", (err) => {
   if (err.code === "EADDRINUSE" && process.pkg) {
-    openBrowser(`http://localhost:${PORT}`);
-    process.exit(0);
+    // exec()のコールバックを待ってから終了する(理由はopenBrowser()のコメント参照)。
+    openBrowser(`http://localhost:${PORT}`, () => process.exit(0));
+    return;
   }
   throw err;
 });

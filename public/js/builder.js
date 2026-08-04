@@ -46,11 +46,22 @@ function attachCardClicks(el, { onAdd, onRemove }) {
   });
 }
 
-// .builder-grid .card-item:active .card-frame shrinks to this scale while
-// pressed (see style.css) — the exit ghost should be based on the card's
-// normal size, not whatever momentarily-shrunk size is on screen right as
-// the tap releases.
-const PRESSED_SCALE = 0.94;
+// .builder-grid .card-item:active/:hover .card-frame applies a scale/lift
+// transform (see style.css) while pressed/hovered — getBoundingClientRect()
+// on a transformed element reports the visually-scaled box, not the card's
+// real (resting) size, so a ghost built straight from it can come out
+// smaller than the card actually is. offsetWidth/offsetHeight are the
+// element's layout box, which CSS `transform` never affects, so pairing
+// those with the (transformed) rect's center point gives a ghost sized like
+// the resting card but still centered on wherever it currently appears.
+function getRestFrameRect(frame) {
+  const rect = frame.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const width = frame.offsetWidth;
+  const height = frame.offsetHeight;
+  return new DOMRect(cx - width / 2, cy - height / 2, width, height);
+}
 
 // Quick, non-blocking exit flourish: clones just the tapped card's thumbnail
 // frame (not the whole tile — that includes the caption below it, which
@@ -65,14 +76,7 @@ const PRESSED_SCALE = 0.94;
 function prepareCardExit(sourceEl, direction) {
   const frame = sourceEl.querySelector(".card-frame");
   if (!frame) return null;
-  let frameRect = frame.getBoundingClientRect();
-  if (frame.matches(":active")) {
-    const cx = frameRect.left + frameRect.width / 2;
-    const cy = frameRect.top + frameRect.height / 2;
-    const width = frameRect.width / PRESSED_SCALE;
-    const height = frameRect.height / PRESSED_SCALE;
-    frameRect = new DOMRect(cx - width / 2, cy - height / 2, width, height);
-  }
+  const frameRect = getRestFrameRect(frame);
   const ghost = frame.cloneNode(true);
 
   return () => {
@@ -100,13 +104,16 @@ function prepareCardExit(sourceEl, direction) {
 // 「カードプール側を右クリックして削除」のように、タップされた要素自体は
 // その場に残ったまま中身(枚数)だけ変わるケース向けの、うっすら入ってくる
 // ような控えめな入場フラッシュ。renderPanes()で再描画された「後」の要素を
-// 対象に呼ぶ必要がある(枚数バッジ等も含めた最終的な見た目の位置に向かって
-// 入ってくるように見せるため)。
+// 対象に呼ぶ必要がある(最終的な見た目の位置に向かって入ってくるように
+// 見せるため)。枚数バッジ(.badge)は入場してくる演出には不要なので、
+// 複製から取り除いてから表示する。
 function prepareCardEnter(sourceEl, direction) {
   const frame = sourceEl && sourceEl.querySelector(".card-frame");
   if (!frame) return;
-  const frameRect = frame.getBoundingClientRect();
+  const frameRect = getRestFrameRect(frame);
   const ghost = frame.cloneNode(true);
+  const badge = ghost.querySelector(".badge");
+  if (badge) badge.remove();
   ghost.style.position = "fixed";
   ghost.style.left = `${frameRect.left}px`;
   ghost.style.top = `${frameRect.top}px`;
