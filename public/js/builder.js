@@ -522,18 +522,25 @@ function sortMulliganHand(cardIds, cardById) {
 const MULLIGAN_MAIN_SLOTS = 7;
 const MULLIGAN_EXTRA_SLOTS = MULLIGAN_SINGLE_DRAW_LIMIT;
 
-// cardIdがnull/undefinedの場合は「まだ引かれていない枠」を表す空のプレース
-// ホルダー(青い破線)を作る。1行目・2行目とも常に固定枚数ぶんの枠を描画する
-// ことで、「新しく7枚引く」を押す前から縦幅が確保され、押した瞬間にモーダルの
-// 高さが変わったりボタンの位置がズレたりしないようにする。
-function buildMulliganFrame(cardId, cardById) {
+// 「まだ引かれていない枠」を表す、常時表示される青い破線のプレースホルダー。
+// slotIndexで明示的にgrid位置を指定し、同じセルに(あれば)カード本体の要素も
+// 重ねて置く。カード本体はこのプレースホルダーの後にDOM挿入されるので常に
+// 上に描画される -- アニメーション中(半透明・スライド中)は下の破線が透けて
+// 見え、めくり終わって不透明になれば自然と破線が完全に隠れる。
+function buildMulliganPlaceholder(slotIndex) {
+  const el = document.createElement("div");
+  el.className = "mulligan-card-frame is-empty";
+  el.style.gridColumn = String(slotIndex + 1);
+  el.style.gridRow = "1";
+  return el;
+}
+
+function buildMulliganFrame(cardId, cardById, slotIndex) {
+  const card = cardById[cardId];
   const frame = document.createElement("div");
   frame.className = "mulligan-card-frame";
-  if (!cardId) {
-    frame.classList.add("is-empty");
-    return frame;
-  }
-  const card = cardById[cardId];
+  frame.style.gridColumn = String(slotIndex + 1);
+  frame.style.gridRow = "1";
   if (isMulliganHighlightCard(card)) frame.classList.add("is-cheap");
   if (card && card.imageExt) {
     const img = document.createElement("img");
@@ -543,6 +550,16 @@ function buildMulliganFrame(cardId, cardById) {
     frame.appendChild(img);
   }
   return frame;
+}
+
+// container内をslotCount個ぶんの「プレースホルダー + (あれば)カード」の
+// ペアで作り直す。ids[i]が無いスロットはプレースホルダーだけになる。
+function buildMulliganRow(container, ids, slotCount, cardById) {
+  container.innerHTML = "";
+  for (let i = 0; i < slotCount; i++) {
+    container.appendChild(buildMulliganPlaceholder(i));
+    if (ids[i]) container.appendChild(buildMulliganFrame(ids[i], cardById, i));
+  }
 }
 
 // 1行目(最大7枚、mulliganBoardEl)= 「新しく7枚引く」/「マリガン」で並ぶ手札、
@@ -559,32 +576,22 @@ function renderMulliganBoard(mode) {
   const mainIds = mulliganBoardIds.slice(0, MULLIGAN_MAIN_SLOTS);
   const extraIds = mulliganBoardIds.slice(MULLIGAN_MAIN_SLOTS);
 
-  function buildFrameWithCard(cardId) {
-    return buildMulliganFrame(cardId, cardById);
-  }
-
   if (mode === "single") {
     // 1行目は既存のまま、2行目だけ作り直す(末尾の1枚だけアニメーション対象)。
-    mulliganBoardExtraEl.innerHTML = "";
-    for (let i = 0; i < MULLIGAN_EXTRA_SLOTS; i++) {
-      mulliganBoardExtraEl.appendChild(buildFrameWithCard(extraIds[i] || null));
-    }
-    const dealtCount = extraIds.length;
+    buildMulliganRow(mulliganBoardExtraEl, extraIds, MULLIGAN_EXTRA_SLOTS, cardById);
     const extraFrames = mulliganBoardExtraEl.querySelectorAll(".mulligan-card-frame:not(.is-empty)");
     extraFrames.forEach((frame, index) => {
-      if (index < dealtCount - 1) frame.classList.add("is-dealt");
+      if (index < extraIds.length - 1) frame.classList.add("is-dealt");
     });
     setTimeout(() => {
-      const last = extraFrames[dealtCount - 1];
+      const last = extraFrames[extraIds.length - 1];
       if (last) last.classList.add("is-dealt");
     }, 20);
     return;
   }
 
-  mulliganBoardEl.innerHTML = "";
-  mulliganBoardExtraEl.innerHTML = "";
-  for (let i = 0; i < MULLIGAN_MAIN_SLOTS; i++) mulliganBoardEl.appendChild(buildFrameWithCard(mainIds[i] || null));
-  for (let i = 0; i < MULLIGAN_EXTRA_SLOTS; i++) mulliganBoardExtraEl.appendChild(buildFrameWithCard(extraIds[i] || null));
+  buildMulliganRow(mulliganBoardEl, mainIds, MULLIGAN_MAIN_SLOTS, cardById);
+  buildMulliganRow(mulliganBoardExtraEl, extraIds, MULLIGAN_EXTRA_SLOTS, cardById);
   if (mode === "reset") {
     // 現在の内容(リセット直後なら空)をそのまま静的に確定させるだけ。
     mulliganBoardEl.querySelectorAll(".mulligan-card-frame:not(.is-empty)").forEach((f) => f.classList.add("is-dealt"));

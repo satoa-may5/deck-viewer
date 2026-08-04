@@ -1241,16 +1241,22 @@ button {
   transition: box-shadow 0.2s var(--ease), transform 0.2s var(--ease), border-color 0.2s ease;
 }
 
-/* カードプールをインポート画面の一覧は、行自体をクリックする操作が無い(右端の
-   「インポート」ボタンだけが操作対象)ため、行のホバー演出は不要。 */
-#import-pool-list .deck-row {
-  transition: none;
-}
-
 .deck-row:hover {
   border-color: var(--accent);
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
+}
+
+/* カードプールをインポート画面の一覧は、行自体をクリックする操作が無い(右端の
+   「インポート」ボタンだけが操作対象)ため、行のホバー演出は不要 -- 前回
+   transitionだけ殺していたが、それだと枠色/影/移動そのものは無アニメで
+   即座に付いてしまっていた(見た目自体は変わらず、ヌルッと動くのが
+   カクッと動くようになっただけ)。ホバー時の値そのものを非ホバー時と
+   同じに戻す必要がある。 */
+#import-pool-list .deck-row:hover {
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+  transform: none;
 }
 
 .deck-row-main {
