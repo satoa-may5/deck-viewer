@@ -380,58 +380,33 @@ function importPoolFromFolder(folder, manifest, manifestCards, desiredName) {
 
 const GITHUB_DVPOOL_NAME = /^[A-Za-z0-9._-]+\.dvpool$/;
 
-// GitHubのContents APIはファイルサイズ以上の情報(manifest.jsonの中身)を返さない
-// ため、実際のpoolNameを一覧に出すには結局ファイル本体を読む必要がある。毎回
-// 全ファイルを落とすのは大きい(.dvpoolは数十MB)ので、GitHub側のblob sha
-// (内容が変わらない限り不変)をキーにキャッシュし、同じ内容のファイルを二度と
-// 落とさないようにする。
-const githubPoolMetaCache = new Map(); // fileName -> { sha, poolName, release }
-
-async function fetchGithubPoolMeta(fileName) {
-  const rawUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/pool-exports/${fileName}`;
-  const fileRes = await fetch(rawUrl, { headers: { "User-Agent": "deck-viewer" } });
-  if (!fileRes.ok) throw new Error(`raw fetch failed: ${fileRes.status}`);
-  const buffer = Buffer.from(await fileRes.arrayBuffer());
-  const zip = new AdmZip(buffer);
-  const manifestEntry = zip.getEntry("manifest.json");
-  if (!manifestEntry) return { poolName: null, release: null };
-  const manifest = JSON.parse(manifestEntry.getData().toString("utf8"));
-  return { poolName: manifest.poolName || null, release: manifest.release || null };
-}
+// 以前は一覧取得のたびにGitHubのContents APIを叩き、さらに新規/更新された
+// .dvpoolごとに本体(数十MBのzip)を丸ごとダウンロードしてmanifest.jsonだけを
+// 読む、という重い処理をしていた(サーバー再起動直後の初回アクセスが特に遅い
+// 原因だった)。pool-exports/index.json(tools/build-pool-export-index.jsで
+// .dvpoolを追加/更新するたびに作り直し、一緒にコミットしておく事前生成済みの
+// 一覧)を1回fetchするだけで済むようにした。
+let githubPoolListCache = null; // { fetchedAt, pools }
+const GITHUB_POOL_LIST_CACHE_TTL = 60 * 1000; // 短時間の連打で何度もfetchしないための最小限のTTL
 
 async function listGithubPools() {
-  const listUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/pool-exports?ref=${GITHUB_BRANCH}`;
-  const listRes = await fetch(listUrl, {
-    headers: { "User-Agent": "deck-viewer", Accept: "application/vnd.github+json" },
-  });
-  if (!listRes.ok) throw new Error(`list fetch failed: ${listRes.status}`);
-  const entries = await listRes.json();
-  const dvpoolEntries = (Array.isArray(entries) ? entries : []).filter(
-    (e) => e.type === "file" && GITHUB_DVPOOL_NAME.test(e.name)
-  );
-
-  return Promise.all(
-    dvpoolEntries.map(async (e) => {
-      const cached = githubPoolMetaCache.get(e.name);
-      let meta = cached && cached.sha === e.sha ? cached : null;
-      if (!meta) {
-        let fetched;
-        try {
-          fetched = await fetchGithubPoolMeta(e.name);
-        } catch (err) {
-          fetched = { poolName: null, release: null };
-        }
-        meta = { sha: e.sha, ...fetched };
-        githubPoolMetaCache.set(e.name, meta);
-      }
-      return {
-        name: e.name,
-        poolName: meta.poolName || path.basename(e.name, ".dvpool"),
-        release: meta.release || null,
-        size: e.size,
-      };
-    })
-  );
+  if (githubPoolListCache && Date.now() - githubPoolListCache.fetchedAt < GITHUB_POOL_LIST_CACHE_TTL) {
+    return githubPoolListCache.pools;
+  }
+  const indexUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/pool-exports/index.json`;
+  const res = await fetch(indexUrl, { headers: { "User-Agent": "deck-viewer" } });
+  if (!res.ok) throw new Error(`index fetch failed: ${res.status}`);
+  const entries = await res.json();
+  const pools = (Array.isArray(entries) ? entries : [])
+    .filter((e) => e && GITHUB_DVPOOL_NAME.test(e.name))
+    .map((e) => ({
+      name: e.name,
+      poolName: e.poolName || path.basename(e.name, ".dvpool"),
+      release: e.release || null,
+      size: e.size,
+    }));
+  githubPoolListCache = { fetchedAt: Date.now(), pools };
+  return pools;
 }
 
 app.get("/api/github-pools", async (req, res) => {

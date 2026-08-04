@@ -2477,15 +2477,39 @@ button {
   min-width: 0;
 }
 
-/* 常に10列(7枚引き+1枚引く最大3回ぶん)を確保しておくことで、ドローの
-   たびに列数・行数が変わってカード自体のサイズや下のボタン位置がガタつく
-   のを防ぐ(実際のカードが7枚しかなくても、グリッド自体は10列ぶんの
-   横幅・行の高さを常に確保する)。 */
+/* マリガンシミュレーターのカードを大きく見せるため、必要エナジー/トリガー
+   分布(左)より広めに幅を割り当てる。 */
+.stats-modal-col:first-child {
+  flex: 0 0 300px;
+}
+
+.stats-modal-col.mulligan-col {
+  flex: 1 1 auto;
+}
+
+.mulligan-board-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 1行目(新しく7枚引く/マリガンで並ぶ7枚)・2行目(1枚引くで追加された分、
+   最大3枚)ともに列数を7で揃えることで、2行目にカードが少なくても1行目と
+   同じカードサイズになる(列幅=コンテナ幅/7で固定されるため)。2行目は
+   常に1行ぶんの高さを確保しておき、0〜3枚のどの状態でもレイアウトが
+   動かないようにする。 */
 .mulligan-board {
   display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap: 6px;
-  min-height: 120px;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+/* 2行目のコンテナ自体を「7枚ぶんの横幅 : カード1枚ぶんの縦幅」のアスペクト比に
+   固定することで、幅ベースで高さが決まり(min-heightのようなパーセント指定
+   だと高さ基準の親要素サイズを参照してしまい破綻する)、実際に置かれている
+   カードが0〜3枚のどれでも1行ぶんの高さが常に確保される。 */
+.mulligan-board-extra {
+  aspect-ratio: 441 / 88;
 }
 
 .mulligan-card-frame {
@@ -2532,6 +2556,15 @@ button {
 .mulligan-btn-invisible {
   visibility: hidden;
   pointer-events: none;
+}
+
+/* タイトル(?ボタン込み)と2行の数値をまとめて詰めて表示する(modal-body-vertical
+   の14pxギャップは.mulligan-rates全体とその前後の要素との間にだけ効かせ、
+   この中身同士はもっと近づける)。 */
+.mulligan-rates {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .mulligan-rate-title {

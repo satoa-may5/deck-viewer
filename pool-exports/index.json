@@ -1,0 +1,332 @@
+[
+  {
+    "name": "AND.dvpool",
+    "poolName": "[UA-AND] アンデッドアンラック",
+    "release": "2024-08-16",
+    "size": 19790559
+  },
+  {
+    "name": "AOT.dvpool",
+    "poolName": "[UA-AOT] 進撃の巨人",
+    "release": "2024-06-28",
+    "size": 50953328
+  },
+  {
+    "name": "ARK.dvpool",
+    "poolName": "[UA-ARK] アークナイツ",
+    "release": "2024-11-29",
+    "size": 56001079
+  },
+  {
+    "name": "BCV.dvpool",
+    "poolName": "[UA-BCV] ブラッククローバー",
+    "release": "2024-04-26",
+    "size": 31624189
+  },
+  {
+    "name": "BLC.dvpool",
+    "poolName": "[UA-BLC] BLEACH 千年血戦篇",
+    "release": "2023-09-29",
+    "size": 53313126
+  },
+  {
+    "name": "BLK.dvpool",
+    "poolName": "[UA-BLK] ブルーロック",
+    "release": "2023-09-29",
+    "size": 32604534
+  },
+  {
+    "name": "BTR.dvpool",
+    "poolName": "[UA-BTR] 僕とロボコ",
+    "release": "2023-06-30",
+    "size": 24131507
+  },
+  {
+    "name": "CGD.dvpool",
+    "poolName": "[UA-CGD] コードギアス 奪還のロゼ",
+    "release": "2025-02-14",
+    "size": 19652349
+  },
+  {
+    "name": "CGH.dvpool",
+    "poolName": "[UA-CGH] コードギアス 反逆のルルーシュ",
+    "release": "2023-03-24",
+    "size": 35962730
+  },
+  {
+    "name": "CSM.dvpool",
+    "poolName": "[UA-CSM] チェンソーマン",
+    "release": "2026-05-22",
+    "size": 23582856
+  },
+  {
+    "name": "DST.dvpool",
+    "poolName": "[UA-DST] Dr.STONE",
+    "release": "2023-12-22",
+    "size": 31907339
+  },
+  {
+    "name": "EVA.dvpool",
+    "poolName": "[UA-EVA] ヱヴァンゲリヲン新劇場版",
+    "release": "2025-10-04",
+    "size": 29638762
+  },
+  {
+    "name": "FMA.dvpool",
+    "poolName": "[UA-FMA] 鋼の錬金術師",
+    "release": "2025-04-25",
+    "size": 31497623
+  },
+  {
+    "name": "GIM.dvpool",
+    "poolName": "[UA-GIM] 学園アイドルマスター",
+    "release": "2024-09-13",
+    "size": 54859926
+  },
+  {
+    "name": "GMR.dvpool",
+    "poolName": "[UA-GMR] GAMERA -Rebirth-",
+    "release": "2024-05-31",
+    "size": 18578654
+  },
+  {
+    "name": "GNT.dvpool",
+    "poolName": "[UA-GNT] 銀魂",
+    "release": "2023-07-28",
+    "size": 29503563
+  },
+  {
+    "name": "HIQ.dvpool",
+    "poolName": "[UA-HIQ] ハイキュー‼",
+    "release": "2024-03-22",
+    "size": 26871486
+  },
+  {
+    "name": "HTR.dvpool",
+    "poolName": "[UA-HTR] HUNTER×HUNTER",
+    "release": "2023-03-24",
+    "size": 46127293
+  },
+  {
+    "name": "IMC.dvpool",
+    "poolName": "[UA-IMC] アイドルマスター シンデレラガールズ",
+    "release": "2026-07-31",
+    "size": 45866752
+  },
+  {
+    "name": "IMS.dvpool",
+    "poolName": "[UA-IMS] アイドルマスター シャイニーカラーズ",
+    "release": "2023-04-28",
+    "size": 78974857
+  },
+  {
+    "name": "IYS.dvpool",
+    "poolName": "[UA-IYS] 犬夜叉",
+    "release": "2026-05-29",
+    "size": 26040548
+  },
+  {
+    "name": "JJK.dvpool",
+    "poolName": "[UA-JJK] 呪術廻戦",
+    "release": "2023-03-24",
+    "size": 43848243
+  },
+  {
+    "name": "KGD.dvpool",
+    "poolName": "[UA-KGD] キングダム",
+    "release": "2026-01-30",
+    "size": 36974090
+  },
+  {
+    "name": "KGR.dvpool",
+    "poolName": "[UA-KGR] カグラバチ",
+    "release": "2025-12-19",
+    "size": 28699467
+  },
+  {
+    "name": "KIN.dvpool",
+    "poolName": "[UA-KIN] キン肉マン",
+    "release": "2025-05-16",
+    "size": 20712952
+  },
+  {
+    "name": "KJ8.dvpool",
+    "poolName": "[UA-KJ8] 怪獣８号",
+    "release": "2024-10-25",
+    "size": 21501761
+  },
+  {
+    "name": "KJN.dvpool",
+    "poolName": "[UA-KJN] 陰の実力者になりたくて！",
+    "release": "2026-05-22",
+    "size": 26016835
+  },
+  {
+    "name": "KMR.dvpool",
+    "poolName": "[UA-KMR] 仮面ライダー",
+    "release": "2024-10-25",
+    "size": 63364502
+  },
+  {
+    "name": "KMY.dvpool",
+    "poolName": "[UA-KMY] 鬼滅の刃",
+    "release": "2023-04-28",
+    "size": 47792227
+  },
+  {
+    "name": "MCR.dvpool",
+    "poolName": "[UA-MCR] マクロス",
+    "release": "2025-03-14",
+    "size": 57769214
+  },
+  {
+    "name": "MGS.dvpool",
+    "poolName": "[UA-MGS] 〈物語〉シリーズ",
+    "release": "2025-07-25",
+    "size": 26997608
+  },
+  {
+    "name": "MHA.dvpool",
+    "poolName": "[UA-MHA] 僕のヒーローアカデミア",
+    "release": "2023-06-30",
+    "size": 45150146
+  },
+  {
+    "name": "MMM.dvpool",
+    "poolName": "[UA-MMM] 魔法少女まどか☆マギカ",
+    "release": "2024-11-29",
+    "size": 26526143
+  },
+  {
+    "name": "MSS.dvpool",
+    "poolName": "[UA-MSS] 魔都精兵のスレイブ",
+    "release": "2026-02-27",
+    "size": 25161959
+  },
+  {
+    "name": "MST.dvpool",
+    "poolName": "[UA-MST] 無職転生 ～異世界行ったら本気だす～",
+    "release": "2026-06-19",
+    "size": 21380616
+  },
+  {
+    "name": "NGR.dvpool",
+    "poolName": "[UA-NGR] 2.5次元の誘惑",
+    "release": "2025-01-17",
+    "size": 18775176
+  },
+  {
+    "name": "NIK.dvpool",
+    "poolName": "[UA-NIK] 勝利の女神：NIKKE",
+    "release": "2024-03-22",
+    "size": 56546456
+  },
+  {
+    "name": "OPM.dvpool",
+    "poolName": "[UA-OPM] ワンパンマン",
+    "release": "2025-02-28",
+    "size": 33903191
+  },
+  {
+    "name": "REZ.dvpool",
+    "poolName": "[UA-REZ] Re:ゼロから始める異世界生活",
+    "release": "2025-06-27",
+    "size": 26321853
+  },
+  {
+    "name": "RLY.dvpool",
+    "poolName": "[UA-RLY] 君のことが大大大大大好きな100人の彼女",
+    "release": "2024-08-16",
+    "size": 17447726
+  },
+  {
+    "name": "RNK.dvpool",
+    "poolName": "[UA-RNK] るろうに剣心 －明治剣客浪漫譚－",
+    "release": "2025-07-25",
+    "size": 33279929
+  },
+  {
+    "name": "SAO.dvpool",
+    "poolName": "[UA-SAO] ソードアート・オンライン",
+    "release": "2024-01-26",
+    "size": 48391291
+  },
+  {
+    "name": "SHY.dvpool",
+    "poolName": "[UA-SHY] SHY",
+    "release": "2024-07-12",
+    "size": 19936422
+  },
+  {
+    "name": "SLG.dvpool",
+    "poolName": "[UA-SLG] 俺だけレベルアップな件",
+    "release": "2026-04-24",
+    "size": 24144716
+  },
+  {
+    "name": "SMD.dvpool",
+    "poolName": "[UA-SMD] SAKAMOTO DAYS",
+    "release": "2025-08-29",
+    "size": 17965962
+  },
+  {
+    "name": "SNF.dvpool",
+    "poolName": "[UA-SNF] シャングリラ・フロンティア",
+    "release": "2024-12-13",
+    "size": 20368322
+  },
+  {
+    "name": "SYN.dvpool",
+    "poolName": "[UA-SYN] SYNDUALITY Noir",
+    "release": "2024-02-23",
+    "size": 24401899
+  },
+  {
+    "name": "TKG.dvpool",
+    "poolName": "[UA-TKG] 東京喰種トーキョーグール",
+    "release": "2025-12-19",
+    "size": 40528399
+  },
+  {
+    "name": "TKN.dvpool",
+    "poolName": "[UA-TKN] 鉄拳7",
+    "release": "2023-10-27",
+    "size": 30660033
+  },
+  {
+    "name": "TLR.dvpool",
+    "poolName": "[UA-TLR] To LOVEる-とらぶる-",
+    "release": "2025-11-14",
+    "size": 26370018
+  },
+  {
+    "name": "TOA.dvpool",
+    "poolName": "[UA-TOA] Tales of ARISE",
+    "release": "2023-05-26",
+    "size": 33205392
+  },
+  {
+    "name": "TRK.dvpool",
+    "poolName": "[UA-TRK] トリコ",
+    "release": "2024-02-23",
+    "size": 28923747
+  },
+  {
+    "name": "TSK.dvpool",
+    "poolName": "[UA-TSK] 転生したらスライムだった件",
+    "release": "2023-05-26",
+    "size": 50454560
+  },
+  {
+    "name": "WBK.dvpool",
+    "poolName": "[UA-WBK] WIND BREAKER",
+    "release": "2025-04-25",
+    "size": 20672574
+  },
+  {
+    "name": "YYH.dvpool",
+    "poolName": "[UA-YYH] 幽☆遊☆白書",
+    "release": "2024-04-26",
+    "size": 32787896
+  }
+]

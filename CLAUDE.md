@@ -1189,3 +1189,31 @@ pkgのスナップショットにバンドルする」という配布方式は�
 新しいMST.dvpool(rarity/ap/bp/attribute/generatedEnergy/effect対応版)を配布用に
 作り直してpushするかどうかはユーザー判断待ち(上記参照)。それ以外に判明している
 未着手・要フォローアップ項目はなし。
+
+## カードプールをインポート一覧の高速化: pool-exports/index.json 事前生成方式(2026-08-04)
+
+以前の`GET /api/github-pools`は、サーバー再起動直後(=キャッシュが空)だと
+GitHubのContents APIで一覧を取った後、新規/更新分の`.dvpool`ごとに本体
+(数十MBのzip)を丸ごとダウンロードしてmanifest.jsonだけを読む、という重い処理を
+していた。これがサーバー再起動直後の初回アクセスが遅い原因だった。
+
+**`tools/build-pool-export-index.js`**を新設し、`pool-exports/*.dvpool`を
+スキャンして`poolName`/`release`/`size`をまとめた`pool-exports/index.json`を
+生成するようにした。`server.js`の`listGithubPools()`は、GitHubのContents API +
+per-file manifest読み込みをやめ、この`index.json`をraw.githubusercontentから
+1回fetchするだけになった(60秒の簡易TTLキャッシュ付き)。
+
+**今後の運用で重要**: `pool-exports/*.dvpool`を追加・更新するたびに、
+以下を実行してから一緒にコミット・プッシュすること。実行し忘れると
+`index.json`が実際の`.dvpool`と食い違ったまま(古いpoolName/release/sizeが
+表示され続ける、新しく追加した`.dvpool`が一覧に出てこない)になる。
+
+```
+node tools/build-pool-export-index.js
+```
+
+なお、サーバー起動直後の初回アクセスそのものが遅い(GitHubへの初回fetch自体に
+時間がかかる)問題は、`index.json`化によって「1回のfetchで軽量なJSONを取るだけ」
+になったことで大幅に改善するはずだが、それでも初回の1回だけは何らかの待ち時間が
+残る(起動時のpre-warmと5分ごとの定期リフレッシュで、実際にユーザーが画面を開く
+頃には大抵完了している想定)。

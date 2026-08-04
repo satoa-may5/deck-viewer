@@ -429,6 +429,7 @@ document.addEventListener("click", (e) => {
 // ---- Mulligan simulator ----
 
 const mulliganBoardEl = document.getElementById("mulligan-board");
+const mulliganBoardExtraEl = document.getElementById("mulligan-board-extra");
 const mulliganDraw7Btn = document.getElementById("mulligan-draw7-btn");
 const mulliganDraw1Btn = document.getElementById("mulligan-draw1-btn");
 const mulliganResetBtn = document.getElementById("mulligan-reset-btn");
@@ -514,37 +515,62 @@ function sortMulliganHand(cardIds, cardById) {
   });
 }
 
-// newCount: 末尾に新規追加されたカードの枚数(未指定なら盤面全体が新規=右から
-// 一斉に舞い込む)。既存分は即座に定位置へ、新規分だけ右からスライドインさせる。
-function renderMulliganBoard(newCount) {
+function buildMulliganFrame(cardId, cardById) {
+  const card = cardById[cardId];
+  const frame = document.createElement("div");
+  frame.className = "mulligan-card-frame";
+  if (isMulliganHighlightCard(card)) frame.classList.add("is-cheap");
+  if (card && card.imageExt) {
+    const img = document.createElement("img");
+    img.src = Api.cardImageUrl(card);
+    img.alt = "";
+    img.draggable = false;
+    frame.appendChild(img);
+  }
+  return frame;
+}
+
+// 1行目(最大7枚、mulliganBoardEl)= 「新しく7枚引く」/「マリガン」で並ぶ手札、
+// 2行目(最大3枚、mulliganBoardExtraEl)=「1枚引く」で追加された分、と行を分けて
+// 表示する(カード自体を大きく見せるため、両方とも同じ列幅=同じカードサイズに
+// なるようCSS側で列数を揃えている)。
+//
+// mode: "full" = 1行目を丸ごと新規表示(右からスライドイン)、2行目は空にする。
+// "single" = 2行目の末尾に1枚追加(その1枚だけスライドイン、他は変化なし)。
+// "reset" = 両方空にする(アニメーションなし)。
+function renderMulliganBoard(mode) {
   const cardById = Object.fromEntries(allCards.map((c) => [c.id, c]));
-  mulliganBoardEl.innerHTML = "";
-  for (const cardId of mulliganBoardIds) {
-    const card = cardById[cardId];
-    const frame = document.createElement("div");
-    frame.className = "mulligan-card-frame";
-    if (isMulliganHighlightCard(card)) frame.classList.add("is-cheap");
-    if (card && card.imageExt) {
-      const img = document.createElement("img");
-      img.src = Api.cardImageUrl(card);
-      img.alt = "";
-      img.draggable = false;
-      frame.appendChild(img);
-    }
-    mulliganBoardEl.appendChild(frame);
+  const mainIds = mulliganBoardIds.slice(0, 7);
+  const extraIds = mulliganBoardIds.slice(7);
+
+  if (mode === "single") {
+    // 1行目は既存のまま、2行目だけ作り直す(末尾の1枚だけアニメーション対象)。
+    mulliganBoardExtraEl.innerHTML = "";
+    for (const cardId of extraIds) mulliganBoardExtraEl.appendChild(buildMulliganFrame(cardId, cardById));
+    const extraFrames = mulliganBoardExtraEl.querySelectorAll(".mulligan-card-frame");
+    extraFrames.forEach((frame, index) => {
+      if (index < extraFrames.length - 1) frame.classList.add("is-dealt");
+    });
+    setTimeout(() => {
+      const last = extraFrames[extraFrames.length - 1];
+      if (last) last.classList.add("is-dealt");
+    }, 20);
+    return;
   }
 
+  mulliganBoardEl.innerHTML = "";
+  mulliganBoardExtraEl.innerHTML = "";
+  for (const cardId of mainIds) mulliganBoardEl.appendChild(buildMulliganFrame(cardId, cardById));
+  if (mode === "reset") return;
+
+  // mode === "full": 1行目を右から一斉に(スタガーで)スライドイン。
   const frames = mulliganBoardEl.querySelectorAll(".mulligan-card-frame");
-  const startIndex = newCount === undefined ? 0 : frames.length - newCount;
-  frames.forEach((frame, index) => {
-    if (index < startIndex) frame.classList.add("is-dealt"); // 既存分はアニメーションなしでそのまま
-  });
-  // 新規分は次のフレームで初期状態(右にずれた透明)を確定させてから
-  // is-dealtへ遷移させる(animateGrowと同じ理由でrAFではなくsetTimeoutを使う)。
+  // animateGrowと同じ理由でrAFではなくsetTimeoutを使う(先に0%相当の初期状態を
+  // 確実に1フレーム描画させてからis-dealtへ遷移させないと、transitionが
+  // 発火せず一瞬で完成形にスナップしてしまう)。
   setTimeout(() => {
     frames.forEach((frame, index) => {
-      if (index < startIndex) return;
-      setTimeout(() => frame.classList.add("is-dealt"), (index - startIndex) * 90);
+      setTimeout(() => frame.classList.add("is-dealt"), index * 90);
     });
   }, 20);
 }
@@ -581,7 +607,7 @@ mulliganDraw7Btn.addEventListener("click", () => {
   mulliganBoardIds = sortMulliganHand(mulliganBoardIds, cardById);
   mulliganSingleDrawsUsed = 0;
   updateMulliganUI();
-  renderMulliganBoard(mulliganBoardIds.length);
+  renderMulliganBoard("full");
 });
 
 mulliganDraw1Btn.addEventListener("click", () => {
@@ -591,7 +617,7 @@ mulliganDraw1Btn.addEventListener("click", () => {
   mulliganBoardIds.push(cardId);
   mulliganSingleDrawsUsed++;
   updateMulliganUI();
-  renderMulliganBoard(1);
+  renderMulliganBoard("single");
 });
 
 mulliganResetBtn.addEventListener("click", () => {
@@ -600,23 +626,33 @@ mulliganResetBtn.addEventListener("click", () => {
   mulliganFullPool = [];
   mulliganSingleDrawsUsed = 0;
   updateMulliganUI();
-  renderMulliganBoard(0);
+  renderMulliganBoard("reset");
 });
 
-// ---- Mulligan success rate (モンテカルロシミュレーション) ----
+// ---- Mulligan success rate (完全枚挙による厳密計算) ----
 //
 // ルール:「7枚引いて確認する。条件を満たさなければ、その7枚以外の残りデッキ
 // からさらに7枚引いて確認する。この2回のうち1回でも条件を満たせばOK」。
 // 2回目の手札は1回目とは独立ではない(1回目の7枚を除いた残りから引く)ため、
-// 厳密な閉じた式ではなく14枚を一度に山から引いて前半/後半に分ける同時分布の
-// 列挙が必要になり、以前の単一手札(7枚)の完全枚挙よりずっと組み合わせ数が
-// 増えて重くなる。カード種類ごとの分類(カテゴリ)で見れば7分類×2手札=最大でも
-// 数万パターン程度で全列挙も不可能ではないが、実装・検証のコストに対して
-// モンテカルロで十分な精度(数万回試行で誤差0.数%程度)が出せるため、
-// シミュレーションに切り替えている。
+// P(1回目 or 2回目が成功) = Σ_{1回目の組み合わせh1} P(h1) × [ h1が成功なら1、
+// でなければ P(残りのデッキから引く2回目h2が成功) ] という形で、1回目の
+// 組み合わせひとつひとつについて、残りデッキを対象にした2回目の分布を
+// 数え上げれば厳密に計算できる(モンテカルロは使わない)。
+//
+// カテゴリ(7分類)ごとの多変量超幾何分布として1回目・2回目それぞれを数え
+// 上げる。1回目の分配パターンは高々13C6=1716通り、2回目も同様に高々1716通り
+// なので、最悪でも1716×1716≈294万通りの評価で済む(nChooseKは同じ(n,k)の
+// 組み合わせが大量に再利用されるため、事前にPascalの三角形をテーブル化して
+// O(1)参照にすることで実用的な速度に収めている)。
+// さらに、1回目の手札だけで成功+2玉条件まで両方満たしている場合は、2回目の
+// 結果に関わらずこの1回目のパターンは丸ごと成功+2玉の側に数えられるため、
+// 2回目の列挙をまるごと省略できる(実デッキではこのショートカットがよく
+// 効き、体感の計算時間はかなり短くなる)。
+
+const MULLIGAN_CATEGORY_KEYS = ["r", "z", "o", "t2e", "t2x", "t3e", "other"];
 
 function evaluateMulliganHand(counts) {
-  const { r, z, o, t2e, t2x, t3e } = counts;
+  const [r, z, o, t2e, t2x, t3e] = counts;
   const base = z >= 2 || (z >= 1 && r >= 1) || (z >= 1 && o >= 1) || (r >= 1 && o >= 1);
   if (!base) return { success: false, tama2: false };
   const cond1 = r + t2e + t2x >= 1 && t3e >= 1;
@@ -624,27 +660,61 @@ function evaluateMulliganHand(counts) {
   return { success: true, tama2: cond1 || cond2 };
 }
 
-// 山から指定枚数を重複なく無作為抽出する(全体をシャッフルするより、必要な
-// 枚数分だけpartial Fisher-Yatesする方が速い)。
-function drawWithoutReplacement(arr, n) {
-  const a = arr.slice();
-  const len = a.length;
-  const count = Math.min(n, len);
-  for (let i = 0; i < count; i++) {
-    const j = i + Math.floor(Math.random() * (len - i));
-    [a[i], a[j]] = [a[j], a[i]];
+// binom[n][k] (0<=k<=7) をPascalの三角形で前計算し、nChooseKをO(1)参照にする
+// (このシミュレーターではkが常に0〜7の範囲でしか使われないため、その列だけ
+// 用意すれば十分)。
+function buildBinomTable(maxN) {
+  const table = [];
+  for (let n = 0; n <= maxN; n++) {
+    const row = new Array(8).fill(0);
+    row[0] = 1;
+    for (let k = 1; k <= Math.min(7, n); k++) {
+      const prev = table[n - 1];
+      row[k] = (prev ? prev[k - 1] : 0) + (prev && k <= n - 1 ? prev[k] : 0);
+    }
+    table.push(row);
   }
-  return a.slice(0, count);
+  return table;
 }
 
-const MULLIGAN_TRIALS = 20000;
+// 残りデッキ(sizes)から7枚引く分配を全列挙し、各分配について成功/成功+2玉に
+// 数えられる「組み合わせ数」の合計を返す(caller側でOR判定に使う)。
+function enumerateHandWays(sizes, binom) {
+  const counts = new Array(7).fill(0);
+  let successWays = 0;
+  let tama2Ways = 0;
+
+  function recurse(idx, remaining) {
+    if (idx === 6) {
+      const last = remaining;
+      if (last > sizes[6]) return;
+      counts[6] = last;
+      let ways = 1;
+      for (let i = 0; i < 7; i++) {
+        ways *= binom[sizes[i]][counts[i]];
+        if (ways === 0) return;
+      }
+      const result = evaluateMulliganHand(counts);
+      if (result.success) successWays += ways;
+      if (result.tama2) tama2Ways += ways;
+      return;
+    }
+    const maxC = Math.min(sizes[idx], remaining);
+    for (let c = 0; c <= maxC; c++) {
+      counts[idx] = c;
+      recurse(idx + 1, remaining - c);
+    }
+  }
+  recurse(0, 7);
+  return { successWays, tama2Ways };
+}
 
 function updateMulliganRates() {
   const cardById = Object.fromEntries(allCards.map((c) => [c.id, c]));
   // カテゴリ: r=軽減2エナ, z=必要エナジー0, o=必要エナジー1,
   // t2e=必要エナジー2かつ発生エナジー1+(軽減2エナは除く), t2x=必要エナジー2の残り,
   // t3e=必要エナジー3かつ発生エナジー1+または2, other=それ以外。
-  const pool = [];
+  const sizes = new Array(7).fill(0);
   let total = 0;
   for (const [cardId, count] of deckCounts) {
     const card = cardById[cardId];
@@ -658,7 +728,7 @@ function updateMulliganRates() {
     else if (card.cost === 2) key = "t2x";
     else if (card.cost === 3 && (card.generatedEnergy === "1+" || card.generatedEnergy === "2")) key = "t3e";
     else key = "other";
-    for (let i = 0; i < count; i++) pool.push(key);
+    sizes[MULLIGAN_CATEGORY_KEYS.indexOf(key)] += count;
   }
 
   if (total < 7) {
@@ -667,32 +737,58 @@ function updateMulliganRates() {
     return;
   }
 
-  // 成功率・成功+2玉率はそれぞれ独立に「1回目の7枚 or 2回目の7枚のどちらかが
-  // 条件を満たせばOK」で判定する(2回目の方だけ条件を満たすケースを取りこぼさ
-  // ないよう、1回目が成功していても常に2回目も評価してORを取る)。
+  const binom = buildBinomTable(total);
   const canDrawSecondHand = total >= 14;
-  let successCount = 0;
-  let tama2Count = 0;
-  for (let t = 0; t < MULLIGAN_TRIALS; t++) {
-    const drawn = drawWithoutReplacement(pool, canDrawSecondHand ? 14 : 7);
-    const hand1Counts = { r: 0, z: 0, o: 0, t2e: 0, t2x: 0, t3e: 0, other: 0 };
-    for (let i = 0; i < 7; i++) hand1Counts[drawn[i]]++;
-    const result1 = evaluateMulliganHand(hand1Counts);
-    let success = result1.success;
-    let tama2 = result1.tama2;
-    if (canDrawSecondHand) {
-      const hand2Counts = { r: 0, z: 0, o: 0, t2e: 0, t2x: 0, t3e: 0, other: 0 };
-      for (let i = 7; i < 14; i++) hand2Counts[drawn[i]]++;
-      const result2 = evaluateMulliganHand(hand2Counts);
-      success = success || result2.success;
-      tama2 = tama2 || result2.tama2;
-    }
-    if (success) successCount++;
-    if (tama2) tama2Count++;
-  }
+  const totalHand1Ways = binom[total][7];
+  // binomはnについて0..totalまで作ってあるので、total-7の行もこの同じ
+  // テーブルからそのまま参照できる(作り直す必要はない)。
+  const totalHand2Ways = canDrawSecondHand ? binom[total - 7][7] : 1;
+  const denom = totalHand1Ways * totalHand2Ways;
 
-  const successRate = (successCount / MULLIGAN_TRIALS) * 100;
-  const tama2Rate = (tama2Count / MULLIGAN_TRIALS) * 100;
+  let successWays = 0;
+  let tama2Ways = 0;
+  const hand1Counts = new Array(7).fill(0);
+
+  function recurseHand1(idx, remaining) {
+    if (idx === 6) {
+      const last = remaining;
+      if (last > sizes[6]) return;
+      hand1Counts[6] = last;
+      let ways1 = 1;
+      for (let i = 0; i < 7; i++) {
+        ways1 *= binom[sizes[i]][hand1Counts[i]];
+        if (ways1 === 0) return;
+      }
+      const r1 = evaluateMulliganHand(hand1Counts);
+      if (!canDrawSecondHand) {
+        if (r1.success) successWays += ways1;
+        if (r1.tama2) tama2Ways += ways1;
+        return;
+      }
+      if (r1.success && r1.tama2) {
+        // 1回目だけで両方確定するので、2回目の中身に関わらずways1×(2回目の
+        // 全パターン数)をまるごと両方に加算できる(2回目の列挙を省略)。
+        successWays += ways1 * totalHand2Ways;
+        tama2Ways += ways1 * totalHand2Ways;
+        return;
+      }
+      const remainingSizes = sizes.map((s, i) => s - hand1Counts[i]);
+      const { successWays: sw2, tama2Ways: tw2 } = enumerateHandWays(remainingSizes, binom);
+      // successは「1回目 or 2回目」、tama2も同様に「1回目 or 2回目」のOR。
+      successWays += r1.success ? ways1 * totalHand2Ways : ways1 * sw2;
+      tama2Ways += r1.tama2 ? ways1 * totalHand2Ways : ways1 * tw2;
+      return;
+    }
+    const maxC = Math.min(sizes[idx], remaining);
+    for (let c = 0; c <= maxC; c++) {
+      hand1Counts[idx] = c;
+      recurseHand1(idx + 1, remaining - c);
+    }
+  }
+  recurseHand1(0, 7);
+
+  const successRate = denom > 0 ? (successWays / denom) * 100 : 0;
+  const tama2Rate = denom > 0 ? (tama2Ways / denom) * 100 : 0;
   mulliganSuccessRateEl.textContent = `${successRate.toFixed(2)}%`;
   mulliganTama2RateEl.textContent = `${tama2Rate.toFixed(2)}%`;
 }
