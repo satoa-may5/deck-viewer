@@ -150,7 +150,7 @@
                 <label class="filter-checkbox-btn">
                   <input type="checkbox" id="filter-parallel-checkbox" /> パラレルを除外
                 </label>
-                <label class="filter-checkbox-btn" id="filter-all-color-wrap">
+                <label class="filter-checkbox-btn" id="filter-all-color-wrap" hidden>
                   <input type="checkbox" id="filter-all-color-checkbox" /> プロモファイナルを除外
                 </label>
                 <button type="button" class="btn" id="filter-clear-btn">検索条件をリセット</button>
@@ -169,18 +169,40 @@
   </div>
 
   <div class="modal-overlay" id="deck-stats-modal" hidden>
-    <div class="modal-card">
+    <div class="modal-card stats-modal-card">
       <div class="modal-header">
         <h2>統計情報</h2>
         <button type="button" class="icon-btn" id="deck-stats-close-btn">✕</button>
       </div>
-      <div class="modal-body-vertical">
-        <p class="pane-title">必要エナジー</p>
-        <div class="stats-mana-curve" id="stats-mana-curve"></div>
-        <p class="pane-title">トリガー</p>
-        <div class="stats-trigger-list" id="stats-trigger-list"></div>
+      <div class="stats-modal-columns">
+        <div class="stats-modal-col modal-body-vertical">
+          <p class="pane-title">必要エナジー</p>
+          <div class="stats-mana-curve" id="stats-mana-curve"></div>
+          <p class="pane-title">トリガー</p>
+          <div class="stats-trigger-list" id="stats-trigger-list"></div>
+        </div>
+        <div class="stats-modal-col modal-body-vertical">
+          <p class="pane-title">マリガンシュミレーター</p>
+          <div class="mulligan-board" id="mulligan-board"></div>
+          <div class="mulligan-controls">
+            <button type="button" class="btn" id="mulligan-reset-btn" hidden>リセット</button>
+            <button type="button" class="btn primary" id="mulligan-draw7-btn">新しく7枚引く</button>
+            <button type="button" class="btn" id="mulligan-draw1-btn">1枚引く (3/3)</button>
+          </div>
+          <p class="pane-title mulligan-rate-title">
+            <span>マリガン成功率</span>
+            <button type="button" class="icon-btn mulligan-help-btn" id="mulligan-help-btn" title="マリガン成功率: 7枚の手札に「0エナ2枚以上」「0エナ1枚+軽減2エナ1枚以上」「0エナ1枚+1エナ1枚以上」「軽減2エナ1枚+1エナ1枚以上」のいずれかが含まれる確率。マリガン成功+2玉率: 成功率の条件に加え、「2エナジー(軽減2エナ含む)が追加で1枚以上+必要エナジー3で発生エナジー1+/2のカードが1枚以上」または「必要エナジー2で発生エナジー1+のカードが1枚以上」のいずれかも満たす確率。">?</button>
+          </p>
+          <div class="mulligan-rate-line">マリガン成功率 <strong id="mulligan-success-rate">--%</strong></div>
+          <div class="mulligan-rate-line">マリガン成功+2玉率 <strong id="mulligan-tama2-rate">--%</strong></div>
+        </div>
       </div>
     </div>
+  </div>
+
+  <div class="modal-overlay lightbox-overlay" id="card-zoom-overlay" hidden>
+    <button type="button" class="icon-btn lightbox-close" id="card-zoom-close">✕</button>
+    <img id="card-zoom-img" src="" alt="" />
   </div>
 
   <script src="js/api.js"></script>

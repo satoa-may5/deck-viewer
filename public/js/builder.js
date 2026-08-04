@@ -254,6 +254,13 @@ const TRIGGER_LABELS = {
 // TRIGGER_LABELS (which mirrors the type's internal/alphabetical grouping).
 const TRIGGER_DISPLAY_ORDER = ["", "get", "drow", "active", "raid", "color", "special", "final"];
 
+// "軽減2エナ": 必要エナジー2のカードで、盤面に自分のカードが1枚もなければ
+// 手札にある間だけ必要エナジー-2(=実質0)になる効果を持つもの。データ上に
+// 専用フラグは無いため、効果テキストの特徴的な一文で判定する。
+function isCostReducerCard(card) {
+  return card.cost === 2 && typeof card.effect === "string" && card.effect.includes("必要エナジーを2減らす");
+}
+
 const deckStatsBtn = document.getElementById("deck-stats-btn");
 const deckStatsModal = document.getElementById("deck-stats-modal");
 const statsManaCurveEl = document.getElementById("stats-mana-curve");
@@ -279,6 +286,7 @@ function renderDeckStats() {
   const cardById = Object.fromEntries(allCards.map((c) => [c.id, c]));
 
   const buckets = new Array(9).fill(0); // costs 0..7, 8 = "8+"
+  let reducedCount = 0; // "軽減2エナ" cards: cost 2, but effectively 0 with an empty board
   const triggerCounts = { "": 0, ...Object.fromEntries(Object.keys(TRIGGER_LABELS).map((k) => [k, 0])) };
   for (const [cardId, count] of deckCounts) {
     const card = cardById[cardId];
@@ -286,11 +294,15 @@ function renderDeckStats() {
     if (card.cost !== null && card.cost !== undefined) {
       buckets[Math.min(card.cost, 8)] += count;
     }
+    if (isCostReducerCard(card)) reducedCount += count;
     const trigger = card.trigger || "";
     triggerCounts[trigger] = (triggerCounts[trigger] || 0) + count;
   }
 
-  const maxBucket = Math.max(1, ...buckets);
+  // 必要エナジー0の棒は「軽減2エナ」の枚数分だけ余分に高くなる(その分が
+  // 上に斜線で乗る)ため、スケールの基準もそれを込みで見る。
+  const scaleHeights = buckets.map((count, cost) => (cost === 0 ? count + reducedCount : count));
+  const maxBucket = Math.max(1, ...scaleHeights);
   statsManaCurveEl.innerHTML = "";
 
   const countsRow = document.createElement("div");
@@ -304,16 +316,45 @@ function renderDeckStats() {
   buckets.forEach((count, cost) => {
     const countEl = document.createElement("div");
     countEl.className = "stats-mana-count";
-    countEl.textContent = count > 0 ? String(count) : "";
+    if (reducedCount > 0 && cost === 0) {
+      countEl.textContent = `${count} +${reducedCount}`;
+    } else if (reducedCount > 0 && cost === 2) {
+      countEl.textContent = `${count} -${reducedCount}`;
+    } else {
+      countEl.textContent = count > 0 ? String(count) : "";
+    }
     countsRow.appendChild(countEl);
 
     const barCol = document.createElement("div");
     barCol.className = "stats-mana-bar-col";
-    const bar = document.createElement("div");
-    bar.className = "stats-mana-bar";
-    barCol.appendChild(bar);
+
+    if (reducedCount > 0 && (cost === 0 || cost === 2)) {
+      // 積み上げ棒: 必要エナジー0は下=通常の0エナカード、上=軽減2エナの分。
+      // 必要エナジー2は元々軽減2エナも含んだ数なので、高さ自体は変えず
+      // 上側のreducedCount分だけ斜線に置き換える。
+      const stack = document.createElement("div");
+      stack.className = "stats-mana-bar-stack";
+      const hatched = document.createElement("div");
+      hatched.className = "stats-mana-bar-segment stats-mana-bar-hatched";
+      const solid = document.createElement("div");
+      solid.className = "stats-mana-bar-segment stats-mana-bar-solid";
+      const solidCount = cost === 0 ? count : Math.max(count - reducedCount, 0);
+      hatched.style.flexGrow = String(reducedCount);
+      solid.style.flexGrow = String(solidCount);
+      // 積み上げ順は上から書いた順(flex-direction:columnのデフォルト)なので、
+      // 斜線を先に置けばそのまま上側に来る。
+      stack.appendChild(hatched);
+      stack.appendChild(solid);
+      barCol.appendChild(stack);
+      const total = cost === 0 ? count + reducedCount : count;
+      bars.push([stack, Math.max((total / maxBucket) * 100, total > 0 ? 3 : 0)]);
+    } else {
+      const bar = document.createElement("div");
+      bar.className = "stats-mana-bar";
+      barCol.appendChild(bar);
+      bars.push([bar, Math.max((count / maxBucket) * 100, count > 0 ? 3 : 0)]);
+    }
     barsRow.appendChild(barCol);
-    bars.push([bar, Math.max((count / maxBucket) * 100, count > 0 ? 3 : 0)]);
 
     const label = document.createElement("div");
     label.className = "stats-mana-label";
@@ -356,6 +397,8 @@ function renderDeckStats() {
 function openDeckStats() {
   closeDeckMenu();
   renderDeckStats();
+  updateMulliganUI();
+  updateMulliganRates();
   deckStatsModal.hidden = false;
 }
 
@@ -366,6 +409,220 @@ function closeDeckStats() {
 deckStatsBtn.addEventListener("click", openDeckStats);
 document.getElementById("deck-stats-close-btn").addEventListener("click", closeDeckStats);
 bindModalDismissal(deckStatsModal, { onCancel: closeDeckStats });
+
+// ---- Mulligan simulator ----
+
+const mulliganBoardEl = document.getElementById("mulligan-board");
+const mulliganDraw7Btn = document.getElementById("mulligan-draw7-btn");
+const mulliganDraw1Btn = document.getElementById("mulligan-draw1-btn");
+const mulliganResetBtn = document.getElementById("mulligan-reset-btn");
+const mulliganSuccessRateEl = document.getElementById("mulligan-success-rate");
+const mulliganTama2RateEl = document.getElementById("mulligan-tama2-rate");
+
+const MULLIGAN_MIN_DECK_SIZE = 20;
+const MULLIGAN_SINGLE_DRAW_LIMIT = 3;
+
+let mulliganDeckPool = []; // 未使用の残りカード(cardIdを枚数分展開した配列。ドローの都度ここから取り除く)
+let mulliganBoardIds = []; // 現在盤面に並んでいるカード(表示順)
+let mulliganSingleDrawsUsed = 0;
+let mulliganActive = false; // 「新しく7枚引く」を押した後、リセットするまでtrue
+
+function totalDeckCount() {
+  let total = 0;
+  for (const count of deckCounts.values()) total += count;
+  return total;
+}
+
+function mulliganEnabled() {
+  return totalDeckCount() >= MULLIGAN_MIN_DECK_SIZE;
+}
+
+function shuffled(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function buildFullDeckPool() {
+  const pool = [];
+  for (const [cardId, count] of deckCounts) {
+    for (let i = 0; i < count; i++) pool.push(cardId);
+  }
+  return pool;
+}
+
+function isMulliganHighlightCard(card) {
+  return Boolean(card) && (card.cost === 0 || card.cost === 1 || isCostReducerCard(card));
+}
+
+// newCount: 末尾に新規追加されたカードの枚数(未指定なら盤面全体が新規=右から
+// 一斉に舞い込む)。既存分は即座に定位置へ、新規分だけ右からスライドインさせる。
+function renderMulliganBoard(newCount) {
+  const cardById = Object.fromEntries(allCards.map((c) => [c.id, c]));
+  mulliganBoardEl.innerHTML = "";
+  for (const cardId of mulliganBoardIds) {
+    const card = cardById[cardId];
+    const frame = document.createElement("div");
+    frame.className = "mulligan-card-frame";
+    if (isMulliganHighlightCard(card)) frame.classList.add("is-cheap");
+    if (card && card.imageExt) {
+      const img = document.createElement("img");
+      img.src = Api.cardImageUrl(card);
+      img.alt = "";
+      img.draggable = false;
+      frame.appendChild(img);
+    }
+    mulliganBoardEl.appendChild(frame);
+  }
+
+  const frames = mulliganBoardEl.querySelectorAll(".mulligan-card-frame");
+  const startIndex = newCount === undefined ? 0 : frames.length - newCount;
+  frames.forEach((frame, index) => {
+    if (index < startIndex) frame.classList.add("is-dealt"); // 既存分はアニメーションなしでそのまま
+  });
+  // 新規分は次のフレームで初期状態(右にずれた透明)を確定させてから
+  // is-dealtへ遷移させる(animateGrowと同じ理由でrAFではなくsetTimeoutを使う)。
+  setTimeout(() => {
+    frames.forEach((frame, index) => {
+      if (index < startIndex) return;
+      setTimeout(() => frame.classList.add("is-dealt"), (index - startIndex) * 90);
+    });
+  }, 20);
+}
+
+function updateMulliganUI() {
+  const enabled = mulliganEnabled();
+  mulliganDraw7Btn.textContent = mulliganActive ? "マリガン" : "新しく7枚引く";
+  mulliganDraw7Btn.disabled = !enabled;
+  mulliganDraw7Btn.title = enabled ? "" : `デッキが${MULLIGAN_MIN_DECK_SIZE}枚未満のため利用できません`;
+  mulliganResetBtn.hidden = !mulliganActive;
+  const drawsLeft = MULLIGAN_SINGLE_DRAW_LIMIT - mulliganSingleDrawsUsed;
+  mulliganDraw1Btn.textContent = `1枚引く (${drawsLeft}/${MULLIGAN_SINGLE_DRAW_LIMIT})`;
+  mulliganDraw1Btn.disabled = !enabled || !mulliganActive || drawsLeft <= 0 || mulliganDeckPool.length === 0;
+}
+
+mulliganDraw7Btn.addEventListener("click", () => {
+  if (!mulliganEnabled()) return;
+  if (mulliganActive) {
+    // マリガン: 今盤面にあるカードは戻さず、残りの山札から新たに7枚(足りなければ
+    // 残り全部)引いて盤面を丸ごと入れ替える。
+    const drawCount = Math.min(7, mulliganDeckPool.length);
+    mulliganBoardIds = mulliganDeckPool.splice(0, drawCount);
+  } else {
+    mulliganDeckPool = shuffled(buildFullDeckPool());
+    mulliganBoardIds = mulliganDeckPool.splice(0, Math.min(7, mulliganDeckPool.length));
+    mulliganActive = true;
+  }
+  mulliganSingleDrawsUsed = 0;
+  updateMulliganUI();
+  renderMulliganBoard(mulliganBoardIds.length);
+});
+
+mulliganDraw1Btn.addEventListener("click", () => {
+  if (mulliganDeckPool.length === 0) return;
+  const cardId = mulliganDeckPool.shift();
+  mulliganBoardIds.push(cardId);
+  mulliganSingleDrawsUsed++;
+  updateMulliganUI();
+  renderMulliganBoard(1);
+});
+
+mulliganResetBtn.addEventListener("click", () => {
+  mulliganActive = false;
+  mulliganBoardIds = [];
+  mulliganDeckPool = [];
+  mulliganSingleDrawsUsed = 0;
+  updateMulliganUI();
+  renderMulliganBoard(0);
+});
+
+// ---- Mulligan success rate (完全枚挙による厳密計算、シミュレーションではない) ----
+//
+// 山札を「マリガン成功/成功+2玉判定に関係するカテゴリ」ごとに分割し(互いに
+// 重複しない7分類)、7枚を引く組み合わせを多変量超幾何分布で数え上げる。7枚を
+// 7カテゴリに分配するパターン数は高々1716通り(13C6)なので、シミュレーション
+// せずとも全列挙で厳密な確率が出せる。
+
+function nChooseK(n, k) {
+  if (k < 0 || k > n) return 0;
+  k = Math.min(k, n - k);
+  let result = 1;
+  for (let i = 0; i < k; i++) {
+    result = (result * (n - i)) / (i + 1);
+  }
+  return result;
+}
+
+function updateMulliganRates() {
+  const cardById = Object.fromEntries(allCards.map((c) => [c.id, c]));
+  // カテゴリ: r=軽減2エナ, z=必要エナジー0, o=必要エナジー1,
+  // t2e=必要エナジー2かつ発生エナジー1+(軽減2エナは除く), t2x=必要エナジー2の残り,
+  // t3e=必要エナジー3かつ発生エナジー1+または2, other=それ以外。
+  const groups = { r: 0, z: 0, o: 0, t2e: 0, t2x: 0, t3e: 0, other: 0 };
+  let total = 0;
+  for (const [cardId, count] of deckCounts) {
+    const card = cardById[cardId];
+    if (!card) continue;
+    total += count;
+    let key;
+    if (isCostReducerCard(card)) key = "r";
+    else if (card.cost === 0) key = "z";
+    else if (card.cost === 1) key = "o";
+    else if (card.cost === 2 && card.generatedEnergy === "1+") key = "t2e";
+    else if (card.cost === 2) key = "t2x";
+    else if (card.cost === 3 && (card.generatedEnergy === "1+" || card.generatedEnergy === "2")) key = "t3e";
+    else key = "other";
+    groups[key] += count;
+  }
+
+  if (total < 7) {
+    mulliganSuccessRateEl.textContent = "--%";
+    mulliganTama2RateEl.textContent = "--%";
+    return;
+  }
+
+  const keys = ["r", "z", "o", "t2e", "t2x", "t3e", "other"];
+  const sizes = keys.map((k) => groups[k]);
+  const totalWays = nChooseK(total, 7);
+  let successWays = 0;
+  let tama2Ways = 0;
+
+  function finish(counts) {
+    let ways = 1;
+    for (let i = 0; i < counts.length; i++) {
+      ways *= nChooseK(sizes[i], counts[i]);
+      if (ways === 0) return;
+    }
+    const [r, z, o, t2e, t2x, t3e] = counts;
+    const base = z >= 2 || (z >= 1 && r >= 1) || (z >= 1 && o >= 1) || (r >= 1 && o >= 1);
+    if (!base) return;
+    successWays += ways;
+    const cond1 = r + t2e + t2x >= 1 && t3e >= 1;
+    const cond2 = t2e >= 1;
+    if (cond1 || cond2) tama2Ways += ways;
+  }
+
+  function recurse(idx, remaining, counts) {
+    if (idx === keys.length - 1) {
+      if (remaining > sizes[idx]) return;
+      finish(counts.concat(remaining));
+      return;
+    }
+    const maxC = Math.min(sizes[idx], remaining);
+    for (let c = 0; c <= maxC; c++) {
+      recurse(idx + 1, remaining - c, counts.concat(c));
+    }
+  }
+  recurse(0, 7, []);
+
+  const successRate = totalWays > 0 ? (successWays / totalWays) * 100 : 0;
+  const tama2Rate = totalWays > 0 ? (tama2Ways / totalWays) * 100 : 0;
+  mulliganSuccessRateEl.textContent = `${successRate.toFixed(2)}%`;
+  mulliganTama2RateEl.textContent = `${tama2Rate.toFixed(2)}%`;
+}
 
 // ---- Deck export/import as a .dvdeck zip file ----
 
@@ -454,10 +711,23 @@ const AP_VALUES = [1, 2, 3];
 const GENERATED_ENERGY_VALUES = ["1", "1+", "2", "2+", "3"];
 
 // レアリティは★の有無を統合して扱う(例: "R"と"R★"は同じ"R"として絞り込む)。
-// 選択肢自体はプールの実データに関わらずこの固定順で常に表示する。
 const RARITY_ORDER = ["SR", "R", "U", "C", "PcSR", "PcR", "PcC", "UR", "SP", "PR"];
 function baseRarity(rarity) {
   return (rarity || "").replace(/★+$/, "");
+}
+
+// 選択肢はプールに実際に存在するレアリティだけ(統合済み)。既知の並び順
+// (RARITY_ORDER)にあるものはその順で、それ以外(未知のレアリティ)は末尾に
+// 五十音順で足す。
+function presentRarities(cards) {
+  const present = new Set();
+  for (const card of cards) {
+    const base = baseRarity(card.rarity);
+    if (base) present.add(base);
+  }
+  const known = RARITY_ORDER.filter((r) => present.has(r));
+  const unknown = [...present].filter((r) => !RARITY_ORDER.includes(r)).sort((a, b) => a.localeCompare(b, "ja"));
+  return [...known, ...unknown];
 }
 
 const filterState = {
@@ -767,10 +1037,9 @@ function updateFilterUI() {
   // と同じく現在選択中のカードプールのカードだけを対象に動的生成する。
   const poolCardsForFilter = allCards.filter((c) => selectedPoolIds.has(c.poolId));
 
-  // レアリティは★の有無を問わず固定順で常に全部表示する(distinctValuesの動的収集
-  // 対象外 -- baseRarity()で統合するため候補自体が実データに依存しない)。
+  // レアリティはプールに実在するものだけ(★の有無は統合済み)を表示する。
   filterRarityGroup.innerHTML = "";
-  for (const rarity of RARITY_ORDER) {
+  for (const rarity of presentRarities(poolCardsForFilter)) {
     filterRarityGroup.appendChild(
       createFilterPill(rarity, filterState.rarities.has(rarity), () => {
         toggleInSet(filterState.rarities, rarity);
@@ -820,9 +1089,10 @@ function updateFilterUI() {
   costSlider.updateUI();
   bpSlider.updateUI();
   filterParallelCheckbox.checked = filterState.excludeParallel;
-  // 以前は「全て」カラーのカードがあるプールだけ表示していたが、判定条件が
-  // 分かりにくく「出たり出なかったり」に見えて紛らわしかったため、常に表示する
-  // ことにした(該当カードが無いプールでは単に何も除外しないだけで無害)。
+  // Only shown once there's actually something for it to filter out, same as
+  // pool-detail.js -- scoped to the currently-selected pools' cards, not
+  // every card in the collection.
+  filterAllColorWrap.hidden = !poolCardsForFilter.some((c) => c.color === "全て");
   filterAllColorCheckbox.checked = filterState.excludeAllColor;
 
   // 高さの固定は、filterAllColorWrapの表示/非表示が確定した後(=このupdateFilterUI
@@ -1036,6 +1306,25 @@ function renderPanes() {
         addToDeck(card.id);
         if (spawnGhost) spawnGhost();
       });
+      const frame = el.querySelector(".card-frame");
+      if (frame) {
+        const zoomBtn = document.createElement("button");
+        zoomBtn.type = "button";
+        zoomBtn.className = "grid-zoom-btn";
+        zoomBtn.title = "拡大表示";
+        zoomBtn.textContent = "⤢";
+        // attachTap判定はel自身が受けるpointerdown/pointerupの座標差分で行っている
+        // ため、click単体のstopPropagationだけでは間に合わない(pointerup自体が
+        // 先にelまでバブリングしてタップ扱いされてしまう) -- ポインター段階で
+        // 止める。
+        zoomBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
+        zoomBtn.addEventListener("pointerup", (e) => e.stopPropagation());
+        zoomBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          openCardZoom(card);
+        });
+        frame.appendChild(zoomBtn);
+      }
       collectionGrid.appendChild(el);
     }
   }
@@ -1056,6 +1345,29 @@ makeSortable(deckGrid, {
     pushHistory();
   },
 });
+
+// ---- Card zoom lightbox (collection pane only, see pool-detail.js for the
+// original of this pattern) ----
+
+const cardZoomOverlay = document.getElementById("card-zoom-overlay");
+const cardZoomImg = document.getElementById("card-zoom-img");
+
+function openImageZoom(src, alt) {
+  cardZoomImg.src = src;
+  cardZoomImg.alt = alt || "";
+  cardZoomOverlay.hidden = false;
+}
+
+function openCardZoom(card) {
+  openImageZoom(Api.cardImageUrl(card), card.name || "");
+}
+
+function closeCardZoom() {
+  cardZoomOverlay.hidden = true;
+}
+
+document.getElementById("card-zoom-close").addEventListener("click", closeCardZoom);
+bindModalDismissal(cardZoomOverlay, { onCancel: closeCardZoom });
 
 async function init() {
   const params = new URLSearchParams(location.search);

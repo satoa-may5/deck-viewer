@@ -208,10 +208,23 @@ const AP_VALUES = [1, 2, 3];
 const GENERATED_ENERGY_VALUES = ["1", "1+", "2", "2+", "3"];
 
 // レアリティは★の有無を統合して扱う(例: "R"と"R★"は同じ"R"として絞り込む)。
-// 選択肢自体はプールの実データに関わらずこの固定順で常に表示する。
 const RARITY_ORDER = ["SR", "R", "U", "C", "PcSR", "PcR", "PcC", "UR", "SP", "PR"];
 function baseRarity(rarity) {
   return (rarity || "").replace(/★+$/, "");
+}
+
+// 選択肢はプールに実際に存在するレアリティだけ(統合済み)。既知の並び順
+// (RARITY_ORDER)にあるものはその順で、それ以外(未知のレアリティ)は末尾に
+// 五十音順で足す。
+function presentRarities(cards) {
+  const present = new Set();
+  for (const card of cards) {
+    const base = baseRarity(card.rarity);
+    if (base) present.add(base);
+  }
+  const known = RARITY_ORDER.filter((r) => present.has(r));
+  const unknown = [...present].filter((r) => !RARITY_ORDER.includes(r)).sort((a, b) => a.localeCompare(b, "ja"));
+  return [...known, ...unknown];
 }
 
 const filterState = {
@@ -522,10 +535,9 @@ function updateFilterUI() {
     );
   }
 
-  // レアリティは★の有無を問わず固定順で常に全部表示する(distinctValuesの動的収集
-  // 対象外 -- baseRarity()で統合するため候補自体が実データに依存しない)。
+  // レアリティはプールに実在するものだけ(★の有無は統合済み)を表示する。
   filterRarityGroup.innerHTML = "";
-  for (const rarity of RARITY_ORDER) {
+  for (const rarity of presentRarities(latestCards)) {
     filterRarityGroup.appendChild(
       createFilterPill(rarity, filterState.rarities.has(rarity), () => {
         toggleInSet(filterState.rarities, rarity);
@@ -575,9 +587,8 @@ function updateFilterUI() {
   costSlider.updateUI();
   bpSlider.updateUI();
   filterParallelCheckbox.checked = filterState.excludeParallel;
-  // 以前は「全て」カラーのカードがあるプールだけ表示していたが、判定条件が
-  // 分かりにくく「出たり出なかったり」に見えて紛らわしかったため、常に表示する
-  // ことにした(該当カードが無いプールでは単に何も除外しないだけで無害)。
+  // Only shown once there's actually something for it to filter out.
+  filterAllColorWrap.hidden = !latestCards.some((c) => c.color === "全て");
   filterAllColorCheckbox.checked = filterState.excludeAllColor;
 
   // 高さの固定は、filterAllColorWrapの表示/非表示が確定した後(=このupdateFilterUI

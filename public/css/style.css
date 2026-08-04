@@ -1803,50 +1803,121 @@ button {
   margin: 0;
 }
 
-/* ネイティブ<select>そのままの見た目だと浮いて見えるため、他のボタン類と
-   揃うピル型に作り直す(矢印もブラウザ標準のものを消して自前のものに差し替え)。 */
-#import-pool-year-select {
-  flex: 0 0 auto;
-  appearance: none;
-  -webkit-appearance: none;
-  padding: 8px 30px 8px 16px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background-color: var(--surface);
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%236b7080' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 10px 7px;
-  color: var(--text);
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s var(--ease);
+#filter-search-input:focus,
+#import-pool-search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-tint);
 }
 
-#import-pool-year-select:hover {
+/* 年の絞り込み: ネイティブ<select>だと角の背景がボタンの丸みからはみ出したり、
+   選択中の配色がオプション一覧側にも影響して読めなくなったりと、見た目を
+   ちゃんと制御できなかったため、他のドロップダウン(.deck-menu)と同じ
+   <details>+ポップアップ方式に作り直した。 */
+.year-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.year-menu summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.year-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.year-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s ease, transform 0.12s var(--ease);
+}
+
+.year-menu-btn:hover {
   border-color: var(--accent);
   transform: translateY(-1px);
 }
 
-#import-pool-year-select:has(option:checked:not([value=""])) {
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='white' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"),
-    var(--accent-grad);
-  background-repeat: no-repeat, no-repeat;
-  background-position: right 12px center, 0 0;
-  background-size: 10px 7px, auto;
+.year-menu-arrow {
+  font-size: 0.7em;
+  color: var(--muted);
+  transition: transform 0.15s ease;
+}
+
+.year-menu[open] .year-menu-arrow {
+  transform: rotate(180deg);
+}
+
+.year-menu.has-selection .year-menu-btn {
+  background: var(--accent-grad);
   border-color: transparent;
   color: #fff;
 }
 
-#filter-search-input:focus,
-#import-pool-search-input:focus,
-#import-pool-year-select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-tint);
+.year-menu.has-selection .year-menu-arrow {
+  color: #fff;
+}
+
+.year-menu-body {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 10;
+}
+
+.year-menu[open] .year-menu-body {
+  animation: menuPop 0.14s var(--ease);
+}
+
+.year-menu-body button {
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: background 0.12s ease;
+}
+
+.year-menu-body button:hover {
+  background: var(--surface-2);
+}
+
+.year-menu-body button.active {
+  color: var(--accent);
+}
+
+/* インポート可能なカードプール一覧: 個数に関わらず常に8件分の縦幅を固定
+   (高さはJSで実測して固定)。スクロールバーはこの一覧自身の右端に出す
+   (モーダル全体の右端ではなく、一覧の1件目上端〜最終件下端に揃える)。 */
+#import-pool-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .filter-checkbox-item {
@@ -2289,6 +2360,41 @@ button {
   transition: height 0.45s ease-out;
 }
 
+/* 「軽減2エナ」カード(必要エナジー2、盤面が空なら手札で必要エナジー-2になる
+   効果を持つカード)専用: 必要エナジー0の棒の上に、そのカードの枚数分だけ
+   斜線の棒を追加で積む(必要エナジー2側は逆に、その分だけ上部を斜線にする)。
+   積み上げ全体の高さはanimateGrow()で.stats-mana-bar-stack自体をアニメー
+   ションさせ、中の内訳はflex-growの比率で分けるだけ(即時反映でよい)。 */
+.stats-mana-bar-stack {
+  width: 100%;
+  min-height: 2px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 4px 4px 0 0;
+  overflow: hidden;
+  transition: height 0.45s ease-out;
+}
+
+.stats-mana-bar-segment {
+  width: 100%;
+  min-height: 0;
+}
+
+.stats-mana-bar-segment.stats-mana-bar-solid {
+  background: var(--accent-grad);
+}
+
+.stats-mana-bar-segment.stats-mana-bar-hatched {
+  background-image: repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.55) 0,
+      rgba(255, 255, 255, 0.55) 3px,
+      transparent 3px,
+      transparent 7px
+    ),
+    var(--accent-grad);
+}
+
 .stats-mana-label {
   flex: 1;
   text-align: center;
@@ -2345,6 +2451,95 @@ button {
   font-size: 0.78rem;
   font-weight: 700;
   color: var(--text);
+}
+
+/* ---- Mulligan simulator (統計情報ポップアップの右カラム) ---- */
+
+.stats-modal-card {
+  max-width: 880px;
+}
+
+.stats-modal-columns {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.stats-modal-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.mulligan-board {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  min-height: 120px;
+}
+
+.mulligan-card-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 63 / 88;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface-2);
+  box-shadow: var(--shadow-sm);
+  opacity: 0;
+  transform: translateX(60px);
+  transition: transform 0.32s var(--ease), opacity 0.32s var(--ease);
+}
+
+.mulligan-card-frame.is-dealt {
+  opacity: 1;
+  transform: none;
+}
+
+.mulligan-card-frame.is-cheap {
+  box-shadow: 0 0 0 2px rgba(91, 110, 245, 0.55);
+}
+
+.mulligan-card-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+.mulligan-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.mulligan-rate-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mulligan-help-btn {
+  width: 22px;
+  height: 22px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.mulligan-rate-line {
+  font-size: 0.92rem;
+}
+
+.mulligan-rate-line strong {
+  font-weight: 800;
+}
+
+@media (max-width: 700px) {
+  .stats-modal-columns {
+    flex-direction: column;
+  }
 }
 
 .pane {

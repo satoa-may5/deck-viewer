@@ -61,9 +61,13 @@
         <button type="button" class="ghost-row" id="import-pool-local-row">＋ ローカルからカードプールをインポート</button>
         <div class="import-pool-search-row">
           <input type="text" id="import-pool-search-input" placeholder="カードプール名で検索" />
-          <select id="import-pool-year-select" title="vol.1の発売日で検索">
-            <option value="">年</option>
-          </select>
+          <details class="year-menu" id="import-pool-year-menu" title="vol.1の発売日で検索">
+            <summary class="year-menu-btn" id="import-pool-year-btn">
+              <span id="import-pool-year-btn-label">年</span>
+              <span class="year-menu-arrow">▾</span>
+            </summary>
+            <div class="year-menu-body" id="import-pool-year-body"></div>
+          </details>
         </div>
         <div id="import-pool-list"></div>
       </div>

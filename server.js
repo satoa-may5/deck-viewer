@@ -399,43 +399,44 @@ async function fetchGithubPoolMeta(fileName) {
   return { poolName: manifest.poolName || null, release: manifest.release || null };
 }
 
+async function listGithubPools() {
+  const listUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/pool-exports?ref=${GITHUB_BRANCH}`;
+  const listRes = await fetch(listUrl, {
+    headers: { "User-Agent": "deck-viewer", Accept: "application/vnd.github+json" },
+  });
+  if (!listRes.ok) throw new Error(`list fetch failed: ${listRes.status}`);
+  const entries = await listRes.json();
+  const dvpoolEntries = (Array.isArray(entries) ? entries : []).filter(
+    (e) => e.type === "file" && GITHUB_DVPOOL_NAME.test(e.name)
+  );
+
+  return Promise.all(
+    dvpoolEntries.map(async (e) => {
+      const cached = githubPoolMetaCache.get(e.name);
+      let meta = cached && cached.sha === e.sha ? cached : null;
+      if (!meta) {
+        let fetched;
+        try {
+          fetched = await fetchGithubPoolMeta(e.name);
+        } catch (err) {
+          fetched = { poolName: null, release: null };
+        }
+        meta = { sha: e.sha, ...fetched };
+        githubPoolMetaCache.set(e.name, meta);
+      }
+      return {
+        name: e.name,
+        poolName: meta.poolName || path.basename(e.name, ".dvpool"),
+        release: meta.release || null,
+        size: e.size,
+      };
+    })
+  );
+}
+
 app.get("/api/github-pools", async (req, res) => {
   try {
-    const listUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/pool-exports?ref=${GITHUB_BRANCH}`;
-    const listRes = await fetch(listUrl, {
-      headers: { "User-Agent": "deck-viewer", Accept: "application/vnd.github+json" },
-    });
-    if (!listRes.ok) {
-      return res.status(502).json({ error: "GitHubからの取得に失敗しました" });
-    }
-    const entries = await listRes.json();
-    const dvpoolEntries = (Array.isArray(entries) ? entries : []).filter(
-      (e) => e.type === "file" && GITHUB_DVPOOL_NAME.test(e.name)
-    );
-
-    const pools = await Promise.all(
-      dvpoolEntries.map(async (e) => {
-        const cached = githubPoolMetaCache.get(e.name);
-        let meta = cached && cached.sha === e.sha ? cached : null;
-        if (!meta) {
-          let fetched;
-          try {
-            fetched = await fetchGithubPoolMeta(e.name);
-          } catch (err) {
-            fetched = { poolName: null, release: null };
-          }
-          meta = { sha: e.sha, ...fetched };
-          githubPoolMetaCache.set(e.name, meta);
-        }
-        return {
-          name: e.name,
-          poolName: meta.poolName || path.basename(e.name, ".dvpool"),
-          release: meta.release || null,
-          size: e.size,
-        };
-      })
-    );
-    res.json(pools);
+    res.json(await listGithubPools());
   } catch (err) {
     res.status(502).json({ error: "GitHubからの取得に失敗しました" });
   }
@@ -1303,4 +1304,11 @@ app.listen(PORT, "0.0.0.0", () => {
   if (process.pkg) {
     openBrowser(url);
   }
+  // Pre-warms githubPoolMetaCache in the background so the FIRST person to open
+  // "カードプールをインポート" isn't the one stuck waiting on however many tens
+  // of MB the pool-exports/*.dvpool files add up to -- by the time anyone
+  // actually opens that modal, this has usually already finished. Fire-and-
+  // forget: a failure here (offline, GitHub down) just means the first real
+  // request pays the normal cost, same as before this existed.
+  listGithubPools().catch(() => {});
 });

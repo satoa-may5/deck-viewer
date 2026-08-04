@@ -792,33 +792,68 @@ const importPoolBtn = document.getElementById("import-pool-btn");
 const importModal = document.getElementById("import-pool-modal");
 const importListEl = document.getElementById("import-pool-list");
 const importPoolSearchInput = document.getElementById("import-pool-search-input");
-const importPoolYearSelect = document.getElementById("import-pool-year-select");
+const importPoolYearMenu = document.getElementById("import-pool-year-menu");
+const importPoolYearBtnLabel = document.getElementById("import-pool-year-btn-label");
+const importPoolYearBody = document.getElementById("import-pool-year-body");
 
 let latestGithubPools = [];
+let selectedImportYear = "";
+const IMPORT_LIST_VISIBLE_ROWS = 8;
+let importListRowHeightLocked = false;
 
 function closeImportModal() {
   importModal.hidden = true;
 }
 
-function updateImportYearOptions() {
+function updateImportYearMenu() {
   const years = [...new Set(latestGithubPools.map((p) => (p.release || "").slice(0, 4)).filter(Boolean))].sort(
     (a, b) => b.localeCompare(a)
   );
-  const previousValue = importPoolYearSelect.value;
-  importPoolYearSelect.innerHTML = '<option value="">年</option>';
+  if (!years.includes(selectedImportYear)) selectedImportYear = "";
+
+  importPoolYearBody.innerHTML = "";
+  const allBtn = document.createElement("button");
+  allBtn.type = "button";
+  allBtn.textContent = "すべての年";
+  allBtn.className = selectedImportYear === "" ? "active" : "";
+  allBtn.addEventListener("click", () => {
+    selectedImportYear = "";
+    importPoolYearMenu.open = false;
+    updateImportYearMenu();
+    renderImportList();
+  });
+  importPoolYearBody.appendChild(allBtn);
+
   for (const year of years) {
-    const option = document.createElement("option");
-    option.value = year;
-    option.textContent = `${year}年`;
-    importPoolYearSelect.appendChild(option);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = `${year}年`;
+    btn.className = year === selectedImportYear ? "active" : "";
+    btn.addEventListener("click", () => {
+      selectedImportYear = year;
+      importPoolYearMenu.open = false;
+      updateImportYearMenu();
+      renderImportList();
+    });
+    importPoolYearBody.appendChild(btn);
   }
-  importPoolYearSelect.value = years.includes(previousValue) ? previousValue : "";
+
+  importPoolYearBtnLabel.textContent = selectedImportYear ? `${selectedImportYear}年` : "年";
+  importPoolYearMenu.classList.toggle("has-selection", Boolean(selectedImportYear));
 }
+
+document.addEventListener("click", (e) => {
+  if (importPoolYearMenu.open && !e.target.closest("#import-pool-year-menu")) {
+    importPoolYearMenu.open = false;
+  }
+});
 
 async function openImportModal() {
   importModal.hidden = false;
   importPoolSearchInput.value = "";
-  importPoolYearSelect.value = "";
+  selectedImportYear = "";
+  importListRowHeightLocked = false;
+  importListEl.style.height = "auto";
   importListEl.innerHTML = "読み込み中...";
 
   try {
@@ -830,7 +865,7 @@ async function openImportModal() {
   }
   // リリース日が新しい順(同じ場合の順序は問わない)。releaseが無いものは末尾に回す。
   latestGithubPools.sort((a, b) => (b.release || "").localeCompare(a.release || ""));
-  updateImportYearOptions();
+  updateImportYearMenu();
   renderImportList();
 }
 
@@ -840,10 +875,9 @@ function renderImportList() {
     return;
   }
   const query = importPoolSearchInput.value.trim().toLowerCase();
-  const year = importPoolYearSelect.value;
   const githubPools = latestGithubPools.filter((item) => {
     if (query && !item.poolName.toLowerCase().includes(query)) return false;
-    if (year && (item.release || "").slice(0, 4) !== year) return false;
+    if (selectedImportYear && (item.release || "").slice(0, 4) !== selectedImportYear) return false;
     return true;
   });
   if (githubPools.length === 0) {
@@ -892,6 +926,23 @@ function renderImportList() {
     row.appendChild(importBtn);
     importListEl.appendChild(row);
   }
+
+  lockImportListHeight();
+}
+
+// 表示件数に関わらず常に8件分の縦幅になるよう、実測した1行分の高さ(+行間)を
+// 元に固定する。行の見た目自体は内容によらず一定なので、最初にリストへ実際の
+// 行が描画されたときに一度だけ測れば十分(検索や年の絞り込みで件数が変わっても
+// 測り直す必要はない)。
+function lockImportListHeight() {
+  if (importListRowHeightLocked) return;
+  const firstRow = importListEl.querySelector(".deck-row");
+  if (!firstRow) return;
+  importListRowHeightLocked = true;
+  const rowHeight = firstRow.getBoundingClientRect().height;
+  const gap = parseFloat(getComputedStyle(importListEl).rowGap || "0") || 0;
+  const height = rowHeight * IMPORT_LIST_VISIBLE_ROWS + gap * (IMPORT_LIST_VISIBLE_ROWS - 1);
+  importListEl.style.height = `${height}px`;
 }
 
 // IME変換中(例:「ア」を打とうとしている途中の「あ」)にも"input"イベントは
@@ -902,8 +953,6 @@ importPoolSearchInput.addEventListener("input", (e) => {
   renderImportList();
 });
 importPoolSearchInput.addEventListener("compositionend", renderImportList);
-
-importPoolYearSelect.addEventListener("change", renderImportList);
 
 importPoolBtn.addEventListener("click", openImportModal);
 document.getElementById("close-import-modal-btn").addEventListener("click", closeImportModal);
