@@ -108,6 +108,18 @@ button {
   margin: 0 auto;
 }
 
+/* ホーム画面(index.html)専用のクレジット表記。他の画面には出さない。 */
+.app-credit {
+  position: fixed;
+  right: 10px;
+  bottom: 6px;
+  font-size: 0.68rem;
+  color: var(--muted);
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 1;
+}
+
 /* ---- Topbar ---- */
 
 .topbar {
