@@ -2211,19 +2211,41 @@ button {
 .builder-hint-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 10px;
   width: 100%;
-  padding: 8px 14px;
+  padding: 4px 8px 4px 14px;
   background: var(--accent-tint);
   color: var(--accent);
   border-radius: var(--radius-md);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   flex-shrink: 0;
 }
 
-.builder-hint-bar .icon-btn {
+.builder-hint-bar span {
+  flex: 1;
+  text-align: center;
+}
+
+/* .icon-btnの丸い枠・影は使わず、バー右端にちんまり収まる素のテキストボタン。 */
+.builder-hint-close-btn {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+  width: auto;
+  height: auto;
+  padding: 3px 6px;
   color: inherit;
+  font-size: 0.75rem;
+  line-height: 1;
+  opacity: 0.65;
+  border-radius: var(--radius-sm);
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.builder-hint-close-btn:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.06);
 }
 
 /* ---- Deck pane menu (サムネイルを設定 / 統計情報を表示) ---- */

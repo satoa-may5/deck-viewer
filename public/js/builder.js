@@ -96,6 +96,42 @@ function prepareCardExit(sourceEl, direction) {
   };
 }
 
+// prepareCardExit()の逆再生: 「デッキ側を左クリックしてもう1枚追加」
+// 「カードプール側を右クリックして削除」のように、タップされた要素自体は
+// その場に残ったまま中身(枚数)だけ変わるケース向けの、うっすら入ってくる
+// ような控えめな入場フラッシュ。renderPanes()で再描画された「後」の要素を
+// 対象に呼ぶ必要がある(枚数バッジ等も含めた最終的な見た目の位置に向かって
+// 入ってくるように見せるため)。
+function prepareCardEnter(sourceEl, direction) {
+  const frame = sourceEl && sourceEl.querySelector(".card-frame");
+  if (!frame) return;
+  const frameRect = frame.getBoundingClientRect();
+  const ghost = frame.cloneNode(true);
+  ghost.style.position = "fixed";
+  ghost.style.left = `${frameRect.left}px`;
+  ghost.style.top = `${frameRect.top}px`;
+  ghost.style.width = `${frameRect.width}px`;
+  ghost.style.height = `${frameRect.height}px`;
+  ghost.style.margin = "0";
+  ghost.style.zIndex = "999";
+  ghost.style.pointerEvents = "none";
+  ghost.style.transition = "none";
+  ghost.style.opacity = "0";
+  const dx = direction === "left" ? -60 : 60;
+  ghost.style.transform = `translateX(${dx}px)`;
+  document.body.appendChild(ghost);
+
+  // animateGrowと同じ理由でrAFではなくsetTimeoutを使う(初期状態を確実に
+  // 1フレーム描画させてから遷移させないと、transitionが発火せず一瞬で
+  // 完成形にスナップしてしまう)。
+  setTimeout(() => {
+    ghost.style.transition = "transform 0.1s ease-out, opacity 0.1s ease-out";
+    ghost.style.transform = "translateX(0)";
+    ghost.style.opacity = "1";
+  }, 20);
+  setTimeout(() => ghost.remove(), 130);
+}
+
 // ---- Undo/redo (deck composition: add/remove/reorder/sort/thumbnail) ----
 // Deliberately scoped to the deck's card composition, not the deck name or
 // which pools are referenced -- those are ordinary text/selection edits, not
@@ -167,13 +203,16 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-function addToDeck(cardId) {
+// afterRender: 再描画された直後(=最終的なDOMが確定した後)に呼びたい処理
+// (入場アニメーションの起点となる要素の位置測定など)を渡せる。
+function addToDeck(cardId, afterRender) {
   deckCounts.set(cardId, (deckCounts.get(cardId) || 0) + 1);
   renderPanes();
+  if (afterRender) afterRender();
   pushHistory();
 }
 
-function removeFromDeck(cardId) {
+function removeFromDeck(cardId, afterRender) {
   const current = deckCounts.get(cardId) || 0;
   if (current <= 1) {
     deckCounts.delete(cardId);
@@ -182,6 +221,7 @@ function removeFromDeck(cardId) {
     deckCounts.set(cardId, current - 1);
   }
   renderPanes();
+  if (afterRender) afterRender();
   pushHistory();
 }
 
@@ -868,8 +908,8 @@ deckImportZipInput.addEventListener("change", async () => {
   const file = deckImportZipInput.files[0];
   deckImportZipInput.value = "";
   if (!file) return;
-  const result = await showConfirm("現在の変更は破棄されますがよろしいですか？", { confirmText: "インポート" });
-  if (!result.confirmed) return;
+  const confirmed = await showConfirm("現在の変更は破棄されますがよろしいですか？", { confirmText: "インポート" });
+  if (!confirmed) return;
   try {
     const { deck } = await Api.importDeckZip(file);
     location.href = `builder.html?id=${encodeURIComponent(deck.id)}`;
@@ -1495,6 +1535,13 @@ function addZoomButton(frame, card) {
   frame.appendChild(zoomBtn);
 }
 
+// renderPanes()は毎回グリッドの中身を丸ごと作り直すため、再描画後に同じ
+// カードのタイルを指し直すにはIDで探し直す必要がある(古い要素の参照は
+// renderPanes()の時点でDOMから外れてしまっている)。
+function findCardTile(container, cardId) {
+  return container.querySelector(`[data-id="${cardId}"]`);
+}
+
 function renderPanes() {
   const cardById = Object.fromEntries(allCards.map((c) => [c.id, c]));
 
@@ -1512,7 +1559,7 @@ function renderPanes() {
       el.addEventListener("click", () => setDeckThumbnail(cardId));
     } else {
       attachCardClicks(el, {
-        onAdd: () => addToDeck(cardId),
+        onAdd: () => addToDeck(cardId, () => prepareCardEnter(findCardTile(deckGrid, cardId), "right")),
         onRemove: () => {
           const spawnGhost = prepareCardExit(el, "right");
           removeFromDeck(cardId);
@@ -1552,7 +1599,8 @@ function renderPanes() {
           addToDeck(card.id);
           if (spawnGhost) spawnGhost();
         },
-        onRemove: () => removeFromDeck(card.id),
+        onRemove: () =>
+          removeFromDeck(card.id, () => prepareCardEnter(findCardTile(collectionGrid, card.id), "left")),
       });
       const frame = el.querySelector(".card-frame");
       if (frame) addZoomButton(frame, card);
@@ -1682,8 +1730,8 @@ document.getElementById("discard-back-btn").addEventListener("click", async () =
     location.href = "index.html";
     return;
   }
-  const result = await showConfirm("作業内容が失われますが大丈夫ですか?", { confirmText: "戻る" });
-  if (!result.confirmed) return;
+  const confirmed = await showConfirm("作業内容が失われますが大丈夫ですか?", { confirmText: "戻る" });
+  if (!confirmed) return;
   location.href = "index.html";
 });
 

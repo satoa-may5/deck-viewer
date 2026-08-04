@@ -1302,7 +1302,7 @@ function openBrowser(url) {
 }
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, "0.0.0.0", () => {
+const server = app.listen(PORT, "0.0.0.0", () => {
   const url = `http://localhost:${PORT}`;
   console.log(`deck-viewer server running: ${url}`);
   // Only auto-open when running as a packaged exe — during `npm start`/`npm run dev`
@@ -1326,4 +1326,18 @@ app.listen(PORT, "0.0.0.0", () => {
   setInterval(() => {
     listGithubPools().catch(() => {});
   }, 5 * 60 * 1000);
+});
+
+// exeを既に起動した状態(前回のウィンドウを閉じ忘れている、二重にダブルクリック
+// してしまった等)でもう一度起動すると、このプロセスはポートを掴めずに
+// クラッシュして一瞬でウィンドウが消えるだけになり、ブラウザも開かれない
+// (「.exeを実行しても何も起きない」ように見える典型パターン)。 EADDRINUSE
+// の場合は、既に立っている方のサーバーを対象にブラウザだけ開いて素直に
+// 終了する -- 実行するたびに必ずブラウザが開く、という体験を優先する。
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE" && process.pkg) {
+    openBrowser(`http://localhost:${PORT}`);
+    process.exit(0);
+  }
+  throw err;
 });
