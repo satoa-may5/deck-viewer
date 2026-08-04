@@ -47,20 +47,27 @@ function attachCardClicks(el, { onAdd, onRemove }) {
 }
 
 // .builder-grid .card-item:active/:hover .card-frame applies a scale/lift
-// transform (see style.css) while pressed/hovered — getBoundingClientRect()
-// on a transformed element reports the visually-scaled box, not the card's
-// real (resting) size, so a ghost built straight from it can come out
-// smaller than the card actually is. offsetWidth/offsetHeight are the
-// element's layout box, which CSS `transform` never affects, so pairing
-// those with the (transformed) rect's center point gives a ghost sized like
-// the resting card but still centered on wherever it currently appears.
+// transform (see style.css) while pressed/hovered, and getBoundingClientRect()
+// on a transformed element reports the visually-transformed box, not the
+// card's real (resting) position/size -- a ghost built straight from it can
+// come out smaller (scale(0.94) while pressed) and/or offset vertically
+// (translateY(-3px) on hover, which a freshly re-rendered element picks up
+// almost immediately since the cursor is still sitting on it). Trying to
+// correct for this by preserving the transformed rect's center only cancels
+// out a pure scale, not a translate, and was still leaving the ghost a few
+// px too low. Measuring with the transform forced off entirely is exact
+// regardless of which transform(s) are actually in play, and restoring it
+// immediately after (before this task ever yields to a repaint) means
+// nothing visibly flickers.
 function getRestFrameRect(frame) {
+  const prevTransform = frame.style.transform;
+  const prevTransition = frame.style.transition;
+  frame.style.transition = "none";
+  frame.style.transform = "none";
   const rect = frame.getBoundingClientRect();
-  const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height / 2;
-  const width = frame.offsetWidth;
-  const height = frame.offsetHeight;
-  return new DOMRect(cx - width / 2, cy - height / 2, width, height);
+  frame.style.transform = prevTransform;
+  frame.style.transition = prevTransition;
+  return rect;
 }
 
 // Quick, non-blocking exit flourish: clones just the tapped card's thumbnail
