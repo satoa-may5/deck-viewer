@@ -1217,3 +1217,38 @@ node tools/build-pool-export-index.js
 になったことで大幅に改善するはずだが、それでも初回の1回だけは何らかの待ち時間が
 残る(起動時のpre-warmと5分ごとの定期リフレッシュで、実際にユーザーが画面を開く
 頃には大抵完了している想定)。
+
+## pkgビルドのexeが起動直後にクラッシュする問題の修正(2026-08-04)
+
+ユーザーから「exeを実行してもcmdが一瞬開いてすぐ閉じる」と報告があった
+(ダブルクリックだと標準出力が一瞬で消えて原因が見えない典型パターン)。
+`dist/deck-viewer.exe`を`cmd`/ターミナルから直接実行して原因を特定:
+
+```
+Error: Cannot find module 'C:\snapshot\deck-viewer\node_modules\@jimp\plugin-print\dist\commonjs\load-font.js'
+```
+
+`server.js`が起動時に`require("./tools/classify-cards")`(カード情報自動取得
+機能で使用)を読み込み、そのtools/classify-cards.jsが`jimp`(画像処理ライブラリ、
+v1.6.1)を require している。jimpのプラグイン(`@jimp/plugin-print`)が内部で
+フォントファイルを**動的な(リテラルでない)requireパス**で読み込んでおり、
+pkgの静的解析ではこの動的requireを追跡できず、スナップショットにその
+モジュールが同梱されないままになっていた(通常のnode実行では問題にならず、
+pkgでexe化したときだけ顕在化するタイプの不具合)。
+
+`package.json`の`pkg.assets`に`"node_modules/@jimp/**/*"`・
+`"node_modules/jimp/**/*"`を追加して解決した(pkgは`assets`に指定したファイルを
+生スナップショット内に同梱し、`fs`をパッチして読み取れるようにするため、
+動的requireでも実行時にファイル自体は見つかるようになる)。修正後、exeを
+プロジェクトと無関係な別フォルダにコピーして`cmd`から実行し、正常に起動
+(`deck-viewer server running: ...`)・`curl`で200応答・`data/`/`images/`が
+exeの隣に生成されることを確認済み。
+
+**今後の教訓**: pkgでビルドしたexeが「一瞬で終了する/何も起きない」場合、
+まずダブルクリックではなく`cmd`/PowerShellから直接実行してエラー出力を
+確認すること(ダブルクリックだとウィンドウが即座に閉じてエラーが読めない)。
+`Cannot find module` 系のエラーは大抵、依存ライブラリが内部で動的requireや
+プラグイン読み込みをしている場合に起きる(pkgの静的解析が追跡できないため)。
+今後jimpや同様のプラグイン機構を持つライブラリを新規に追加する場合、
+exeビルド後に一度必ず実機(ダブルクリックではなくターミナルから)起動確認を
+行うこと。

@@ -22,7 +22,9 @@
   "pkg": {
     "assets": [
       "public/**/*",
-      "tools/**/*"
+      "tools/**/*",
+      "node_modules/@jimp/**/*",
+      "node_modules/jimp/**/*"
     ]
   }
 }
