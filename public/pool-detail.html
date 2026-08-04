@@ -33,7 +33,6 @@
     <div class="list-toolbar">
       <button type="button" class="btn" id="select-mode-btn">選択して削除</button>
       <button type="button" class="icon-btn uncertain-review-btn" id="uncertain-review-btn" title="自動取得に問題がある可能性のあるカードを確認する" hidden><span class="uncertain-review-mark">⚠</span></button>
-      <button type="button" class="btn" id="auto-fill-info-btn">カードの情報を自動取得する</button>
     </div>
 
     <div class="selection-bar" id="selection-bar" hidden>
@@ -261,6 +260,36 @@
     </div>
 
     <input type="file" id="modal-file-input" accept="image/png,image/jpeg" capture="environment" hidden />
+
+    <div class="modal-overlay" id="add-choice-modal" hidden>
+      <div class="modal-card add-choice-card">
+        <div class="modal-header">
+          <h2>カードを追加</h2>
+          <button type="button" class="icon-btn" id="close-add-choice-modal-btn">✕</button>
+        </div>
+        <div class="add-choice-actions">
+          <button type="button" class="btn primary add-choice-btn" id="add-choice-single-btn">カードを1枚追加する</button>
+          <button type="button" class="btn add-choice-btn" id="add-choice-bulk-btn">カードを複数枚追加する</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="bulk-add-modal" hidden>
+      <div class="modal-card bulk-add-card">
+        <div class="modal-header">
+          <h2>カードを複数枚追加</h2>
+          <button type="button" class="icon-btn" id="close-bulk-add-modal-btn">✕</button>
+        </div>
+        <div class="bulk-add-grid" id="bulk-add-grid"></div>
+        <div id="bulk-add-status" class="status-message"></div>
+        <div class="bulk-add-actions">
+          <button type="button" class="icon-btn bulk-add-plus-btn" id="bulk-add-plus-btn" title="画像を追加する">＋</button>
+          <button type="button" class="btn primary" id="bulk-add-done-btn">完了</button>
+        </div>
+      </div>
+    </div>
+
+    <input type="file" id="bulk-add-file-input" accept="image/png,image/jpeg" multiple hidden />
 
     <div class="modal-overlay lightbox-overlay" id="card-zoom-overlay" hidden>
       <button type="button" class="icon-btn lightbox-close" id="card-zoom-close">✕</button>

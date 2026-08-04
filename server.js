@@ -565,8 +565,23 @@ app.get("/api/cards", (req, res) => {
 });
 
 app.post("/api/cards", upload.single("image"), (req, res) => {
-  const { name, cardName, cost, poolId, color, parallel, type, trigger, rarity, ap, bp, attribute, generatedEnergy, effect } =
-    req.body;
+  const {
+    name,
+    cardName,
+    cost,
+    poolId,
+    color,
+    parallel,
+    type,
+    trigger,
+    rarity,
+    ap,
+    bp,
+    attribute,
+    generatedEnergy,
+    effect,
+    unedited,
+  } = req.body;
 
   if (!poolId) {
     return res.status(400).json({ error: "カードプールを選択してください" });
@@ -602,6 +617,10 @@ app.post("/api/cards", upload.single("image"), (req, res) => {
     attribute: normalizeAttribute(attribute),
     generatedEnergy: (generatedEnergy || "").trim(),
     effect: (effect || "").trim(),
+    // 複数枚追加フロー(画像だけ登録し、情報入力は後回し)で作られたカードにだけ
+    // 立つフラグ。「1枚追加」経由なら常にfalse(そちらは毎回このフォームを
+    // 経由するため、情報が空でも「未編集」扱いにはしない)。
+    unedited: unedited === true || unedited === "true",
     poolId,
     imageExt: ext,
     order: nextCardOrder(cards),
@@ -616,6 +635,10 @@ app.patch("/api/cards/:id", (req, res) => {
   const cards = readCards();
   const card = cards.find((c) => c.id === req.params.id);
   if (!card) return res.status(404).json({ error: "カードが見つかりません" });
+
+  // このエンドポイントは常に「カードを編集」モーダルの保存からしか呼ばれない
+  // ため、到達した時点で「未編集」ではなくなったとみなしてよい。
+  card.unedited = false;
 
   if (req.body.name !== undefined) {
     card.name = (req.body.name || "").trim();

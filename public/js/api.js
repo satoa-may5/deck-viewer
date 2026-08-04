@@ -24,6 +24,7 @@ const Api = {
     attribute,
     generatedEnergy,
     effect,
+    unedited,
     poolId,
     imageBlob,
   }) {
@@ -41,6 +42,7 @@ const Api = {
     if (attribute && attribute.length > 0) form.append("attribute", JSON.stringify(attribute));
     if (generatedEnergy) form.append("generatedEnergy", generatedEnergy);
     if (effect) form.append("effect", effect);
+    if (unedited) form.append("unedited", "true");
     form.append("poolId", poolId);
     form.append("image", imageBlob, "card.jpg");
     const res = await fetch("/api/cards", { method: "POST", body: form });

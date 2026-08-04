@@ -11,14 +11,18 @@ const collectionGrid = document.getElementById("collection-grid");
 const nameInput = document.getElementById("deck-name-input");
 const saveStatus = document.getElementById("save-status");
 
-function attachTap(el, action) {
+// 左クリック(タップ)で追加、右クリック(長押しの場合も含むcontextmenu)で
+// 削除、という共通挙動をデッキ側・カードプール側の両ペインで共有する。
+function attachCardClicks(el, { onAdd, onRemove }) {
   let downX = 0;
   let downY = 0;
   el.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return; // 右ボタンの押下はここでは追跡しない(削除はcontextmenu側で扱う)
     downX = e.clientX;
     downY = e.clientY;
   });
   el.addEventListener("pointerup", (e) => {
+    if (e.button !== 0) return;
     // Dragging the card out and releasing it back near its starting point
     // (e.g. a reorder that ends up where it began) has a small net
     // displacement too, so checking distance alone would misread it as a
@@ -30,9 +34,15 @@ function attachTap(el, action) {
     if (el.classList.contains("dragging")) return;
     const dx = e.clientX - downX;
     const dy = e.clientY - downY;
-    // Only a real tap/click triggers add-remove — anything that moved more than
-    // this is a scroll/swipe gesture and should just scroll normally.
-    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) action();
+    // Only a real tap/click triggers add — anything that moved more than
+    // this is a scroll/swipe/drag gesture and should just scroll/reorder normally.
+    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) onAdd();
+  });
+  // contextmenu(右クリック、モバイルの長押しでも発火する)を削除に割り当て、
+  // ブラウザ標準の右クリックメニューは出さない。
+  el.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    onRemove();
   });
 }
 
@@ -1463,8 +1473,8 @@ function renderPoolPicker() {
 }
 
 // 拡大表示(⤢)ボタンをカードのフレームに追加する(デッキ側・カードプール側の
-// 両方の一覧で共有)。attachTap()はel自身が受けるpointerdown/pointerupの座標差分
-// でタップ判定しているため、click単体のstopPropagationだけでは間に合わない
+// 両方の一覧で共有)。attachCardClicks()はel自身が受けるpointerdown/pointerupの
+// 座標差分でタップ判定しているため、click単体のstopPropagationだけでは間に合わない
 // (pointerup自体が先にelまでバブリングしてタップ扱いされてしまう) --
 // ポインター段階で止める。
 function addZoomButton(frame, card) {
@@ -1475,6 +1485,9 @@ function addZoomButton(frame, card) {
   zoomBtn.textContent = "⤢";
   zoomBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
   zoomBtn.addEventListener("pointerup", (e) => e.stopPropagation());
+  // 右クリックがそのままバブリングすると、カード側のcontextmenuハンドラ
+  // (デッキから1枚削除)まで届いてしまうため、ここで止める。
+  zoomBtn.addEventListener("contextmenu", (e) => e.stopPropagation());
   zoomBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     openCardZoom(card);
@@ -1498,10 +1511,13 @@ function renderPanes() {
     if (deckThumbnailMode) {
       el.addEventListener("click", () => setDeckThumbnail(cardId));
     } else {
-      attachTap(el, () => {
-        const spawnGhost = prepareCardExit(el, "right");
-        removeFromDeck(cardId);
-        if (spawnGhost) spawnGhost();
+      attachCardClicks(el, {
+        onAdd: () => addToDeck(cardId),
+        onRemove: () => {
+          const spawnGhost = prepareCardExit(el, "right");
+          removeFromDeck(cardId);
+          if (spawnGhost) spawnGhost();
+        },
       });
     }
     if (card) {
@@ -1530,10 +1546,13 @@ function renderPanes() {
     for (const card of visibleCards) {
       const count = deckCounts.get(card.id) || null;
       const el = createCardElement(card, card.id, count);
-      attachTap(el, () => {
-        const spawnGhost = prepareCardExit(el, "left");
-        addToDeck(card.id);
-        if (spawnGhost) spawnGhost();
+      attachCardClicks(el, {
+        onAdd: () => {
+          const spawnGhost = prepareCardExit(el, "left");
+          addToDeck(card.id);
+          if (spawnGhost) spawnGhost();
+        },
+        onRemove: () => removeFromDeck(card.id),
       });
       const frame = el.querySelector(".card-frame");
       if (frame) addZoomButton(frame, card);
@@ -1681,6 +1700,22 @@ document.getElementById("export-image-btn").addEventListener("click", () => {
   };
   sessionStorage.setItem(`deck-export-draft:${deckId}`, JSON.stringify(draft));
   location.href = `deck-view.html?id=${encodeURIComponent(deckId)}`;
+});
+
+// ---- Dismissible hint bar (左クリックで追加、右クリックで削除できます) ----
+// 一度✕で閉じたら、別のデッキを開いた時も含めて二度と出さない
+// (デッキ単位ではなくアプリ全体で1回だけの案内という位置づけ)。
+
+const BUILDER_HINT_DISMISSED_KEY = "deck-viewer-builder-hint-dismissed";
+const builderHintBar = document.getElementById("builder-hint-bar");
+
+if (localStorage.getItem(BUILDER_HINT_DISMISSED_KEY) !== "true") {
+  builderHintBar.hidden = false;
+}
+
+document.getElementById("builder-hint-close-btn").addEventListener("click", () => {
+  localStorage.setItem(BUILDER_HINT_DISMISSED_KEY, "true");
+  builderHintBar.hidden = true;
 });
 
 init();

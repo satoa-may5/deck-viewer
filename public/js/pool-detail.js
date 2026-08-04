@@ -720,6 +720,25 @@ const TRIGGER_LABELS = {
   color: "カラー",
 };
 
+// 一覧表示・グリッド表示の両方で共有する、カード右上のステータスバッジ。
+// 「複数枚追加」で登録されたまま一度も編集されていないカードには「未編集」を
+// 優先して出す(自動取得の「⚠」より基本的な状態のため)。
+function appendCardStatusBadge(container, card) {
+  if (card.unedited) {
+    const badge = document.createElement("span");
+    badge.className = "unedited-badge";
+    badge.title = "画像だけ登録されていて、まだ情報が入力されていません";
+    badge.textContent = "未編集";
+    container.appendChild(badge);
+  } else if (card.infoUncertain) {
+    const warning = document.createElement("span");
+    warning.className = "uncertain-badge";
+    warning.title = "自動取得に問題がある可能性があります";
+    warning.textContent = "⚠";
+    container.appendChild(warning);
+  }
+}
+
 function cardCaption(card) {
   const parts = [];
   if (card.type && CARD_TYPE_LABELS[card.type]) parts.push(CARD_TYPE_LABELS[card.type]);
@@ -761,13 +780,7 @@ function createCardRow(card) {
   img.alt = displayName(card);
   img.draggable = false;
   thumb.appendChild(img);
-  if (card.infoUncertain) {
-    const warning = document.createElement("span");
-    warning.className = "uncertain-badge";
-    warning.title = "自動取得に問題がある可能性があります";
-    warning.textContent = "⚠";
-    thumb.appendChild(warning);
-  }
+  appendCardStatusBadge(thumb, card);
 
   if (thumbnailMode) {
     row.classList.add("selectable-row");
@@ -860,13 +873,7 @@ function createCardGridItem(card) {
     item.classList.add("is-thumbnail");
     item.title = "カードプールのサムネイル";
   }
-  if (card.infoUncertain) {
-    const warning = document.createElement("span");
-    warning.className = "uncertain-badge";
-    warning.title = "自動取得に問題がある可能性があります";
-    warning.textContent = "⚠";
-    frame.appendChild(warning);
-  }
+  appendCardStatusBadge(frame, card);
 
   if (!thumbnailMode && !selectMode) {
     const zoomBtn = document.createElement("button");
@@ -1148,7 +1155,15 @@ function refreshImageArea() {
   else showImagePlaceholder();
 }
 
-function openCropPopup(file) {
+// crop-popupは「1枚追加/編集」フローと「複数枚追加」フローの両方で共有する
+// (トリミングのUI自体は同じものを再利用し、OKを押した時にどちらの結果として
+// 扱うかをcropContextで振り分ける)。cropContext===null なら従来通りcroppedBlob
+// (1枚追加/編集モーダルのプレビュー用)、{type:"bulk", index} ならbulkAddItems
+// の該当インデックスのblobを差し替える。
+let cropContext = null;
+
+function openCropPopup(file, context) {
+  cropContext = context || null;
   cropPopupStage.innerHTML = "";
   cropPopup.hidden = false;
   cropTool = new CropTool(cropPopupStage);
@@ -1161,13 +1176,32 @@ function closeCropPopup() {
 }
 
 document.getElementById("crop-popup-ok").addEventListener("click", async () => {
-  croppedBlob = await cropTool.toBlob(OUTPUT_W, OUTPUT_H);
-  closeCropPopup();
-  refreshImageArea();
+  const blob = await cropTool.toBlob(OUTPUT_W, OUTPUT_H);
+  if (cropContext && cropContext.type === "bulk") {
+    const item = bulkAddItems[cropContext.index];
+    if (item) {
+      item.blob = blob;
+      item.cropped = true;
+    }
+    cropContext = null;
+    closeCropPopup();
+    renderBulkAddGrid();
+  } else {
+    croppedBlob = blob;
+    cropContext = null;
+    closeCropPopup();
+    refreshImageArea();
+  }
 });
 
-document.getElementById("crop-popup-cancel").addEventListener("click", closeCropPopup);
-document.getElementById("crop-popup-close").addEventListener("click", closeCropPopup);
+document.getElementById("crop-popup-cancel").addEventListener("click", () => {
+  cropContext = null;
+  closeCropPopup();
+});
+document.getElementById("crop-popup-close").addEventListener("click", () => {
+  cropContext = null;
+  closeCropPopup();
+});
 
 modalFileInput.addEventListener("change", () => {
   const file = modalFileInput.files[0];
@@ -1240,7 +1274,6 @@ function closeAddCardModal() {
   reviewSkip = null;
 }
 
-document.getElementById("open-add-card-btn").addEventListener("click", openAddCardModal);
 document.getElementById("close-modal-btn").addEventListener("click", closeAddCardModal);
 
 // Bind add-card-modal before crop-popup so crop-popup (opened on top of it) is
@@ -1253,6 +1286,141 @@ bindModalDismissal(cropPopup, {
   onCancel: closeCropPopup,
   onConfirm: () => document.getElementById("crop-popup-ok").click(),
 });
+
+// ---- Add-card entry point: choice between 1枚 / 複数枚 ----
+
+const addChoiceModal = document.getElementById("add-choice-modal");
+
+function openAddChoiceModal() {
+  addChoiceModal.hidden = false;
+}
+
+function closeAddChoiceModal() {
+  addChoiceModal.hidden = true;
+}
+
+document.getElementById("open-add-card-btn").addEventListener("click", openAddChoiceModal);
+document.getElementById("close-add-choice-modal-btn").addEventListener("click", closeAddChoiceModal);
+bindModalDismissal(addChoiceModal, { onCancel: closeAddChoiceModal });
+
+document.getElementById("add-choice-single-btn").addEventListener("click", () => {
+  closeAddChoiceModal();
+  openAddCardModal();
+});
+document.getElementById("add-choice-bulk-btn").addEventListener("click", () => {
+  closeAddChoiceModal();
+  openBulkAddModal();
+});
+
+// ---- Bulk add: stage several images, no per-card metadata up front ----
+//
+// 各画像は選んだ時点では一切加工されない(そのまま一覧に追加される)。個別に
+// トリミングしたい場合だけ、タイル右上のハサミアイコンから既存のcrop-popupを
+// 開く。「完了」を押すと、画像だけを持つカード(名前はCARD-XXXの自動採番のみ、
+// それ以外の情報は空)をまとめて登録する -- 個別の情報入力は登録後にカード
+// 一覧から編集してもらう想定なので、この画面には情報入力欄を一切置いていない。
+
+const bulkAddModal = document.getElementById("bulk-add-modal");
+const bulkAddGrid = document.getElementById("bulk-add-grid");
+const bulkAddStatus = document.getElementById("bulk-add-status");
+const bulkAddFileInput = document.getElementById("bulk-add-file-input");
+const bulkAddDoneBtn = document.getElementById("bulk-add-done-btn");
+
+let bulkAddItems = []; // [{ blob, cropped }]
+
+function openBulkAddModal() {
+  bulkAddItems = [];
+  bulkAddStatus.textContent = "";
+  bulkAddStatus.className = "status-message";
+  renderBulkAddGrid();
+  bulkAddModal.hidden = false;
+}
+
+function closeBulkAddModal() {
+  bulkAddModal.hidden = true;
+  bulkAddFileInput.value = "";
+}
+
+function renderBulkAddGrid() {
+  bulkAddGrid.innerHTML = "";
+  bulkAddItems.forEach((item, index) => {
+    const tile = document.createElement("div");
+    tile.className = "bulk-add-tile";
+
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(item.blob);
+    img.draggable = false;
+    tile.appendChild(img);
+
+    const cropBtn = document.createElement("button");
+    cropBtn.type = "button";
+    cropBtn.className = "grid-zoom-btn bulk-add-crop-btn";
+    cropBtn.title = "トリミング";
+    cropBtn.textContent = "✂";
+    cropBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openCropPopup(item.blob, { type: "bulk", index });
+    });
+    tile.appendChild(cropBtn);
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "bulk-add-remove-btn";
+    removeBtn.title = "この画像を取り消す";
+    removeBtn.textContent = "✕";
+    removeBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      bulkAddItems.splice(index, 1);
+      renderBulkAddGrid();
+    });
+    tile.appendChild(removeBtn);
+
+    bulkAddGrid.appendChild(tile);
+  });
+}
+
+document.getElementById("bulk-add-plus-btn").addEventListener("click", () => bulkAddFileInput.click());
+
+bulkAddFileInput.addEventListener("change", () => {
+  for (const file of bulkAddFileInput.files) {
+    bulkAddItems.push({ blob: file, cropped: false });
+  }
+  bulkAddFileInput.value = "";
+  renderBulkAddGrid();
+});
+
+bulkAddDoneBtn.addEventListener("click", async () => {
+  if (bulkAddItems.length === 0) {
+    closeBulkAddModal();
+    return;
+  }
+  bulkAddDoneBtn.disabled = true;
+  bulkAddStatus.textContent = `登録中... (0/${bulkAddItems.length})`;
+  bulkAddStatus.className = "status-message";
+  let nextNumber = computeNextCardNumber(latestCards);
+  try {
+    for (let i = 0; i < bulkAddItems.length; i++) {
+      await Api.addCard({
+        name: formatCardName(nextNumber),
+        poolId,
+        imageBlob: bulkAddItems[i].blob,
+        unedited: true,
+      });
+      nextNumber++;
+      bulkAddStatus.textContent = `登録中... (${i + 1}/${bulkAddItems.length})`;
+    }
+    closeBulkAddModal();
+    await renderCards();
+  } catch (err) {
+    bulkAddStatus.textContent = err.message;
+    bulkAddStatus.className = "status-message error";
+  } finally {
+    bulkAddDoneBtn.disabled = false;
+  }
+});
+
+document.getElementById("close-bulk-add-modal-btn").addEventListener("click", closeBulkAddModal);
+bindModalDismissal(bulkAddModal, { onCancel: closeBulkAddModal });
 
 // Shared by the normal save button and both review-mode nav buttons: PATCHes
 // the currently-editing card (plus an image replace, if one was cropped).
@@ -1415,29 +1583,16 @@ modalSaveBtn.addEventListener("click", async () => {
 // The actual panel (form/running/complete views) is a single shared,
 // site-wide component owned by card-info-jobs.js — it has to be, since a
 // running or unconfirmed job needs to stay visible in the corner across page
-// navigations, not just while this specific page is open. This page only
-// owns the trigger button (its green-checkmark "unseen completion" state,
-// specifically for THIS pool) and refreshing the card list once THIS pool's
-// job finishes, since only pool-detail.js has renderCards()/latestCards.
+// navigations, not just while this specific page is open. This page's own
+// trigger button was removed from the toolbar (requestAutoFillPanel() is
+// still fully wired up and callable -- just not from a button here right
+// now), but the card list still needs to refresh once THIS pool's job
+// finishes, since only pool-detail.js has renderCards()/latestCards.
 
-const autoFillBtn = document.getElementById("auto-fill-info-btn");
 let lastAutoFillJobId = null;
 let lastAutoFillJobStatus = null;
 
-function updateAutoFillButtonState() {
-  if (!poolId) return;
-  const job = getCardInfoJob(poolId);
-  const isUnseenCompletion = Boolean(
-    job && (job.status === "done" || job.status === "error") && !isJobConfirmed(job)
-  );
-  autoFillBtn.classList.toggle("auto-fill-done", isUnseenCompletion);
-  autoFillBtn.textContent = isUnseenCompletion
-    ? "カードの情報を自動取得する ✓"
-    : "カードの情報を自動取得する";
-}
-
 document.addEventListener("card-info-jobs-updated", () => {
-  updateAutoFillButtonState();
   const job = getCardInfoJob(poolId);
   if (!job) return;
 
@@ -1453,11 +1608,6 @@ document.addEventListener("card-info-jobs-updated", () => {
   if (statusChanged && (job.status === "done" || job.status === "error")) {
     renderCards(); // pick up newly-detected type/color/cost without a manual reload
   }
-});
-
-autoFillBtn.addEventListener("click", () => {
-  if (!poolId || !currentPool) return;
-  requestAutoFillPanel(poolId, currentPool.name);
 });
 
 async function init() {
