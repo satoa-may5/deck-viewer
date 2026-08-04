@@ -90,7 +90,7 @@ function prepareCardExit(sourceEl, direction) {
   return () => {
     ghost.style.position = "fixed";
     ghost.style.left = `${frameRect.left}px`;
-    ghost.style.top = `${frameRect.top}px`;
+    ghost.style.top = `${frameRect.top-3}px`;
     ghost.style.width = `${frameRect.width}px`;
     ghost.style.height = `${frameRect.height}px`;
     ghost.style.margin = "0";
@@ -124,7 +124,7 @@ function prepareCardEnter(sourceEl, direction) {
   if (badge) badge.remove();
   ghost.style.position = "fixed";
   ghost.style.left = `${frameRect.left}px`;
-  ghost.style.top = `${frameRect.top}px`;
+  ghost.style.top = `${frameRect.top-4}px`;
   ghost.style.width = `${frameRect.width}px`;
   ghost.style.height = `${frameRect.height}px`;
   ghost.style.margin = "0";
