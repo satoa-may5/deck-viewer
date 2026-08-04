@@ -1311,9 +1311,26 @@ exeビルド後に一度必ず実機(ダブルクリックではなくターミ�
   閉じ忘れている状態で再度ダブルクリックした場合など)。`server.js`の
   `app.listen()`が返す`http.Server`に`error`イベントリスナーを追加し、
   `EADDRINUSE`かつ`process.pkg`が真の場合は新しくサーバーを起動する代わりに
-  既存サーバーのURLをブラウザで開いて`process.exit(0)`するようにした
-  (実機で、同じポートに2つ目のexeを起動→エラー無く即終了・1つ目のサーバーは
-  無傷、を確認済み)。
+  既存サーバーのURLをブラウザで開いて`process.exit(0)`するようにした。
+  - **この修正自体に2段階のバグがあった**(両方とも実機/実プロセスでの検証で
+    発見・修正済み)。(1) `openBrowser()`→`process.exit(0)`を同期的に連続で
+    呼んでいたが、`child_process.exec()`は子プロセスの起動を待たずに即座に
+    returnする非同期処理(実測で子プロセスが実際に立ち上がるまで約60ms
+    かかる)なので、直後に`process.exit()`するとブラウザが実際に開く前に
+    イベントループごと強制終了してしまう可能性があった → `exec()`の
+    コールバックを待ってから`process.exit()`するように変更。(2) その修正で
+    `openBrowser(url, callback)`とし`exec(command, callback)`のように呼んだ
+    ところ、通常起動時(`callback`省略→`undefined`)に**pkgでビルドした
+    exeだけ**`TypeError: The "callback" argument must be of type function.
+    Received an instance of Object`でクラッシュした(素のNode.jsでは
+    `exec(command, undefined)`は問題なく通る。pkgの`child_process`
+    シム/bootstrap.js側の引数チェックがより厳格らしい)。`callback`が実際に
+    渡された時だけ`exec(command, callback)`、それ以外は`exec(command)`と
+    呼び分けることで解決。**pkgでビルドしたexeの动作は都度`node server.js`
+    ではなく実際にビルドしたexeで確認すること**(通常のnode実行では発生
+    しない類のバグが今回も再現した)。実機で、通常の単独起動・同じポートへの
+    二重起動の両方を確認し、二重起動時もクラッシュせず1つ目のサーバーが
+    無傷であることを確認済み。
 - **カードのタップ操作に「うっすら入ってくる」入場アニメーションを追加する際、
   対象要素は`renderPanes()`による再描画の"後"に探し直す必要がある**:
   `addToDeck()`/`removeFromDeck()`は呼び出し内で`renderPanes()`を実行して
