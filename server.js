@@ -113,6 +113,14 @@ const uploadZip = multer({
   limits: { fileSize: 500 * 1024 * 1024 },
 });
 
+// ホーム画面のクレジット表記(バージョン)がpackage.jsonとズレないよう、
+// バージョン文字列自体はここから配る(index.htmlに手書きで埋め込まない)。
+const APP_VERSION = require("./package.json").version;
+
+app.get("/api/version", (req, res) => {
+  res.json({ version: APP_VERSION });
+});
+
 // ---- Card pools ----
 
 function cardImageUrl(card) {

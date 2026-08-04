@@ -1,4 +1,9 @@
 const Api = {
+  async getVersion() {
+    const res = await fetch("/api/version");
+    return res.json();
+  },
+
   async getCards(poolId) {
     const qs = poolId ? `?poolId=${encodeURIComponent(poolId)}` : "";
     const res = await fetch(`/api/cards${qs}`);

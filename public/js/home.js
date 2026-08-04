@@ -244,7 +244,7 @@ async function renderDecks() {
     deckListEl.className = "";
     deckListEl.innerHTML = deckFavoritesOnly
       ? '<div class="empty-state">お気に入りのデッキがありません。</div>'
-      : '<div class="empty-state">まだデッキがありません。上の「＋ デッキを作る」から作成してください。</div>';
+      : '<div class="empty-state">まだデッキがありません。上の「＋ デッキを作る」から作成するか、<br>「デッキをインポート」からインポートしてください。</div>';
     return;
   }
   if (deckViewMode === "grid") {
@@ -504,7 +504,7 @@ async function renderPools() {
     poolListEl.className = "";
     poolListEl.innerHTML = poolFavoritesOnly
       ? '<div class="empty-state">お気に入りのカードプールがありません。</div>'
-      : '<div class="empty-state">まだカードプールがありません。上の「＋ カードプールを作る」から作成してください。</div>';
+      : '<div class="empty-state">まだカードプールがありません。上の「＋ カードプールを作る」から作成するか、<br>「カードプールをインポート」からインポートしてください。</div>';
     return;
   }
   if (poolViewMode === "grid") {
@@ -798,7 +798,7 @@ const importPoolYearBody = document.getElementById("import-pool-year-body");
 
 let latestGithubPools = [];
 let selectedImportYear = "";
-const IMPORT_LIST_VISIBLE_ROWS = 8;
+const IMPORT_LIST_VISIBLE_ROWS = 6.5;
 let importListRowHeightLocked = false;
 
 function closeImportModal() {
@@ -1062,3 +1062,11 @@ updateViewToggleUI(deckViewToggle, deckViewMode);
 setActiveTab(activeTab);
 renderDecks();
 renderPools();
+
+// ホーム画面右下のクレジット表記のバージョンは、package.jsonの内部バージョンと
+// ズレないようサーバーから取得して埋め込む(index.html側に手書きしない)。
+Api.getVersion()
+  .then(({ version }) => {
+    document.getElementById("app-credit-version").textContent = `ver ${version}`;
+  })
+  .catch(() => {});
