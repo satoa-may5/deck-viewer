@@ -1295,3 +1295,29 @@ exeビルド後に一度必ず実機(ダブルクリックではなくターミ�
   セッションでの`npm run dev`ベースの動作確認が古いビルドに対して行われてしまい、
   気づきにくい形で検証全体が無意味になる)。テストデータ(カードプール
   `__test_bulk_add__`、テスト用カード2枚)は確認後に削除済み。
+
+## 細かい修正: showConfirm誤用・exe二重起動・入場アニメーション(2026-08-05)
+
+- **`showConfirm()`は`checkboxLabel`を渡さない場合、素の真偽値(true/false)を
+  resolveする**(`{confirmed, checked}`ではない)。`builder.js`の「保存せずに
+  戻る」警告と`.dvdeck`インポート確認の2箇所が`result.confirmed`を見ていたため、
+  `checkboxLabel`未指定→`result`はただの`true`/`false`→`result.confirmed`は常に
+  `undefined`→「戻る」を押しても何も起きない、という分かりにくいバグになっていた
+  (`js/dialog.js`の`resolve(checkboxLabel ? {confirmed, checked} : result)`参照)。
+  `checkboxLabel`を渡さない`showConfirm()`呼び出しは戻り値を直接真偽値として
+  扱うこと。
+- **pkgでビルドしたexeを二重起動すると、後から起動した方はEADDRINUSEで
+  クラッシュしてブラウザも開かず一瞬でウィンドウが消える**(前回のウィンドウを
+  閉じ忘れている状態で再度ダブルクリックした場合など)。`server.js`の
+  `app.listen()`が返す`http.Server`に`error`イベントリスナーを追加し、
+  `EADDRINUSE`かつ`process.pkg`が真の場合は新しくサーバーを起動する代わりに
+  既存サーバーのURLをブラウザで開いて`process.exit(0)`するようにした
+  (実機で、同じポートに2つ目のexeを起動→エラー無く即終了・1つ目のサーバーは
+  無傷、を確認済み)。
+- **カードのタップ操作に「うっすら入ってくる」入場アニメーションを追加する際、
+  対象要素は`renderPanes()`による再描画の"後"に探し直す必要がある**:
+  `addToDeck()`/`removeFromDeck()`は呼び出し内で`renderPanes()`を実行して
+  グリッドの中身を丸ごと作り直すため、クリックされた古いDOM要素の参照は
+  再描画後には既に外れている。両関数に`afterRender`コールバック引数を追加し、
+  `findCardTile(container, cardId)`(`data-id`属性で再検索)で新しい要素を
+  取得してからアニメーションを仕込むようにした。
