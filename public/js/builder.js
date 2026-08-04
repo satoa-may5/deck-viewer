@@ -399,6 +399,10 @@ function openDeckStats() {
   renderDeckStats();
   updateMulliganUI();
   updateMulliganRates();
+  // "reset"モードは現在のmulliganBoardIds(前回開いた時に引いたままなら
+  // それ、まだ何も引いていなければ空)をアニメーションなしでそのまま
+  // 反映するだけ -- 空の場合は青い破線のプレースホルダーだけが表示される。
+  renderMulliganBoard("reset");
   deckStatsModal.hidden = false;
 }
 
@@ -515,10 +519,21 @@ function sortMulliganHand(cardIds, cardById) {
   });
 }
 
+const MULLIGAN_MAIN_SLOTS = 7;
+const MULLIGAN_EXTRA_SLOTS = MULLIGAN_SINGLE_DRAW_LIMIT;
+
+// cardIdがnull/undefinedの場合は「まだ引かれていない枠」を表す空のプレース
+// ホルダー(青い破線)を作る。1行目・2行目とも常に固定枚数ぶんの枠を描画する
+// ことで、「新しく7枚引く」を押す前から縦幅が確保され、押した瞬間にモーダルの
+// 高さが変わったりボタンの位置がズレたりしないようにする。
 function buildMulliganFrame(cardId, cardById) {
-  const card = cardById[cardId];
   const frame = document.createElement("div");
   frame.className = "mulligan-card-frame";
+  if (!cardId) {
+    frame.classList.add("is-empty");
+    return frame;
+  }
+  const card = cardById[cardId];
   if (isMulliganHighlightCard(card)) frame.classList.add("is-cheap");
   if (card && card.imageExt) {
     const img = document.createElement("img");
@@ -533,26 +548,34 @@ function buildMulliganFrame(cardId, cardById) {
 // 1行目(最大7枚、mulliganBoardEl)= 「新しく7枚引く」/「マリガン」で並ぶ手札、
 // 2行目(最大3枚、mulliganBoardExtraEl)=「1枚引く」で追加された分、と行を分けて
 // 表示する(カード自体を大きく見せるため、両方とも同じ列幅=同じカードサイズに
-// なるようCSS側で列数を揃えている)。
+// なるようCSS側で列数を揃えている)。空いている枠は常に青い破線のプレース
+// ホルダーとして描画されるので、行の数・高さ自体は常に一定。
 //
 // mode: "full" = 1行目を丸ごと新規表示(右からスライドイン)、2行目は空にする。
 // "single" = 2行目の末尾に1枚追加(その1枚だけスライドイン、他は変化なし)。
-// "reset" = 両方空にする(アニメーションなし)。
+// "reset" = 現在の状態(空なら空のまま)をアニメーションなしで反映する。
 function renderMulliganBoard(mode) {
   const cardById = Object.fromEntries(allCards.map((c) => [c.id, c]));
-  const mainIds = mulliganBoardIds.slice(0, 7);
-  const extraIds = mulliganBoardIds.slice(7);
+  const mainIds = mulliganBoardIds.slice(0, MULLIGAN_MAIN_SLOTS);
+  const extraIds = mulliganBoardIds.slice(MULLIGAN_MAIN_SLOTS);
+
+  function buildFrameWithCard(cardId) {
+    return buildMulliganFrame(cardId, cardById);
+  }
 
   if (mode === "single") {
     // 1行目は既存のまま、2行目だけ作り直す(末尾の1枚だけアニメーション対象)。
     mulliganBoardExtraEl.innerHTML = "";
-    for (const cardId of extraIds) mulliganBoardExtraEl.appendChild(buildMulliganFrame(cardId, cardById));
-    const extraFrames = mulliganBoardExtraEl.querySelectorAll(".mulligan-card-frame");
+    for (let i = 0; i < MULLIGAN_EXTRA_SLOTS; i++) {
+      mulliganBoardExtraEl.appendChild(buildFrameWithCard(extraIds[i] || null));
+    }
+    const dealtCount = extraIds.length;
+    const extraFrames = mulliganBoardExtraEl.querySelectorAll(".mulligan-card-frame:not(.is-empty)");
     extraFrames.forEach((frame, index) => {
-      if (index < extraFrames.length - 1) frame.classList.add("is-dealt");
+      if (index < dealtCount - 1) frame.classList.add("is-dealt");
     });
     setTimeout(() => {
-      const last = extraFrames[extraFrames.length - 1];
+      const last = extraFrames[dealtCount - 1];
       if (last) last.classList.add("is-dealt");
     }, 20);
     return;
@@ -560,11 +583,16 @@ function renderMulliganBoard(mode) {
 
   mulliganBoardEl.innerHTML = "";
   mulliganBoardExtraEl.innerHTML = "";
-  for (const cardId of mainIds) mulliganBoardEl.appendChild(buildMulliganFrame(cardId, cardById));
-  if (mode === "reset") return;
+  for (let i = 0; i < MULLIGAN_MAIN_SLOTS; i++) mulliganBoardEl.appendChild(buildFrameWithCard(mainIds[i] || null));
+  for (let i = 0; i < MULLIGAN_EXTRA_SLOTS; i++) mulliganBoardExtraEl.appendChild(buildFrameWithCard(extraIds[i] || null));
+  if (mode === "reset") {
+    // 現在の内容(リセット直後なら空)をそのまま静的に確定させるだけ。
+    mulliganBoardEl.querySelectorAll(".mulligan-card-frame:not(.is-empty)").forEach((f) => f.classList.add("is-dealt"));
+    return;
+  }
 
   // mode === "full": 1行目を右から一斉に(スタガーで)スライドイン。
-  const frames = mulliganBoardEl.querySelectorAll(".mulligan-card-frame");
+  const frames = mulliganBoardEl.querySelectorAll(".mulligan-card-frame:not(.is-empty)");
   // animateGrowと同じ理由でrAFではなくsetTimeoutを使う(先に0%相当の初期状態を
   // 確実に1フレーム描画させてからis-dealtへ遷移させないと、transitionが
   // 発火せず一瞬で完成形にスナップしてしまう)。

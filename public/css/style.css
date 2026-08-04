@@ -2462,8 +2462,13 @@ button {
 /* ---- Mulligan simulator (統計情報ポップアップの右カラム) ---- */
 
 .stats-modal-card {
-  max-width: 1180px;
-  width: 95vw;
+  max-width: 1400px;
+  width: 96vw;
+  /* カードのスライドインアニメーション中、transformで一瞬横にはみ出る分が
+     overflow-y:auto(下の共通.modal-cardルール)につられてoverflow-xまで
+     autoとして扱われ、下端に一瞬だけ横スクロールバーが出てしまっていた
+     -- ここでは横方向のスクロールは要らないので明示的に隠す。 */
+  overflow-x: hidden;
 }
 
 .stats-modal-columns {
@@ -2477,10 +2482,11 @@ button {
   min-width: 0;
 }
 
-/* マリガンシミュレーターのカードを大きく見せるため、必要エナジー/トリガー
-   分布(左)より広めに幅を割り当てる。 */
+/* 必要エナジー/トリガー分布(左)が狭すぎるという指摘を受けて拡張。
+   マリガンシミュレーター(右)のカードも大きく見せたいので、モーダル全体の
+   幅も合わせて広げてバランスを取っている。 */
 .stats-modal-col:first-child {
-  flex: 0 0 300px;
+  flex: 0 0 460px;
 }
 
 .stats-modal-col.mulligan-col {
@@ -2504,14 +2510,6 @@ button {
   gap: 8px;
 }
 
-/* 2行目のコンテナ自体を「7枚ぶんの横幅 : カード1枚ぶんの縦幅」のアスペクト比に
-   固定することで、幅ベースで高さが決まり(min-heightのようなパーセント指定
-   だと高さ基準の親要素サイズを参照してしまい破綻する)、実際に置かれている
-   カードが0〜3枚のどれでも1行ぶんの高さが常に確保される。 */
-.mulligan-board-extra {
-  aspect-ratio: 441 / 88;
-}
-
 .mulligan-card-frame {
   position: relative;
   width: 100%;
@@ -2528,6 +2526,18 @@ button {
 .mulligan-card-frame.is-dealt {
   opacity: 1;
   transform: none;
+}
+
+/* カードがまだ引かれていない枠(常に1行目7枚・2行目3枚ぶん描画される)。
+   このアスペクト比つきの枠自体が常にDOMに存在することで、「新しく7枚引く」
+   を押す前から縦幅が確保され、押した瞬間にモーダルの高さがガクッと
+   変わることがない。青い破線で「ここにカードが来る」ことも事前に示す。 */
+.mulligan-card-frame.is-empty {
+  opacity: 1;
+  transform: none;
+  background: transparent;
+  border: 2px dashed var(--accent);
+  box-shadow: none;
 }
 
 .mulligan-card-frame.is-cheap {
@@ -2567,6 +2577,12 @@ button {
   gap: 4px;
 }
 
+/* 2つの数値を横に並べて縦幅を詰める。 */
+.mulligan-rate-lines {
+  display: flex;
+  gap: 18px;
+}
+
 .mulligan-rate-title {
   display: flex;
   align-items: center;
@@ -2585,9 +2601,11 @@ button {
   color: var(--muted);
 }
 
+/* ?ボタンはこの節の中では一番下の方に位置しているため、下向きに開くと
+   モーダルの外/下端にはみ出しやすい -- ボタンの上に向かって開く。 */
 .mulligan-help-popup {
   position: absolute;
-  top: calc(100% + 6px);
+  bottom: calc(100% + 6px);
   left: 0;
   width: 300px;
   max-width: 80vw;
@@ -2606,6 +2624,7 @@ button {
 
 .mulligan-rate-line {
   font-size: 0.92rem;
+  white-space: nowrap;
 }
 
 .mulligan-rate-line strong {
