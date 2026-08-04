@@ -46,28 +46,29 @@ function attachCardClicks(el, { onAdd, onRemove }) {
   });
 }
 
-// .builder-grid .card-item:active/:hover .card-frame applies a scale/lift
-// transform (see style.css) while pressed/hovered, and getBoundingClientRect()
-// on a transformed element reports the visually-transformed box, not the
-// card's real (resting) position/size -- a ghost built straight from it can
-// come out smaller (scale(0.94) while pressed) and/or offset vertically
-// (translateY(-3px) on hover, which a freshly re-rendered element picks up
-// almost immediately since the cursor is still sitting on it). Trying to
-// correct for this by preserving the transformed rect's center only cancels
-// out a pure scale, not a translate, and was still leaving the ghost a few
-// px too low. Measuring with the transform forced off entirely is exact
-// regardless of which transform(s) are actually in play, and restoring it
-// immediately after (before this task ever yields to a repaint) means
-// nothing visibly flickers.
+// .builder-grid .card-item:active .card-frame scales down to 0.94 while
+// pressed, and .builder-grid .card-item:hover .card-frame lifts it with
+// translateY(-3px) -- getBoundingClientRect() on a transformed element
+// reports the visually-transformed box, not the card's resting size.
+// Forcing the transform off entirely (an earlier version of this function)
+// is wrong for the hover case specifically: translateY is where the card
+// is actually sitting on screen right now (still hovered, since the cursor
+// hasn't moved), so discarding it puts the ghost a few px below the real,
+// still-lifted card underneath it. What actually needs correcting is only
+// the *scale* -- and since scale()'s default transform-origin is the
+// element's own center, it doesn't move the center point at all. So: take
+// the (possibly translated) rect's center as-is, and pair it with the
+// untransformed size (offsetWidth/offsetHeight, which `transform` never
+// affects) -- this is a no-op for a pure translate (rect.width/height are
+// already untransformed, so the "corrected" box is identical to the
+// original) and exactly cancels a pure scale (same center, real size).
 function getRestFrameRect(frame) {
-  const prevTransform = frame.style.transform;
-  const prevTransition = frame.style.transition;
-  frame.style.transition = "none";
-  frame.style.transform = "none";
   const rect = frame.getBoundingClientRect();
-  frame.style.transform = prevTransform;
-  frame.style.transition = prevTransition;
-  return rect;
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const width = frame.offsetWidth;
+  const height = frame.offsetHeight;
+  return new DOMRect(cx - width / 2, cy - height / 2, width, height);
 }
 
 // Quick, non-blocking exit flourish: clones just the tapped card's thumbnail
