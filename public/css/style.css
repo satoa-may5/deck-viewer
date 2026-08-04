@@ -985,7 +985,7 @@ button {
 
 .grid-zoom-btn {
   position: absolute;
-  top: 4px;
+  bottom: 4px;
   right: 4px;
   z-index: 2;
   width: 24px;
@@ -1239,6 +1239,12 @@ button {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   transition: box-shadow 0.2s var(--ease), transform 0.2s var(--ease), border-color 0.2s ease;
+}
+
+/* カードプールをインポート画面の一覧は、行自体をクリックする操作が無い(右端の
+   「インポート」ボタンだけが操作対象)ため、行のホバー演出は不要。 */
+#import-pool-list .deck-row {
+  transition: none;
 }
 
 .deck-row:hover {
@@ -2456,7 +2462,8 @@ button {
 /* ---- Mulligan simulator (統計情報ポップアップの右カラム) ---- */
 
 .stats-modal-card {
-  max-width: 880px;
+  max-width: 1180px;
+  width: 95vw;
 }
 
 .stats-modal-columns {
@@ -2470,9 +2477,13 @@ button {
   min-width: 0;
 }
 
+/* 常に10列(7枚引き+1枚引く最大3回ぶん)を確保しておくことで、ドローの
+   たびに列数・行数が変わってカード自体のサイズや下のボタン位置がガタつく
+   のを防ぐ(実際のカードが7枚しかなくても、グリッド自体は10列ぶんの
+   横幅・行の高さを常に確保する)。 */
 .mulligan-board {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(10, 1fr);
   gap: 6px;
   min-height: 120px;
 }
@@ -2496,7 +2507,7 @@ button {
 }
 
 .mulligan-card-frame.is-cheap {
-  box-shadow: 0 0 0 2px rgba(91, 110, 245, 0.55);
+  box-shadow: 0 0 0 3px var(--accent), 0 0 8px 1px rgba(91, 110, 245, 0.7);
 }
 
 .mulligan-card-frame img {
@@ -2515,10 +2526,23 @@ button {
   gap: 10px;
 }
 
+/* リセットボタンはhidden属性(display:none)ではなくこのクラスで隠す --
+   幅を確保したままにすることで、出現/消失しても中央の「新しく7枚引く」/
+   「マリガン」ボタンの位置がズレないようにするため。 */
+.mulligan-btn-invisible {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .mulligan-rate-title {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.mulligan-help-wrap {
+  position: relative;
+  display: inline-flex;
 }
 
 .mulligan-help-btn {
@@ -2526,6 +2550,25 @@ button {
   height: 22px;
   font-size: 0.75rem;
   color: var(--muted);
+}
+
+.mulligan-help-popup {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 300px;
+  max-width: 80vw;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 12px 14px;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  font-weight: 400;
+  text-align: left;
+  color: var(--text);
+  z-index: 20;
 }
 
 .mulligan-rate-line {

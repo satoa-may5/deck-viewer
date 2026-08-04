@@ -410,6 +410,22 @@ deckStatsBtn.addEventListener("click", openDeckStats);
 document.getElementById("deck-stats-close-btn").addEventListener("click", closeDeckStats);
 bindModalDismissal(deckStatsModal, { onCancel: closeDeckStats });
 
+// ---- Mulligan help popup (ホバーではなくクリックで開閉) ----
+
+const mulliganHelpBtn = document.getElementById("mulligan-help-btn");
+const mulliganHelpPopup = document.getElementById("mulligan-help-popup");
+
+mulliganHelpBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  mulliganHelpPopup.hidden = !mulliganHelpPopup.hidden;
+});
+
+document.addEventListener("click", (e) => {
+  if (!mulliganHelpPopup.hidden && !e.target.closest(".mulligan-help-wrap")) {
+    mulliganHelpPopup.hidden = true;
+  }
+});
+
 // ---- Mulligan simulator ----
 
 const mulliganBoardEl = document.getElementById("mulligan-board");
@@ -421,8 +437,14 @@ const mulliganTama2RateEl = document.getElementById("mulligan-tama2-rate");
 
 const MULLIGAN_MIN_DECK_SIZE = 20;
 const MULLIGAN_SINGLE_DRAW_LIMIT = 3;
+// 盤面のグリッド(.mulligan-board、style.css側)は7枚引き+1枚引く最大3回ぶん
+// である10列を常に確保しており、ここではJS側で特に列数を意識する必要はない。
 
-let mulliganDeckPool = []; // 未使用の残りカード(cardIdを枚数分展開した配列。ドローの都度ここから取り除く)
+// マリガンシミュレーターは「今デッキから引いたら二度と山に戻らない」実際の
+// 対戦のドローとは違い、都度「山札全体(mulliganFullPool) - 今盤面にあるカード」
+// を対象に引き直す(以前の実装は引いた分を永久に除外していたため、マリガンを
+// 繰り返すたびに対象がどんどん減っていく不具合があった)。
+let mulliganFullPool = []; // 「新しく7枚引く」を押した時点のデッキ全体(cardIdを枚数分展開)
 let mulliganBoardIds = []; // 現在盤面に並んでいるカード(表示順)
 let mulliganSingleDrawsUsed = 0;
 let mulliganActive = false; // 「新しく7枚引く」を押した後、リセットするまでtrue
@@ -454,8 +476,42 @@ function buildFullDeckPool() {
   return pool;
 }
 
+// 山札全体から「現在盤面にあるカード」を多重集合として差し引いた、今引ける
+// 対象一覧を返す(それ以前に引いて盤面から入れ替わったカードは対象に戻る)。
+function mulliganAvailablePool() {
+  const counts = new Map();
+  for (const id of mulliganFullPool) counts.set(id, (counts.get(id) || 0) + 1);
+  for (const id of mulliganBoardIds) counts.set(id, (counts.get(id) || 0) - 1);
+  const avail = [];
+  for (const [id, c] of counts) {
+    for (let i = 0; i < c; i++) avail.push(id);
+  }
+  return avail;
+}
+
 function isMulliganHighlightCard(card) {
   return Boolean(card) && (card.cost === 0 || card.cost === 1 || isCostReducerCard(card));
+}
+
+// 「新しく7枚引く」/「マリガン」で表示する7枚は、表示前にキャラ→イベント→
+// フィールドの順、同種別内は必要エナジー昇順、同エナジーはカードプール内の
+// 並び順(card.order)でソートしてから盤面に出す。「1枚引く」で追加される分は
+// この対象外(引いた順にそのまま追加、ソートし直さない)。
+const MULLIGAN_TYPE_ORDER = { character: 0, event: 1, field: 2 };
+function sortMulliganHand(cardIds, cardById) {
+  return cardIds.slice().sort((idA, idB) => {
+    const a = cardById[idA];
+    const b = cardById[idB];
+    const typeA = a && a.type in MULLIGAN_TYPE_ORDER ? MULLIGAN_TYPE_ORDER[a.type] : 3;
+    const typeB = b && b.type in MULLIGAN_TYPE_ORDER ? MULLIGAN_TYPE_ORDER[b.type] : 3;
+    if (typeA !== typeB) return typeA - typeB;
+    const costA = a && a.cost !== null && a.cost !== undefined ? a.cost : Infinity;
+    const costB = b && b.cost !== null && b.cost !== undefined ? b.cost : Infinity;
+    if (costA !== costB) return costA - costB;
+    const orderA = a && a.order !== undefined ? a.order : 0;
+    const orderB = b && b.order !== undefined ? b.order : 0;
+    return orderA - orderB;
+  });
 }
 
 // newCount: 末尾に新規追加されたカードの枚数(未指定なら盤面全体が新規=右から
@@ -498,32 +554,40 @@ function updateMulliganUI() {
   mulliganDraw7Btn.textContent = mulliganActive ? "マリガン" : "新しく7枚引く";
   mulliganDraw7Btn.disabled = !enabled;
   mulliganDraw7Btn.title = enabled ? "" : `デッキが${MULLIGAN_MIN_DECK_SIZE}枚未満のため利用できません`;
-  mulliganResetBtn.hidden = !mulliganActive;
+  // hidden属性(display:none)ではなくvisibility:hiddenにして、リセットボタンの
+  // 出現/消失で「新しく7枚引く」/「マリガン」ボタンの位置がズレないようにする。
+  mulliganResetBtn.classList.toggle("mulligan-btn-invisible", !mulliganActive);
+  mulliganResetBtn.disabled = !mulliganActive;
   const drawsLeft = MULLIGAN_SINGLE_DRAW_LIMIT - mulliganSingleDrawsUsed;
   mulliganDraw1Btn.textContent = `1枚引く (${drawsLeft}/${MULLIGAN_SINGLE_DRAW_LIMIT})`;
-  mulliganDraw1Btn.disabled = !enabled || !mulliganActive || drawsLeft <= 0 || mulliganDeckPool.length === 0;
+  mulliganDraw1Btn.disabled = !enabled || !mulliganActive || drawsLeft <= 0 || mulliganAvailablePool().length === 0;
 }
 
 mulliganDraw7Btn.addEventListener("click", () => {
   if (!mulliganEnabled()) return;
+  const cardById = Object.fromEntries(allCards.map((c) => [c.id, c]));
   if (mulliganActive) {
-    // マリガン: 今盤面にあるカードは戻さず、残りの山札から新たに7枚(足りなければ
-    // 残り全部)引いて盤面を丸ごと入れ替える。
-    const drawCount = Math.min(7, mulliganDeckPool.length);
-    mulliganBoardIds = mulliganDeckPool.splice(0, drawCount);
+    // マリガン: 「今盤面にあるカード以外」から新たに7枚(足りなければ残り全部)
+    // 引いて盤面を丸ごと入れ替える。以前の盤面や「1枚引く」で既に入れ替わって
+    // 消えたカードは、再び対象に戻る。
+    const avail = shuffled(mulliganAvailablePool());
+    mulliganBoardIds = avail.slice(0, Math.min(7, avail.length));
   } else {
-    mulliganDeckPool = shuffled(buildFullDeckPool());
-    mulliganBoardIds = mulliganDeckPool.splice(0, Math.min(7, mulliganDeckPool.length));
+    mulliganFullPool = buildFullDeckPool();
+    const avail = shuffled(mulliganFullPool);
+    mulliganBoardIds = avail.slice(0, Math.min(7, avail.length));
     mulliganActive = true;
   }
+  mulliganBoardIds = sortMulliganHand(mulliganBoardIds, cardById);
   mulliganSingleDrawsUsed = 0;
   updateMulliganUI();
   renderMulliganBoard(mulliganBoardIds.length);
 });
 
 mulliganDraw1Btn.addEventListener("click", () => {
-  if (mulliganDeckPool.length === 0) return;
-  const cardId = mulliganDeckPool.shift();
+  const avail = mulliganAvailablePool();
+  if (avail.length === 0) return;
+  const cardId = avail[Math.floor(Math.random() * avail.length)];
   mulliganBoardIds.push(cardId);
   mulliganSingleDrawsUsed++;
   updateMulliganUI();
@@ -533,35 +597,54 @@ mulliganDraw1Btn.addEventListener("click", () => {
 mulliganResetBtn.addEventListener("click", () => {
   mulliganActive = false;
   mulliganBoardIds = [];
-  mulliganDeckPool = [];
+  mulliganFullPool = [];
   mulliganSingleDrawsUsed = 0;
   updateMulliganUI();
   renderMulliganBoard(0);
 });
 
-// ---- Mulligan success rate (完全枚挙による厳密計算、シミュレーションではない) ----
+// ---- Mulligan success rate (モンテカルロシミュレーション) ----
 //
-// 山札を「マリガン成功/成功+2玉判定に関係するカテゴリ」ごとに分割し(互いに
-// 重複しない7分類)、7枚を引く組み合わせを多変量超幾何分布で数え上げる。7枚を
-// 7カテゴリに分配するパターン数は高々1716通り(13C6)なので、シミュレーション
-// せずとも全列挙で厳密な確率が出せる。
+// ルール:「7枚引いて確認する。条件を満たさなければ、その7枚以外の残りデッキ
+// からさらに7枚引いて確認する。この2回のうち1回でも条件を満たせばOK」。
+// 2回目の手札は1回目とは独立ではない(1回目の7枚を除いた残りから引く)ため、
+// 厳密な閉じた式ではなく14枚を一度に山から引いて前半/後半に分ける同時分布の
+// 列挙が必要になり、以前の単一手札(7枚)の完全枚挙よりずっと組み合わせ数が
+// 増えて重くなる。カード種類ごとの分類(カテゴリ)で見れば7分類×2手札=最大でも
+// 数万パターン程度で全列挙も不可能ではないが、実装・検証のコストに対して
+// モンテカルロで十分な精度(数万回試行で誤差0.数%程度)が出せるため、
+// シミュレーションに切り替えている。
 
-function nChooseK(n, k) {
-  if (k < 0 || k > n) return 0;
-  k = Math.min(k, n - k);
-  let result = 1;
-  for (let i = 0; i < k; i++) {
-    result = (result * (n - i)) / (i + 1);
-  }
-  return result;
+function evaluateMulliganHand(counts) {
+  const { r, z, o, t2e, t2x, t3e } = counts;
+  const base = z >= 2 || (z >= 1 && r >= 1) || (z >= 1 && o >= 1) || (r >= 1 && o >= 1);
+  if (!base) return { success: false, tama2: false };
+  const cond1 = r + t2e + t2x >= 1 && t3e >= 1;
+  const cond2 = t2e >= 1;
+  return { success: true, tama2: cond1 || cond2 };
 }
+
+// 山から指定枚数を重複なく無作為抽出する(全体をシャッフルするより、必要な
+// 枚数分だけpartial Fisher-Yatesする方が速い)。
+function drawWithoutReplacement(arr, n) {
+  const a = arr.slice();
+  const len = a.length;
+  const count = Math.min(n, len);
+  for (let i = 0; i < count; i++) {
+    const j = i + Math.floor(Math.random() * (len - i));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a.slice(0, count);
+}
+
+const MULLIGAN_TRIALS = 20000;
 
 function updateMulliganRates() {
   const cardById = Object.fromEntries(allCards.map((c) => [c.id, c]));
   // カテゴリ: r=軽減2エナ, z=必要エナジー0, o=必要エナジー1,
   // t2e=必要エナジー2かつ発生エナジー1+(軽減2エナは除く), t2x=必要エナジー2の残り,
   // t3e=必要エナジー3かつ発生エナジー1+または2, other=それ以外。
-  const groups = { r: 0, z: 0, o: 0, t2e: 0, t2x: 0, t3e: 0, other: 0 };
+  const pool = [];
   let total = 0;
   for (const [cardId, count] of deckCounts) {
     const card = cardById[cardId];
@@ -575,7 +658,7 @@ function updateMulliganRates() {
     else if (card.cost === 2) key = "t2x";
     else if (card.cost === 3 && (card.generatedEnergy === "1+" || card.generatedEnergy === "2")) key = "t3e";
     else key = "other";
-    groups[key] += count;
+    for (let i = 0; i < count; i++) pool.push(key);
   }
 
   if (total < 7) {
@@ -584,42 +667,32 @@ function updateMulliganRates() {
     return;
   }
 
-  const keys = ["r", "z", "o", "t2e", "t2x", "t3e", "other"];
-  const sizes = keys.map((k) => groups[k]);
-  const totalWays = nChooseK(total, 7);
-  let successWays = 0;
-  let tama2Ways = 0;
-
-  function finish(counts) {
-    let ways = 1;
-    for (let i = 0; i < counts.length; i++) {
-      ways *= nChooseK(sizes[i], counts[i]);
-      if (ways === 0) return;
+  // 成功率・成功+2玉率はそれぞれ独立に「1回目の7枚 or 2回目の7枚のどちらかが
+  // 条件を満たせばOK」で判定する(2回目の方だけ条件を満たすケースを取りこぼさ
+  // ないよう、1回目が成功していても常に2回目も評価してORを取る)。
+  const canDrawSecondHand = total >= 14;
+  let successCount = 0;
+  let tama2Count = 0;
+  for (let t = 0; t < MULLIGAN_TRIALS; t++) {
+    const drawn = drawWithoutReplacement(pool, canDrawSecondHand ? 14 : 7);
+    const hand1Counts = { r: 0, z: 0, o: 0, t2e: 0, t2x: 0, t3e: 0, other: 0 };
+    for (let i = 0; i < 7; i++) hand1Counts[drawn[i]]++;
+    const result1 = evaluateMulliganHand(hand1Counts);
+    let success = result1.success;
+    let tama2 = result1.tama2;
+    if (canDrawSecondHand) {
+      const hand2Counts = { r: 0, z: 0, o: 0, t2e: 0, t2x: 0, t3e: 0, other: 0 };
+      for (let i = 7; i < 14; i++) hand2Counts[drawn[i]]++;
+      const result2 = evaluateMulliganHand(hand2Counts);
+      success = success || result2.success;
+      tama2 = tama2 || result2.tama2;
     }
-    const [r, z, o, t2e, t2x, t3e] = counts;
-    const base = z >= 2 || (z >= 1 && r >= 1) || (z >= 1 && o >= 1) || (r >= 1 && o >= 1);
-    if (!base) return;
-    successWays += ways;
-    const cond1 = r + t2e + t2x >= 1 && t3e >= 1;
-    const cond2 = t2e >= 1;
-    if (cond1 || cond2) tama2Ways += ways;
+    if (success) successCount++;
+    if (tama2) tama2Count++;
   }
 
-  function recurse(idx, remaining, counts) {
-    if (idx === keys.length - 1) {
-      if (remaining > sizes[idx]) return;
-      finish(counts.concat(remaining));
-      return;
-    }
-    const maxC = Math.min(sizes[idx], remaining);
-    for (let c = 0; c <= maxC; c++) {
-      recurse(idx + 1, remaining - c, counts.concat(c));
-    }
-  }
-  recurse(0, 7, []);
-
-  const successRate = totalWays > 0 ? (successWays / totalWays) * 100 : 0;
-  const tama2Rate = totalWays > 0 ? (tama2Ways / totalWays) * 100 : 0;
+  const successRate = (successCount / MULLIGAN_TRIALS) * 100;
+  const tama2Rate = (tama2Count / MULLIGAN_TRIALS) * 100;
   mulliganSuccessRateEl.textContent = `${successRate.toFixed(2)}%`;
   mulliganTama2RateEl.textContent = `${tama2Rate.toFixed(2)}%`;
 }
@@ -1258,6 +1331,26 @@ function renderPoolPicker() {
   }
 }
 
+// 拡大表示(⤢)ボタンをカードのフレームに追加する(デッキ側・カードプール側の
+// 両方の一覧で共有)。attachTap()はel自身が受けるpointerdown/pointerupの座標差分
+// でタップ判定しているため、click単体のstopPropagationだけでは間に合わない
+// (pointerup自体が先にelまでバブリングしてタップ扱いされてしまう) --
+// ポインター段階で止める。
+function addZoomButton(frame, card) {
+  const zoomBtn = document.createElement("button");
+  zoomBtn.type = "button";
+  zoomBtn.className = "grid-zoom-btn";
+  zoomBtn.title = "拡大表示";
+  zoomBtn.textContent = "⤢";
+  zoomBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
+  zoomBtn.addEventListener("pointerup", (e) => e.stopPropagation());
+  zoomBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openCardZoom(card);
+  });
+  frame.appendChild(zoomBtn);
+}
+
 function renderPanes() {
   const cardById = Object.fromEntries(allCards.map((c) => [c.id, c]));
 
@@ -1267,7 +1360,8 @@ function renderPanes() {
 
   deckGrid.innerHTML = "";
   for (const [cardId, count] of deckCounts) {
-    const el = createCardElement(cardById[cardId] || null, cardId, count, {
+    const card = cardById[cardId] || null;
+    const el = createCardElement(card, cardId, count, {
       isThumbnail: deckThumbnailCardId === cardId,
     });
     if (deckThumbnailMode) {
@@ -1278,6 +1372,10 @@ function renderPanes() {
         removeFromDeck(cardId);
         if (spawnGhost) spawnGhost();
       });
+    }
+    if (card) {
+      const frame = el.querySelector(".card-frame");
+      if (frame) addZoomButton(frame, card);
     }
     deckGrid.appendChild(el);
   }
@@ -1307,24 +1405,7 @@ function renderPanes() {
         if (spawnGhost) spawnGhost();
       });
       const frame = el.querySelector(".card-frame");
-      if (frame) {
-        const zoomBtn = document.createElement("button");
-        zoomBtn.type = "button";
-        zoomBtn.className = "grid-zoom-btn";
-        zoomBtn.title = "拡大表示";
-        zoomBtn.textContent = "⤢";
-        // attachTap判定はel自身が受けるpointerdown/pointerupの座標差分で行っている
-        // ため、click単体のstopPropagationだけでは間に合わない(pointerup自体が
-        // 先にelまでバブリングしてタップ扱いされてしまう) -- ポインター段階で
-        // 止める。
-        zoomBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
-        zoomBtn.addEventListener("pointerup", (e) => e.stopPropagation());
-        zoomBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          openCardZoom(card);
-        });
-        frame.appendChild(zoomBtn);
-      }
+      if (frame) addZoomButton(frame, card);
       collectionGrid.appendChild(el);
     }
   }
@@ -1397,6 +1478,11 @@ async function init() {
   deckHistory = [snapshotDeck()];
   historyIndex = 0;
   updateUndoRedoButtons();
+
+  // Baseline for the "保存せずに戻る" warning -- compared against on click so
+  // the warning is skipped only when nothing has actually changed since the
+  // last save (or since opening the page, for a not-yet-saved deck).
+  savedSnapshotJSON = currentDeckSnapshotJSON();
 }
 
 async function saveDeck() {
@@ -1414,6 +1500,7 @@ async function saveDeck() {
     history.replaceState(null, "", `builder.html?id=${encodeURIComponent(deckId)}`);
     saveStatus.textContent = "保存しました";
     saveStatus.className = "status-message success";
+    savedSnapshotJSON = currentDeckSnapshotJSON();
     return true;
   } catch (err) {
     saveStatus.textContent = err.message;
@@ -1422,23 +1509,31 @@ async function saveDeck() {
   }
 }
 
-const SKIP_DISCARD_WARNING_KEY = "deck-viewer-skip-discard-warning";
+// "保存せずに戻る" の警告は、前回保存時点(または新規デッキならページを開いた
+// 時点)から実際に何か変わっている場合は常に表示する(以前あった「次回以降
+// 表示しない」の恒久スキップは廃止)。差分が無い場合のみ警告なしで戻る。
+let savedSnapshotJSON = "";
+
+function currentDeckSnapshotJSON() {
+  return JSON.stringify({
+    name: nameInput.value.trim(),
+    cards: [...deckCounts.entries()],
+    poolIds: [...selectedPoolIds].sort(),
+    thumbnailCardId: deckThumbnailCardId,
+  });
+}
 
 document.getElementById("save-back-btn").addEventListener("click", async () => {
   if (await saveDeck()) location.href = "index.html";
 });
 
 document.getElementById("discard-back-btn").addEventListener("click", async () => {
-  if (localStorage.getItem(SKIP_DISCARD_WARNING_KEY) === "true") {
+  if (currentDeckSnapshotJSON() === savedSnapshotJSON) {
     location.href = "index.html";
     return;
   }
-  const result = await showConfirm("作業内容が失われますが大丈夫ですか?", {
-    confirmText: "戻る",
-    checkboxLabel: "次回以降表示しない",
-  });
+  const result = await showConfirm("作業内容が失われますが大丈夫ですか?", { confirmText: "戻る" });
   if (!result.confirmed) return;
-  if (result.checked) localStorage.setItem(SKIP_DISCARD_WARNING_KEY, "true");
   location.href = "index.html";
 });
 

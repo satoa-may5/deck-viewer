@@ -1311,4 +1311,13 @@ app.listen(PORT, "0.0.0.0", () => {
   // forget: a failure here (offline, GitHub down) just means the first real
   // request pays the normal cost, same as before this existed.
   listGithubPools().catch(() => {});
+  // Keeps refreshing in the background for as long as the server runs (not
+  // just once at startup), so the cache stays warm even if nobody opens the
+  // import modal for a while and a new .dvpool gets pushed to the repo in
+  // the meantime. listGithubPools() itself is cheap on repeat calls (only
+  // re-downloads a .dvpool's manifest when its GitHub blob sha changed), so
+  // this doesn't add meaningful load.
+  setInterval(() => {
+    listGithubPools().catch(() => {});
+  }, 5 * 60 * 1000);
 });

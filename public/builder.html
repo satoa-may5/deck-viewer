@@ -185,13 +185,20 @@
           <p class="pane-title">マリガンシュミレーター</p>
           <div class="mulligan-board" id="mulligan-board"></div>
           <div class="mulligan-controls">
-            <button type="button" class="btn" id="mulligan-reset-btn" hidden>リセット</button>
+            <button type="button" class="btn" id="mulligan-reset-btn">リセット</button>
             <button type="button" class="btn primary" id="mulligan-draw7-btn">新しく7枚引く</button>
             <button type="button" class="btn" id="mulligan-draw1-btn">1枚引く (3/3)</button>
           </div>
           <p class="pane-title mulligan-rate-title">
             <span>マリガン成功率</span>
-            <button type="button" class="icon-btn mulligan-help-btn" id="mulligan-help-btn" title="マリガン成功率: 7枚の手札に「0エナ2枚以上」「0エナ1枚+軽減2エナ1枚以上」「0エナ1枚+1エナ1枚以上」「軽減2エナ1枚+1エナ1枚以上」のいずれかが含まれる確率。マリガン成功+2玉率: 成功率の条件に加え、「2エナジー(軽減2エナ含む)が追加で1枚以上+必要エナジー3で発生エナジー1+/2のカードが1枚以上」または「必要エナジー2で発生エナジー1+のカードが1枚以上」のいずれかも満たす確率。">?</button>
+            <span class="mulligan-help-wrap">
+              <button type="button" class="icon-btn mulligan-help-btn" id="mulligan-help-btn">?</button>
+              <div class="mulligan-help-popup" id="mulligan-help-popup" hidden>
+                7枚を引いて確認し、条件を満たさなければその7枚以外の残りデッキから新たに7枚引いて確認します(2回のドローのうち少なくとも1回条件を満たせばOK)。<br /><br />
+                <strong>マリガン成功率:</strong> 手札7枚に「0エナ2枚以上」「0エナ1枚+軽減2エナ1枚以上」「0エナ1枚+1エナ1枚以上」「軽減2エナ1枚+1エナ1枚以上」のいずれかが含まれること。<br /><br />
+                <strong>マリガン成功+2玉率:</strong> 上記の成功条件に加え、同じ手札で「2エナジー(軽減2エナ含む)が追加で1枚以上+必要エナジー3で発生エナジー1+/2のカードが1枚以上」または「必要エナジー2で発生エナジー1+のカードが1枚以上」のいずれかも満たすこと。
+              </div>
+            </span>
           </p>
           <div class="mulligan-rate-line">マリガン成功率 <strong id="mulligan-success-rate">--%</strong></div>
           <div class="mulligan-rate-line">マリガン成功+2玉率 <strong id="mulligan-tama2-rate">--%</strong></div>
