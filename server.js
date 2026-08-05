@@ -121,6 +121,31 @@ app.get("/api/version", (req, res) => {
   res.json({ version: APP_VERSION });
 });
 
+// ホーム画面に「新しいバージョンがあります」の案内を出すための、簡易的な
+// 更新チェック(自動ダウンロード・自動差し替えまではしない)。GitHubの
+// latest release APIを叩くだけなので軽いが、それでも毎回のホーム画面表示で
+// 叩くのは無駄なので短いTTLでキャッシュする。
+let latestReleaseCache = null; // { fetchedAt, data: { tagName, url } | null }
+const LATEST_RELEASE_CACHE_TTL = 60 * 60 * 1000; // 1時間
+
+app.get("/api/latest-release", async (req, res) => {
+  if (latestReleaseCache && Date.now() - latestReleaseCache.fetchedAt < LATEST_RELEASE_CACHE_TTL) {
+    return res.json(latestReleaseCache.data);
+  }
+  try {
+    const releaseRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
+      headers: { "User-Agent": "deck-viewer", Accept: "application/vnd.github+json" },
+    });
+    if (!releaseRes.ok) throw new Error(`release fetch failed: ${releaseRes.status}`);
+    const json = await releaseRes.json();
+    const data = { tagName: json.tag_name || null, url: json.html_url || null };
+    latestReleaseCache = { fetchedAt: Date.now(), data };
+    res.json(data);
+  } catch (err) {
+    res.status(502).json({ error: "GitHubからの取得に失敗しました" });
+  }
+});
+
 // ---- Card pools ----
 
 function cardImageUrl(card) {

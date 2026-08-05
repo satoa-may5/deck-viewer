@@ -153,6 +153,26 @@ button {
   gap: 10px;
 }
 
+/* 新しいバージョンがある場合だけ表示するホーム画面の案内(index.html)。
+   自動ダウンロード/差し替えはせず、Releaseページへのリンクを出すだけの
+   簡易版。 */
+.update-banner {
+  display: block;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--accent-tint);
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
+
+.update-banner:hover {
+  filter: brightness(1.08);
+}
+
 .deck-meta {
   display: inline-flex;
   margin-top: 4px;

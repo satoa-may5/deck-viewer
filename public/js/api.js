@@ -4,6 +4,12 @@ const Api = {
     return res.json();
   },
 
+  async getLatestRelease() {
+    const res = await fetch("/api/latest-release");
+    if (!res.ok) throw new Error("最新バージョンの確認に失敗しました");
+    return res.json();
+  },
+
   async getCards(poolId) {
     const qs = poolId ? `?poolId=${encodeURIComponent(poolId)}` : "";
     const res = await fetch(`/api/cards${qs}`);

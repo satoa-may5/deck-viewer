@@ -1068,5 +1068,39 @@ renderPools();
 Api.getVersion()
   .then(({ version }) => {
     document.getElementById("app-credit-version").textContent = `ver ${version}`;
+    checkForUpdate(version);
   })
   .catch(() => {});
+
+// 「新しいバージョンがあります」の簡易案内(自動ダウンロード/自動差し替えは
+// しない、GitHubのReleaseページへのリンクを出すだけ)。x.y.zの数値比較のみで
+// 十分なので、フルのsemver対応(プレリリース等)はしていない。
+function parseVersionParts(v) {
+  return (v || "")
+    .replace(/^v/, "")
+    .split(".")
+    .map((n) => parseInt(n, 10) || 0);
+}
+
+function isNewerVersion(candidate, current) {
+  const a = parseVersionParts(candidate);
+  const b = parseVersionParts(current);
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const x = a[i] || 0;
+    const y = b[i] || 0;
+    if (x !== y) return x > y;
+  }
+  return false;
+}
+
+function checkForUpdate(currentVersion) {
+  Api.getLatestRelease()
+    .then(({ tagName, url }) => {
+      if (!tagName || !url || !isNewerVersion(tagName, currentVersion)) return;
+      document.getElementById("update-banner-version").textContent = tagName;
+      const banner = document.getElementById("update-banner");
+      banner.href = url;
+      banner.hidden = false;
+    })
+    .catch(() => {}); // オフライン/GitHub側の問題は無視してよい(単なる案内機能のため)
+}
