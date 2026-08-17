@@ -755,7 +755,10 @@ function evaluateMulliganHand(counts) {
   const [r, z, o, t2e, t2x, t3e] = counts;
   const base = z >= 2 || (z >= 1 && r >= 1) || (z >= 1 && o >= 1) || (r >= 1 && o >= 1);
   if (!base) return { success: false, tama2: false };
-  const cond1 = r + t2e + t2x >= 1 && t3e >= 1;
+  // 「2エナジー以下のカードが1枚以上」= 必要エナジー0・1・2(軽減2エナ含む)の
+  // いずれか1枚でも該当すればOK(2エナのカードが1枚も無いデッキでも、0/1エナが
+  // 十分あれば成立しうる)。
+  const cond1 = z + o + r + t2e + t2x >= 1 && t3e >= 1;
   const cond2 = t2e >= 1;
   return { success: true, tama2: cond1 || cond2 };
 }
