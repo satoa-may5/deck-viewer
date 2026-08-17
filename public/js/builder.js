@@ -462,6 +462,12 @@ function renderDeckStats() {
 function openDeckStats() {
   closeDeckMenu();
   renderDeckStats();
+  // 前回シミュレーションを始めた時点からデッキの中身が変わっていたら、
+  // 古い山札のまま引き続けないように破棄する(変わっていなければ、閉じて
+  // 開き直しただけで手札が消えるのは煩わしいのでそのまま残す)。
+  if (mulliganActive && deckCompositionSignature() !== mulliganDeckSignature) {
+    resetMulligan();
+  }
   updateMulliganUI();
   updateMulliganRates();
   // "reset"モードは現在のmulliganBoardIds(前回開いた時に引いたままなら
@@ -518,6 +524,7 @@ let mulliganFullPool = []; // 「新しく7枚引く」を押した時点のデ�
 let mulliganBoardIds = []; // 現在盤面に並んでいるカード(表示順)
 let mulliganSingleDrawsUsed = 0;
 let mulliganActive = false; // 「新しく7枚引く」を押した後、リセットするまでtrue
+let mulliganDeckSignature = ""; // シミュレーション開始時のデッキ構成(deckCompositionSignature)
 
 function totalDeckCount() {
   let total = 0;
@@ -544,6 +551,28 @@ function buildFullDeckPool() {
     for (let i = 0; i < count; i++) pool.push(cardId);
   }
   return pool;
+}
+
+// mulliganFullPoolは「新しく7枚引く」を押した瞬間のデッキ内容を固定して持つ。
+// 統計画面を閉じてデッキを編集し、また開いたときにその古い山札のまま引き続けて
+// しまわないよう、シミュレーション開始時点の構成を控えておいて再オープン時に
+// 突き合わせる。カードIDでソートしてから並べるので、デッキの並び替えだけでは
+// 変わらない(=並び替えでシミュレーションが無駄にリセットされない)。
+function deckCompositionSignature() {
+  return [...deckCounts.entries()]
+    .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+    .map(([cardId, count]) => `${cardId}:${count}`)
+    .join(",");
+}
+
+function resetMulligan() {
+  mulliganActive = false;
+  mulliganBoardIds = [];
+  mulliganFullPool = [];
+  mulliganSingleDrawsUsed = 0;
+  mulliganDeckSignature = "";
+  updateMulliganUI();
+  renderMulliganBoard("reset");
 }
 
 // 山札全体から「現在盤面にあるカード」を多重集合として差し引いた、今引ける
@@ -700,6 +729,7 @@ mulliganDraw7Btn.addEventListener("click", () => {
     mulliganBoardIds = avail.slice(0, Math.min(7, avail.length));
   } else {
     mulliganFullPool = buildFullDeckPool();
+    mulliganDeckSignature = deckCompositionSignature();
     const avail = shuffled(mulliganFullPool);
     mulliganBoardIds = avail.slice(0, Math.min(7, avail.length));
     mulliganActive = true;
@@ -720,14 +750,7 @@ mulliganDraw1Btn.addEventListener("click", () => {
   renderMulliganBoard("single");
 });
 
-mulliganResetBtn.addEventListener("click", () => {
-  mulliganActive = false;
-  mulliganBoardIds = [];
-  mulliganFullPool = [];
-  mulliganSingleDrawsUsed = 0;
-  updateMulliganUI();
-  renderMulliganBoard("reset");
-});
+mulliganResetBtn.addEventListener("click", resetMulligan);
 
 // ---- Mulligan success rate (完全枚挙による厳密計算) ----
 //
@@ -1404,7 +1427,11 @@ filterClearBtn.addEventListener("click", () => {
   filterState.bpMin = BP_RANGE_MIN;
   filterState.bpMax = filterState.bpRangeMax;
   filterState.excludeParallel = false;
-  filterState.excludeAllColor = false;
+  // 「プロモファイナルを除外」だけは初期値がON(他の絞り込みと違う)。リセットは
+  // 「ページを開いた直後の状態に戻す」という意味なので、ここもfalseではなく
+  // 初期値のtrueに戻す(falseにすると、リセットしたのに初期状態より表示が
+  // 増えるという直感に反する挙動になる)。
+  filterState.excludeAllColor = true;
   filterState.searchQuery = "";
   filterSearchInput.value = "";
   updateFilterUI();

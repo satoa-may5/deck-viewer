@@ -57,17 +57,31 @@ function writePools(pools) {
   fs.writeFileSync(POOLS_FILE, JSON.stringify(pools, null, 2) + "\n");
 }
 
+// Deck ids arrive straight from the URL (/api/decks/:id) and get turned into a
+// filename, so they have to be validated before touching the filesystem.
+// Express percent-decodes route params, so a request for
+// "/api/decks/..%2F..%2Fpackage" hands us the string "../../package", which
+// path.join() would happily resolve outside DECKS_DIR -- that was readable via
+// GET and, worse, deletable via DELETE. ID_PATTERN allows no path separator
+// (and no ":" for Windows drive/stream syntax), so a name that passes it can
+// only ever name a file directly inside DECKS_DIR.
+function deckFile(id) {
+  if (typeof id !== "string" || !ID_PATTERN.test(id)) return null;
+  return path.join(DECKS_DIR, `${id}.json`);
+}
+
 function readDeck(id) {
-  const file = path.join(DECKS_DIR, `${id}.json`);
-  if (!fs.existsSync(file)) return null;
+  const file = deckFile(id);
+  if (!file || !fs.existsSync(file)) return null;
   return JSON.parse(fs.readFileSync(file, "utf8"));
 }
 
 function writeDeck(deck) {
-  fs.writeFileSync(
-    path.join(DECKS_DIR, `${deck.id}.json`),
-    JSON.stringify(deck, null, 2) + "\n"
-  );
+  const file = deckFile(deck.id);
+  // Ids written here are always server-generated (see POST /api/decks), so an
+  // invalid one means a bug upstream rather than bad input -- fail loudly.
+  if (!file) throw new Error(`不正なデッキIDです: ${deck.id}`);
+  fs.writeFileSync(file, JSON.stringify(deck, null, 2) + "\n");
 }
 
 function listDecks() {
@@ -1129,8 +1143,8 @@ app.post("/api/decks/reorder", (req, res) => {
 });
 
 app.delete("/api/decks/:id", (req, res) => {
-  const file = path.join(DECKS_DIR, `${req.params.id}.json`);
-  if (!fs.existsSync(file)) return res.status(404).json({ error: "デッキが見つかりません" });
+  const file = deckFile(req.params.id);
+  if (!file || !fs.existsSync(file)) return res.status(404).json({ error: "デッキが見つかりません" });
   fs.unlinkSync(file);
   res.status(204).end();
 });

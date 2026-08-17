@@ -628,7 +628,11 @@ filterClearBtn.addEventListener("click", () => {
   filterState.bpMin = BP_RANGE_MIN;
   filterState.bpMax = filterState.bpRangeMax;
   filterState.excludeParallel = false;
-  filterState.excludeAllColor = false;
+  // 「プロモファイナルを除外」だけは初期値がON(他の絞り込みと違う)。リセットは
+  // 「ページを開いた直後の状態に戻す」という意味なので、ここもfalseではなく
+  // 初期値のtrueに戻す(falseにすると、リセットしたのに初期状態より表示が
+  // 増えるという直感に反する挙動になる)。
+  filterState.excludeAllColor = true;
   filterState.searchQuery = "";
   filterSearchInput.value = "";
   updateFilterUI();
