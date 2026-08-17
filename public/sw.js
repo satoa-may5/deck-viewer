@@ -1,4 +1,4 @@
-const CACHE_NAME = "deck-viewer-shell-v185";
+const CACHE_NAME = "deck-viewer-shell-v186";
 const SHELL_FILES = [
   "index.html",
   "deck-view.html",
@@ -10,7 +10,6 @@ const SHELL_FILES = [
   "js/card-render.js",
   "js/crop.js",
   "js/sortable.js",
-  "js/card-info-jobs.js",
   "js/home.js",
   "js/deck-view.js",
   "js/builder.js",

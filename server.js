@@ -4,7 +4,6 @@ const path = require("path");
 const express = require("express");
 const multer = require("multer");
 const AdmZip = require("adm-zip");
-const { loadTemplates: loadCardInfoTemplates, classifyImage } = require("./tools/classify-cards");
 
 // Static assets (public/) are read-only and safe to bundle inside a pkg snapshot,
 // so they're resolved relative to the script itself (__dirname), which pkg
@@ -111,6 +110,22 @@ function uniqueName(desired, existingNames) {
   return `${desired} (${n})`;
 }
 
+// Ids are `<prefix>-<ms>`, and a card's id doubles as its image filename, so a
+// duplicate silently overwrites another card's image. A bare Date.now() isn't
+// enough for that: the bulk-add flow POSTs cards back to back and can put two
+// in the same millisecond, and a pool import mints hundreds in one go. Two
+// guards, because either alone has a hole -- the per-prefix counter keeps ids
+// strictly increasing within this process (covering same-millisecond bursts),
+// and the `takenIds` check covers a restart landing inside a window some
+// earlier burst had already run its counter into.
+const lastIdStamp = new Map(); // prefix -> last stamp handed out
+function uniqueId(prefix, takenIds) {
+  let stamp = Math.max(Date.now(), (lastIdStamp.get(prefix) || 0) + 1);
+  while (takenIds.has(`${prefix}-${stamp}`)) stamp++;
+  lastIdStamp.set(prefix, stamp);
+  return `${prefix}-${stamp}`;
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(ASSETS_ROOT, "public")));
@@ -186,7 +201,7 @@ app.post("/api/pools", (req, res) => {
 
   const pools = readPools();
   const pool = {
-    id: `pool-${Date.now()}`,
+    id: uniqueId("pool", new Set(pools.map((p) => p.id))),
     name: uniqueName(name, pools.map((p) => p.name)),
     favorite: false,
     createdAt: new Date().toISOString(),
@@ -378,7 +393,7 @@ function resolveManifestCards(folder, manifest) {
 function importPoolFromFolder(folder, manifest, manifestCards, desiredName) {
   const pools = readPools();
   const newPool = {
-    id: `pool-${Date.now()}`,
+    id: uniqueId("pool", new Set(pools.map((p) => p.id))),
     name: uniqueName(desiredName, pools.map((p) => p.name)),
     favorite: false,
     thumbnailCardId: null,
@@ -387,14 +402,24 @@ function importPoolFromFolder(folder, manifest, manifestCards, desiredName) {
   pools.push(newPool);
 
   const cards = readCards();
+  const takenCardIds = new Set(cards.map((c) => c.id));
   let order = nextCardOrder(cards);
   const imagesFolder = path.join(folder, "images");
   let imported = 0;
-  manifestCards.forEach((item, index) => {
-    const srcImage = path.join(imagesFolder, item.image);
+  manifestCards.forEach((item) => {
+    // item.image comes from the imported file's own manifest.json, so it's
+    // untrusted: "../../../<something>" would otherwise read a file from
+    // outside the extracted folder and republish it under /images. Exports
+    // only ever write flat filenames here, so collapsing to the basename
+    // costs nothing, and the extension allowlist keeps a hand-written
+    // manifest from planting a non-image into that served directory.
+    const imageName = path.basename(item.image);
+    const ext = path.extname(imageName).slice(1).toLowerCase();
+    if (!Object.values(MIME_TO_EXT).includes(ext === "jpeg" ? "jpg" : ext)) return;
+    const srcImage = path.join(imagesFolder, imageName);
     if (!fs.existsSync(srcImage)) return;
-    const ext = path.extname(item.image).slice(1);
-    const id = `card-${Date.now() + index}`;
+    const id = uniqueId("card", takenCardIds);
+    takenCardIds.add(id);
     fs.writeFileSync(path.join(IMAGES_DIR, `${id}.${ext}`), fs.readFileSync(srcImage));
     cards.push({
       id,
@@ -416,7 +441,11 @@ function importPoolFromFolder(folder, manifest, manifestCards, desiredName) {
       order: order++,
       createdAt: new Date().toISOString(),
     });
-    if (manifest.thumbnail && item.image === manifest.thumbnail) newPool.thumbnailCardId = id;
+    // Compared as basenames too, so the thumbnail still resolves after the
+    // sanitizing above (both sides come from the same manifest).
+    if (manifest.thumbnail && imageName === path.basename(manifest.thumbnail)) {
+      newPool.thumbnailCardId = id;
+    }
     imported++;
   });
   writePools(pools);
@@ -638,7 +667,7 @@ app.post("/api/cards", upload.single("image"), (req, res) => {
   }
 
   const cards = readCards();
-  const id = `card-${Date.now()}`;
+  const id = uniqueId("card", new Set(cards.map((c) => c.id)));
   fs.writeFileSync(path.join(IMAGES_DIR, `${id}.${ext}`), req.file.buffer);
 
   const card = {
@@ -718,35 +747,6 @@ app.patch("/api/cards/:id", (req, res) => {
   if (req.body.effect !== undefined) {
     card.effect = (req.body.effect || "").trim();
   }
-  // A manual edit to any auto-detected field counts as the user having
-  // reviewed it, so the "自動取得の結果が怪しい" warning mark no longer applies.
-  if (
-    req.body.type !== undefined ||
-    req.body.color !== undefined ||
-    req.body.cost !== undefined ||
-    req.body.trigger !== undefined
-  ) {
-    card.infoUncertain = false;
-  }
-  // Optional: also push this card's type/color/cost onto its own parallel
-  // printings (see parseCardNameParts below for how a parallel is identified
-  // by name) -- lets the manual uncertain-card review flow fix a whole
-  // print run in one edit instead of repeating it per parallel.
-  if (req.body.applyToParallels) {
-    const parts = parseCardNameParts(card.name);
-    if (parts && !parts.isParallel) {
-      const poolMates = cards.filter((c) => c.poolId === card.poolId && c.id !== card.id);
-      for (const mate of poolMates) {
-        const mateParts = parseCardNameParts(mate.name);
-        if (!mateParts || !mateParts.isParallel || mateParts.code !== parts.code) continue;
-        mate.type = card.type;
-        mate.color = card.color;
-        mate.cost = card.cost;
-        mate.trigger = card.trigger;
-        mate.infoUncertain = false;
-      }
-    }
-  }
   writeCards(cards);
   res.json(card);
 });
@@ -799,267 +799,6 @@ app.delete("/api/cards/:id", (req, res) => {
   res.status(204).end();
 });
 
-// ---- Card info auto-detection ----
-//
-// Classifies each card's type/color/cost from its image via
-// tools/classify-cards.js (template matching against tools/cost-templates/,
-// running in-process via Jimp -- pure JS, no native bindings or external
-// interpreter -- so this works the same from the packaged exe as it does in
-// dev; an earlier version shelled out to Python+OpenCV, which broke the
-// single-portable-exe distribution goal since recipients don't have that
-// installed). Classifying a whole pool can still take a little while, so it
-// runs as a background job: the request returns immediately with a job id,
-// and the frontend polls GET /api/card-info-jobs for status/results across
-// page navigations.
-
-// poolId -> job. One job per pool at a time; only ever the latest job for
-// that pool is kept (starting a new one replaces it).
-const cardInfoJobs = new Map();
-
-// Parallel/foil printings render the cost badge in a completely different
-// style -- often a metallic/inverted digit -- that the template library
-// (built from flat, non-foil renders) doesn't represent. Rather than
-// classify them directly and risk a wrong read, they inherit type/color/cost
-// from their same-pool non-parallel base card when one can be identified by
-// name.
-//
-// Names follow "<SET>_<CODE>" optionally followed by "_p<N>" (e.g.
-// "UA53BT_CSM-1-017", "UA53BT_CSM-1-017_p1"), where <CODE> is the part that
-// actually identifies the card (e.g. "CSM-1-017") and is stable across
-// reprints/parallels even when <SET> isn't: a card can equally be a parallel
-// via the "_p<N>" suffix (same SET as its base), via a SET of literally
-// "UAPR" instead of a real set code (e.g. "UAPR_KMR-2-052" parallels
-// "EX12BT_KMR-2-052" -- a *different* SET than its own prefix), or both at
-// once (e.g. "UAPR_KMR-1-021_p1" also parallels "UA29BT_KMR-1-021"). So the
-// base lookup has to match on <CODE> alone, not on SET_CODE as a whole, and
-// "UAPR" needs to count as a parallel marker even with no "_p<N>" suffix.
-function parseCardNameParts(name) {
-  const m = /^([^_]+)_(.+)$/.exec(name || "");
-  if (!m) return null;
-  const [, set, rest] = m;
-  const suffixMatch = /^(.*)_p\d+$/.exec(rest);
-  const code = suffixMatch ? suffixMatch[1] : rest;
-  const isParallel = set === "UAPR" || Boolean(suffixMatch);
-  return { code, isParallel };
-}
-
-app.post("/api/pools/:id/auto-fill-info", (req, res) => {
-  const pool = readPools().find((p) => p.id === req.params.id);
-  if (!pool) return res.status(404).json({ error: "カードプールが見つかりません" });
-
-  const existingJob = cardInfoJobs.get(pool.id);
-  if (existingJob && existingJob.status === "running") {
-    return res.status(409).json({ error: "このカードプールは既に処理中です" });
-  }
-
-  const poolCards = readCards().filter((c) => c.poolId === pool.id && c.imageExt);
-  if (poolCards.length === 0) {
-    return res.status(400).json({ error: "画像付きのカードがありません" });
-  }
-
-  const job = {
-    id: `job-${Date.now()}`,
-    poolId: pool.id,
-    poolName: pool.name,
-    status: "running",
-    overwrite: Boolean(req.body && req.body.overwrite),
-    startedAt: new Date().toISOString(),
-    classifyStartedAt: null, // set once template loading finishes, see runAutoFillInfoJob
-    finishedAt: null,
-    progress: { current: 0, total: poolCards.length },
-    summary: null,
-    error: null,
-  };
-  cardInfoJobs.set(pool.id, job);
-  res.status(202).json(withEta(job));
-
-  runAutoFillInfoJob(job, poolCards).catch((err) => {
-    job.status = "error";
-    job.error = err && err.message ? err.message : String(err);
-    job.finishedAt = new Date().toISOString();
-  });
-});
-
-function isEmptyValue(v) {
-  return v === "" || v === null || v === undefined;
-}
-
-// A classification is flagged uncertain (surfaced as a warning mark in the
-// UI) when its cost match's raw correlation score falls below this. Picked
-// empirically against 1028 real cards: confidently-correct matches scored
-// ~0.55-0.85, while the one genuine unfixable case (a cost value with no
-// template in any color) scored 0.42-0.45 -- 0.5 sits cleanly in the gap
-// with zero false positives in that test set.
-const COST_CONFIDENCE_THRESHOLD = 0.5;
-
-async function runAutoFillInfoJob(job, poolCards) {
-  const byCode = new Map(); // code -> non-parallel base card
-  for (const card of poolCards) {
-    const parts = parseCardNameParts(card.name);
-    if (parts && !parts.isParallel) byCode.set(parts.code, card);
-  }
-
-  const directCards = [];
-  const inheritPairs = []; // [card, baseCard]
-  for (const card of poolCards) {
-    const parts = parseCardNameParts(card.name);
-    const base = parts && parts.isParallel ? byCode.get(parts.code) : null;
-    if (base) {
-      inheritPairs.push([card, base]);
-    } else {
-      directCards.push(card);
-    }
-  }
-
-  // Progress/ETA only track directCards -- inheritPairs are just copied from
-  // their already-classified base afterward (no per-card classification
-  // work, effectively instant), so counting them in the total made the bar
-  // stall at the real work's pace and then jump straight to 100% once the
-  // inherit pass ran, and inflated the ETA by however many parallels the
-  // pool had (their "remaining work" was counted but never actually cost
-  // any time).
-  job.progress.total = directCards.length;
-
-  const templates = await loadCardInfoTemplates();
-  // Timestamped separately from job.startedAt: the first auto-fill run since
-  // the server started pays a one-time cost here (reading ~275 template PNG
-  // files via Jimp), which used to get baked into the elapsed-time/current
-  // average ETA used, making the very first few cards' estimate wildly high
-  // and then crash down fast as later, template-load-free cards pulled the
-  // average back toward the real per-card pace. Measuring elapsed from here
-  // instead keeps the average pace estimate representative of actual
-  // classification work from the start.
-  job.classifyStartedAt = new Date().toISOString();
-  // Rolling window of recent card-completion timestamps, used by withEta()
-  // for a LOCAL pace estimate instead of the cumulative average since the
-  // job started. A cumulative average still drifted noticeably (V8 JIT
-  // warmup makes the first several cards genuinely slower than steady-state,
-  // and that keeps dragging a from-the-start average down for the entire
-  // job, not just the first few cards -- observed counting down at roughly
-  // 2 estimated seconds per real second). A short recent window tracks
-  // actual current pace instead.
-  job.recentTimings = [];
-  const results = {};
-  for (const card of directCards) {
-    const info = await classifyImage(path.join(IMAGES_DIR, `${card.id}.${card.imageExt}`), templates);
-    if (info) results[card.id] = info;
-    job.progress.current++;
-    job.recentTimings.push(Date.now());
-    if (job.recentTimings.length > 20) job.recentTimings.shift();
-    // classifyImage's template matching is synchronous, CPU-heavy work that
-    // otherwise runs card-after-card with no gap, starving the event loop and
-    // making every other request (including plain page loads) sluggish for
-    // the whole job's duration. Yielding once per card lets pending requests
-    // get a turn in between, at the cost of the job itself taking slightly
-    // longer wall-clock time.
-    await new Promise((resolve) => setImmediate(resolve));
-  }
-
-  const cards = readCards();
-  const cardsById = new Map(cards.map((c) => [c.id, c]));
-  let updated = 0;
-  let skipped = 0;
-  let uncertain = 0;
-
-  const applyResult = (card, info) => {
-    const target = cardsById.get(card.id);
-    if (!info || !target) {
-      skipped++;
-      return;
-    }
-    const canWrite = (field) => job.overwrite || isEmptyValue(target[field]);
-    let changed = false;
-    if (canWrite("type") && info.type) {
-      target.type = info.type;
-      changed = true;
-    }
-    if (canWrite("color") && info.color) {
-      target.color = info.color;
-      changed = true;
-    }
-    if (canWrite("cost") && !isEmptyValue(info.cost)) {
-      target.cost = info.cost;
-      changed = true;
-    }
-    // Unlike cost/color/type, "" is a real, confidently-determined answer for
-    // trigger (most cards genuinely have none) rather than "couldn't tell" --
-    // so it's written whenever canWrite() allows it, not gated on truthiness.
-    if (canWrite("trigger") && info.trigger !== undefined && target.trigger !== info.trigger) {
-      target.trigger = info.trigger;
-      changed = true;
-    }
-    const isUncertain = typeof info.costConfidence === "number" && info.costConfidence < COST_CONFIDENCE_THRESHOLD;
-    if (target.infoUncertain !== isUncertain) {
-      target.infoUncertain = isUncertain;
-      changed = true;
-    }
-    if (isUncertain) uncertain++;
-    if (changed) updated++;
-    else skipped++;
-  };
-
-  for (const card of directCards) {
-    applyResult(card, results[card.id]);
-  }
-  for (const [card, base] of inheritPairs) {
-    const baseTarget = cardsById.get(base.id);
-    const info =
-      results[base.id] ||
-      (baseTarget && (baseTarget.type || baseTarget.color || !isEmptyValue(baseTarget.cost))
-        ? {
-            type: baseTarget.type,
-            color: baseTarget.color,
-            cost: baseTarget.cost,
-            trigger: baseTarget.trigger,
-            costConfidence: baseTarget.infoUncertain ? 0 : 1,
-          }
-        : null);
-    applyResult(card, info);
-  }
-
-  writeCards(cards);
-
-  job.status = "done";
-  job.finishedAt = new Date().toISOString();
-  job.summary = {
-    total: poolCards.length,
-    classified: directCards.filter((c) => results[c.id]).length,
-    inherited: inheritPairs.length,
-    updated,
-    skipped,
-    uncertain,
-  };
-}
-
-// Estimated remaining seconds, derived from how long the job has taken to
-// reach its current progress so far (no fixed per-card cost is assumed,
-// since classification time varies with image size/format). Not stored on
-// the job itself -- computed fresh on every read so it stays accurate as
-// time passes between polls.
-function withEta(job) {
-  if (job.status !== "running" || !job.progress || job.progress.current === 0 || !job.classifyStartedAt) {
-    return { ...job, etaSeconds: null };
-  }
-  const timings = job.recentTimings || [];
-  let perCardMs;
-  if (timings.length >= 2) {
-    // Local pace: how long the last few cards actually took, not the whole
-    // job's average -- keeps up with the real current speed instead of
-    // being dragged down by slower cards earlier in the job.
-    perCardMs = (timings[timings.length - 1] - timings[0]) / (timings.length - 1);
-  } else {
-    // Not enough recent samples yet (job just started) -- fall back to the
-    // cumulative average for the first card or two.
-    perCardMs = (Date.now() - new Date(job.classifyStartedAt).getTime()) / job.progress.current;
-  }
-  const remainingMs = perCardMs * (job.progress.total - job.progress.current);
-  return { ...job, etaSeconds: Math.max(0, Math.round(remainingMs / 1000)) };
-}
-
-app.get("/api/card-info-jobs", (req, res) => {
-  res.json([...cardInfoJobs.values()].map(withEta));
-});
-
 // ---- Decks ----
 
 app.get("/api/decks", (req, res) => {
@@ -1093,7 +832,8 @@ app.post("/api/decks", (req, res) => {
     return res.status(400).json({ error: "cardsは配列である必要があります" });
   }
 
-  const deckId = id && ID_PATTERN.test(id) ? id : `deck-${Date.now()}`;
+  const deckId =
+    id && ID_PATTERN.test(id) ? id : uniqueId("deck", new Set(listDecks().map((d) => d.id)));
   const existing = readDeck(deckId);
   const otherNames = listDecks()
     .filter((d) => d.id !== deckId)
@@ -1244,7 +984,7 @@ app.post("/api/decks/import-zip", uploadZip.single("file"), (req, res) => {
     // existing pool.
     const pools = readPools();
     const newPool = {
-      id: `pool-${Date.now()}`,
+      id: uniqueId("pool", new Set(pools.map((p) => p.id))),
       name: uniqueName(`${deckName} のカード`, pools.map((p) => p.name)),
       favorite: false,
       thumbnailCardId: null,
@@ -1253,20 +993,25 @@ app.post("/api/decks/import-zip", uploadZip.single("file"), (req, res) => {
     pools.push(newPool);
 
     const cards = readCards();
+    const takenCardIds = new Set(cards.map((c) => c.id));
     let order = nextCardOrder(cards);
     const imagesFolder = path.join(tempDir, "images");
     const deckCards = [];
     let thumbnailCardId = null;
-    manifestCards.forEach((item, index) => {
+    manifestCards.forEach((item) => {
       if (!item || !item.image) return;
-      const srcImage = path.join(imagesFolder, item.image);
+      // Same untrusted-manifest sanitizing as importPoolFromFolder above.
+      const imageName = path.basename(item.image);
+      const ext = path.extname(imageName).slice(1).toLowerCase();
+      if (!Object.values(MIME_TO_EXT).includes(ext === "jpeg" ? "jpg" : ext)) return;
+      const srcImage = path.join(imagesFolder, imageName);
       if (!fs.existsSync(srcImage)) return;
-      const ext = path.extname(item.image).slice(1);
-      const id = `card-${Date.now() + index}`;
+      const id = uniqueId("card", takenCardIds);
+      takenCardIds.add(id);
       fs.writeFileSync(path.join(IMAGES_DIR, `${id}.${ext}`), fs.readFileSync(srcImage));
       cards.push({
         id,
-        name: defaultNameFromImage(item.image),
+        name: defaultNameFromImage(imageName),
         cardName: (item.name && String(item.name).trim()) || "",
         cost: item.cost ?? null,
         color: (item.color && String(item.color).trim()) || "",
@@ -1289,7 +1034,9 @@ app.post("/api/decks/import-zip", uploadZip.single("file"), (req, res) => {
       });
       const count = Number.isFinite(item.count) && item.count > 0 ? Math.floor(item.count) : 1;
       deckCards.push({ cardId: id, count });
-      if (manifest.thumbnail && item.image === manifest.thumbnail) thumbnailCardId = id;
+      if (manifest.thumbnail && imageName === path.basename(manifest.thumbnail)) {
+        thumbnailCardId = id;
+      }
     });
     if (deckCards.length === 0) {
       return res.status(400).json({ error: "インポートできる画像が見つかりません" });
@@ -1298,9 +1045,10 @@ app.post("/api/decks/import-zip", uploadZip.single("file"), (req, res) => {
     writePools(pools);
     writeCards(cards);
 
-    const otherDeckNames = listDecks().map((d) => d.name);
+    const existingDecks = listDecks();
+    const otherDeckNames = existingDecks.map((d) => d.name);
     const deck = {
-      id: `deck-${Date.now()}`,
+      id: uniqueId("deck", new Set(existingDecks.map((d) => d.id))),
       name: uniqueName(deckName, otherDeckNames),
       poolIds: [newPool.id],
       cards: deckCards,

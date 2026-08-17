@@ -32,7 +32,6 @@
 
     <div class="list-toolbar">
       <button type="button" class="btn" id="select-mode-btn">選択して削除</button>
-      <button type="button" class="icon-btn uncertain-review-btn" id="uncertain-review-btn" title="自動取得に問題がある可能性のあるカードを確認する" hidden><span class="uncertain-review-mark">⚠</span></button>
     </div>
 
     <div class="selection-bar" id="selection-bar" hidden>
@@ -232,15 +231,6 @@
         <div class="modal-actions" id="modal-actions-normal">
           <button type="button" class="btn primary" id="modal-save-btn">保存する</button>
         </div>
-        <div class="modal-actions review-actions" id="modal-actions-review" hidden>
-          <label class="filter-checkbox" id="modal-apply-parallel-wrap">
-            <input type="checkbox" id="modal-apply-parallel-checkbox" /> 変更をパラレルにも適用する
-          </label>
-          <div class="modal-review-nav">
-            <button type="button" class="btn" id="modal-review-back-btn">戻る</button>
-            <button type="button" class="btn primary" id="modal-review-next-btn">保存して次へ</button>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -299,7 +289,6 @@
 
   <script src="js/api.js"></script>
   <script src="js/dialog.js"></script>
-  <script src="js/card-info-jobs.js"></script>
   <script src="js/sortable.js"></script>
   <script src="js/crop.js"></script>
   <script src="js/pool-detail.js"></script>

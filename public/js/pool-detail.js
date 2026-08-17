@@ -73,7 +73,6 @@ function formatCardName(n) {
 
 // ---- Bulk selection ----
 
-const uncertainReviewBtn = document.getElementById("uncertain-review-btn");
 const selectModeBtn = document.getElementById("select-mode-btn");
 const selectionBar = document.getElementById("selection-bar");
 const selectionCountEl = document.getElementById("selection-count");
@@ -160,7 +159,6 @@ thumbnailModeBtn.addEventListener("click", () => {
 async function renderCards() {
   latestCards = await Api.getCards(poolId);
   cardCountEl.textContent = `${latestCards.length}枚`;
-  uncertainReviewBtn.hidden = !latestCards.some((c) => c.infoUncertain);
   updateFilterUI(latestCards);
   const visibleCards = latestCards.filter(cardMatchesFilters);
 
@@ -725,22 +723,14 @@ const TRIGGER_LABELS = {
 };
 
 // 一覧表示・グリッド表示の両方で共有する、カード右上のステータスバッジ。
-// 「複数枚追加」で登録されたまま一度も編集されていないカードには「未編集」を
-// 優先して出す(自動取得の「⚠」より基本的な状態のため)。
+// 「複数枚追加」で登録されたまま一度も編集されていないカードに出す。
 function appendCardStatusBadge(container, card) {
-  if (card.unedited) {
-    const badge = document.createElement("span");
-    badge.className = "unedited-badge";
-    badge.title = "画像だけ登録されていて、まだ情報が入力されていません";
-    badge.textContent = "未編集";
-    container.appendChild(badge);
-  } else if (card.infoUncertain) {
-    const warning = document.createElement("span");
-    warning.className = "uncertain-badge";
-    warning.title = "自動取得に問題がある可能性があります";
-    warning.textContent = "⚠";
-    container.appendChild(warning);
-  }
+  if (!card.unedited) return;
+  const badge = document.createElement("span");
+  badge.className = "unedited-badge";
+  badge.title = "画像だけ登録されていて、まだ情報が入力されていません";
+  badge.textContent = "未編集";
+  container.appendChild(badge);
 }
 
 function cardCaption(card) {
@@ -986,11 +976,6 @@ function parseAttributeInput(value) {
 const modalSaveBtn = document.getElementById("modal-save-btn");
 const modalStatus = document.getElementById("modal-status");
 const modalActionsNormal = document.getElementById("modal-actions-normal");
-const modalActionsReview = document.getElementById("modal-actions-review");
-const modalApplyParallelWrap = document.getElementById("modal-apply-parallel-wrap");
-const modalApplyParallelCheckbox = document.getElementById("modal-apply-parallel-checkbox");
-const modalReviewBackBtn = document.getElementById("modal-review-back-btn");
-const modalReviewNextBtn = document.getElementById("modal-review-next-btn");
 
 const cropPopup = document.getElementById("crop-popup");
 const cropPopupStage = document.getElementById("crop-popup-stage");
@@ -998,122 +983,6 @@ const cropPopupStage = document.getElementById("crop-popup-stage");
 let cropTool = null;
 let croppedBlob = null;
 let editingCard = null; // null = adding a new card, otherwise the card being edited
-
-// ---- Uncertain-card review (opened via the ⚠ button) ----
-// Steps the "カードを編集" modal through every card flagged infoUncertain,
-// one at a time, instead of the usual single-card save-and-close.
-//
-// A base card whose parallel(s) are ALSO in the queue gets a "変更をパラレル
-// にも適用する" checkbox, on by default. Saving with it checked applies this
-// card's type/color/cost to those parallels too (server-side, via
-// applyToParallels) AND removes them from the remaining queue -- there's
-// nothing left for the user to review on them. Unchecking it leaves them in
-// the queue as their own separate step. This is why the queue can't just be
-// a fixed array walked by index: which cards still need visiting depends on
-// choices made while stepping through it, so `reviewSkip` tracks cards
-// that have been resolved this way and every navigation step skips past them.
-let reviewQueue = null; // null when not reviewing, otherwise the fixed ordered list of cards to consider
-let reviewSkip = null; // Set of card ids resolved via a parallel-apply, no longer needing their own step
-let reviewIndex = 0;
-
-// Local mirror of server.js's parseCardNameParts -- see there for the full
-// naming-convention rationale. Needed client-side too so the review flow can
-// tell which queued cards are parallels of which without a round-trip.
-function parseCardNameParts(name) {
-  const m = /^([^_]+)_(.+)$/.exec(name || "");
-  if (!m) return null;
-  const [, set, rest] = m;
-  const suffixMatch = /^(.*)_p\d+$/.exec(rest);
-  const code = suffixMatch ? suffixMatch[1] : rest;
-  const isParallel = set === "UAPR" || Boolean(suffixMatch);
-  return { code, isParallel };
-}
-
-// Other not-yet-skipped queue members that are parallels of `card` -- only
-// meaningful (non-empty) when `card` is itself a non-parallel base, since
-// that's the only case "apply to parallels" makes sense for.
-function queueParallelMates(card) {
-  const parts = parseCardNameParts(card.name);
-  if (!parts || parts.isParallel) return [];
-  return reviewQueue.filter((c) => {
-    if (c.id === card.id || reviewSkip.has(c.id)) return false;
-    const p = parseCardNameParts(c.name);
-    return p && p.isParallel && p.code === parts.code;
-  });
-}
-
-function startUncertainReview() {
-  const uncertain = latestCards.filter((c) => c.infoUncertain);
-  if (uncertain.length === 0) return;
-  // Bases before parallels, so a base is always reached (and its
-  // apply-to-parallels choice made) before any of its own parallels would
-  // otherwise come up for their own individual step.
-  const bases = uncertain.filter((c) => {
-    const p = parseCardNameParts(c.name);
-    return !p || !p.isParallel;
-  });
-  const parallels = uncertain.filter((c) => !bases.includes(c));
-  reviewQueue = [...bases, ...parallels];
-  reviewSkip = new Set();
-  reviewIndex = 0;
-  openEditCardModal(reviewQueue[0], { review: true });
-}
-
-uncertainReviewBtn.addEventListener("click", startUncertainReview);
-
-// Whether there's a not-yet-skipped queue entry after/before reviewIndex,
-// given a hypothetical extra set of ids about to be skipped (the current
-// card's queue-mate parallels, if the checkbox is checked) -- used to decide
-// the nav buttons' state before the user has actually saved anything yet.
-function hasQueueEntry(direction, extraSkip) {
-  const step = direction === "next" ? 1 : -1;
-  for (let i = reviewIndex + step; i >= 0 && i < reviewQueue.length; i += step) {
-    const id = reviewQueue[i].id;
-    if (!reviewSkip.has(id) && !extraSkip.has(id)) return true;
-  }
-  return false;
-}
-
-// "Which step am I on, out of how many total" -- both counts only ever
-// consider entries NOT in reviewSkip (already resolved via an earlier
-// parallel-apply) and, hypothetically, not in extraSkip (this card's own
-// mates, if the checkbox is currently checked) -- so checking the box
-// immediately shrinks the total, e.g. a 2-card base+parallel queue reads
-// "1/2" unchecked and "1/1" checked.
-function reviewProgress(extraSkip) {
-  let position = 0;
-  let total = 0;
-  for (let i = 0; i < reviewQueue.length; i++) {
-    const id = reviewQueue[i].id;
-    if (reviewSkip.has(id) || extraSkip.has(id)) continue;
-    total++;
-    if (i <= reviewIndex) position++;
-  }
-  return { position, total };
-}
-
-function updateReviewNavUI() {
-  const mates = queueParallelMates(editingCard);
-  modalApplyParallelWrap.hidden = mates.length === 0;
-  const extraSkip = new Set(
-    mates.length > 0 && modalApplyParallelCheckbox.checked ? mates.map((c) => c.id) : []
-  );
-  modalReviewBackBtn.disabled = !hasQueueEntry("back", extraSkip);
-  modalReviewNextBtn.textContent = hasQueueEntry("next", extraSkip) ? "保存して次へ" : "保存して完了する";
-  const { position, total } = reviewProgress(extraSkip);
-  modalTitle.textContent = `カードを編集 (${position}/${total})`;
-}
-
-modalApplyParallelCheckbox.addEventListener("change", updateReviewNavUI);
-
-function setModalReviewMode(active) {
-  modalActionsNormal.hidden = active;
-  modalActionsReview.hidden = !active;
-  if (active) {
-    modalApplyParallelCheckbox.checked = true; // default on, per card
-    updateReviewNavUI();
-  }
-}
 
 function setModalStatus(message, kind) {
   modalStatus.textContent = message;
@@ -1214,8 +1083,6 @@ modalFileInput.addEventListener("change", () => {
 });
 
 function openAddCardModal() {
-  reviewQueue = null; // an entirely separate flow from card-info review
-  reviewSkip = null;
   editingCard = null;
   croppedBlob = null;
   cropTool = null;
@@ -1235,18 +1102,11 @@ function openAddCardModal() {
   modalEffectInput.value = "";
   setModalStatus("", "");
   modalTitle.textContent = "カードを追加";
-  setModalReviewMode(false);
   showImagePlaceholder();
   modal.hidden = false;
 }
 
-function openEditCardModal(card, options) {
-  const review = Boolean(options && options.review);
-  if (!review) {
-    // Opening a card the normal way always exits any review flow.
-    reviewQueue = null;
-    reviewSkip = null;
-  }
+function openEditCardModal(card) {
   editingCard = card;
   croppedBlob = null;
   cropTool = null;
@@ -1266,7 +1126,6 @@ function openEditCardModal(card, options) {
   modalEffectInput.value = card.effect || "";
   setModalStatus("", "");
   modalTitle.textContent = "カードを編集";
-  setModalReviewMode(review);
   showImagePreview(Api.cardImageUrl(card));
   modal.hidden = false;
 }
@@ -1274,8 +1133,6 @@ function openEditCardModal(card, options) {
 function closeAddCardModal() {
   modal.hidden = true;
   modalFileInput.value = "";
-  reviewQueue = null;
-  reviewSkip = null;
 }
 
 document.getElementById("close-modal-btn").addEventListener("click", closeAddCardModal);
@@ -1284,7 +1141,7 @@ document.getElementById("close-modal-btn").addEventListener("click", closeAddCar
 // treated as the topmost modal — Enter/Escape act on whichever is actually on top.
 bindModalDismissal(modal, {
   onCancel: closeAddCardModal,
-  onConfirm: () => (reviewQueue ? modalReviewNextBtn.click() : modalSaveBtn.click()),
+  onConfirm: () => modalSaveBtn.click(),
 });
 bindModalDismissal(cropPopup, {
   onCancel: closeCropPopup,
@@ -1426,11 +1283,10 @@ bulkAddDoneBtn.addEventListener("click", async () => {
 document.getElementById("close-bulk-add-modal-btn").addEventListener("click", closeBulkAddModal);
 bindModalDismissal(bulkAddModal, { onCancel: closeBulkAddModal });
 
-// Shared by the normal save button and both review-mode nav buttons: PATCHes
-// the currently-editing card (plus an image replace, if one was cropped).
-// Returns whether it succeeded, leaving the modal open with an error message
-// on failure either way.
-async function saveEditingCard(applyToParallels) {
+// PATCHes the currently-editing card (plus an image replace, if one was
+// cropped). Returns whether it succeeded, leaving the modal open with an
+// error message on failure either way.
+async function saveEditingCard() {
   const name = modalNameInput.value.trim() || modalNameInput.placeholder;
   const cardName = modalCardNameInput.value.trim();
   const type = modalTypeInput.value;
@@ -1464,7 +1320,6 @@ async function saveEditingCard(applyToParallels) {
       attribute,
       generatedEnergy,
       effect,
-      applyToParallels: Boolean(applyToParallels),
     });
     return true;
   } catch (err) {
@@ -1472,43 +1327,6 @@ async function saveEditingCard(applyToParallels) {
     return false;
   }
 }
-
-// Saves the current review step, applying to queue-mate parallels (and
-// skipping them from here on) if the checkbox was checked, then moves the
-// modal to the next/previous not-yet-skipped queue entry -- or, moving
-// forward off the end of the queue, finishes the review entirely.
-async function commitReviewStep(direction) {
-  const mates = queueParallelMates(editingCard);
-  const applyToParallels = mates.length > 0 && modalApplyParallelCheckbox.checked;
-  if (!(await saveEditingCard(applyToParallels))) return;
-  if (applyToParallels) {
-    for (const mate of mates) reviewSkip.add(mate.id);
-  }
-
-  const step = direction === "next" ? 1 : -1;
-  let i = reviewIndex + step;
-  while (i >= 0 && i < reviewQueue.length && reviewSkip.has(reviewQueue[i].id)) i += step;
-
-  if (i >= 0 && i < reviewQueue.length) {
-    reviewIndex = i;
-    openEditCardModal(reviewQueue[reviewIndex], { review: true });
-  } else if (direction === "next") {
-    const finishedPoolId = poolId;
-    reviewQueue = null;
-    reviewSkip = null;
-    closeAddCardModal();
-    await renderCards();
-    // Reviewing every uncertain card counts as having confirmed the
-    // auto-fill result too -- dismisses the bottom-right notice (if it's
-    // still up) and turns the trigger button off its green "unseen" state.
-    confirmAutoFillJob(finishedPoolId);
-  }
-  // direction === "back" with nothing before it: modalReviewBackBtn is
-  // disabled in that state, so this shouldn't be reachable -- no-op either way.
-}
-
-modalReviewNextBtn.addEventListener("click", () => commitReviewStep("next"));
-modalReviewBackBtn.addEventListener("click", () => commitReviewStep("back"));
 
 modalSaveBtn.addEventListener("click", async () => {
   const name = modalNameInput.value.trim() || modalNameInput.placeholder;
@@ -1582,38 +1400,6 @@ modalSaveBtn.addEventListener("click", async () => {
   }
 });
 
-// ---- Auto-fill card info (type/color/cost) ----
-//
-// The actual panel (form/running/complete views) is a single shared,
-// site-wide component owned by card-info-jobs.js — it has to be, since a
-// running or unconfirmed job needs to stay visible in the corner across page
-// navigations, not just while this specific page is open. This page's own
-// trigger button was removed from the toolbar (requestAutoFillPanel() is
-// still fully wired up and callable -- just not from a button here right
-// now), but the card list still needs to refresh once THIS pool's job
-// finishes, since only pool-detail.js has renderCards()/latestCards.
-
-let lastAutoFillJobId = null;
-let lastAutoFillJobStatus = null;
-
-document.addEventListener("card-info-jobs-updated", () => {
-  const job = getCardInfoJob(poolId);
-  if (!job) return;
-
-  // A job for a small pool can finish before the very first poll after it
-  // was started, in which case it's never observed mid-"running" -- so
-  // "the job id is new to us" has to trigger the same done/error handling
-  // as "the status changed", not just a silent baseline update.
-  const isNewJob = job.id !== lastAutoFillJobId;
-  const statusChanged = isNewJob || job.status !== lastAutoFillJobStatus;
-  lastAutoFillJobId = job.id;
-  lastAutoFillJobStatus = job.status;
-
-  if (statusChanged && (job.status === "done" || job.status === "error")) {
-    renderCards(); // pick up newly-detected type/color/cost without a manual reload
-  }
-});
-
 async function init() {
   updateViewToggleUI();
 
@@ -1632,12 +1418,6 @@ async function init() {
   currentPool = pool;
   nameInput.value = pool.name;
   await renderCards();
-
-  // Landed here via the auto-fill completion notice's 修正する button --
-  // same entry point as clicking the ⚠ button directly.
-  if (params.get("review") === "1") {
-    startUncertainReview();
-  }
 }
 
 init();
