@@ -2999,12 +2999,21 @@ button {
 .oricard-modal-card {
   max-width: 1180px;
   width: 95vw;
+  /* max-heightだけだとheightが未確定のまま(=中身に合わせて縮む)になり、
+     下のflex:1の.oricard-frame-wrapが「残りの高さいっぱいに広がる」対象を
+     失ってmin-height分まで潰れてしまっていた(実際に縦がめちゃくちゃ小さく
+     なる不具合の原因)。heightを明示することでflexが正しく残り空間を計算する。 */
+  height: 88vh;
+  max-height: 900px;
+  overflow: hidden; /* 外側(iframeの外)ではスクロールバーを出さない */
+  display: flex;
+  flex-direction: column;
 }
 
 .oricard-frame-wrap {
   position: relative;
-  height: 78vh;
-  min-height: 480px;
+  flex: 1 1 auto;
+  min-height: 300px;
   border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--surface-2);

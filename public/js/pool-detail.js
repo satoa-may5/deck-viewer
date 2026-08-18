@@ -1206,6 +1206,19 @@ async function openOricardModal() {
   }
   if (available) {
     // 前回開いた時の入力を残さない、毎回まっさらな状態で開く。
+    oricardFrame.onload = () => {
+      // 同じカードプール内の既存カードの「特徴」を、オリカメーカー側の
+      // 特徴欄の入力候補として渡す(setTraitSuggestionsはoricard/index.html側で
+      // 公開しているフック)。
+      const win = oricardFrame.contentWindow;
+      if (win && typeof win.setTraitSuggestions === "function") {
+        const traits = new Set();
+        for (const card of latestCards) {
+          for (const a of card.attribute || []) traits.add(a);
+        }
+        win.setTraitSuggestions([...traits].sort());
+      }
+    };
     oricardFrame.src = `oricard/index.html?_=${Date.now()}`;
   } else {
     oricardFrame.hidden = true;
@@ -1213,15 +1226,45 @@ async function openOricardModal() {
     oricardAddBtn.disabled = true;
   }
   oricardModal.hidden = false;
+  document.body.style.overflow = "hidden"; // 背後のカード一覧のスクロールを禁止
 }
 
 function closeOricardModal() {
   oricardModal.hidden = true;
   oricardFrame.src = "about:blank"; // 4.5MBのmaterials.jsをメモリに残さない
+  document.body.style.overflow = "";
 }
 
-document.getElementById("close-oricard-modal-btn").addEventListener("click", closeOricardModal);
-bindModalDismissal(oricardModal, { onCancel: closeOricardModal });
+// オリカメーカーの入力内容(カード名・効果・特徴・いずれかのイラスト)が
+// 空でなければ「編集内容あり」とみなす。
+function oricardModalHasEdits() {
+  const win = oricardFrame.contentWindow;
+  const exportFn = win && win.exportOricard;
+  if (!exportFn) return false;
+  const { state } = exportFn();
+  if (state.name || state.effect || state.traits) return true;
+  if (state.illust) {
+    for (const key in state.illust) {
+      if (state.illust[key] && state.illust[key].data) return true;
+    }
+  }
+  return false;
+}
+
+async function attemptCloseOricardModal() {
+  if (oricardModalHasEdits()) {
+    const ok = await showConfirm("編集内容が消えますが、閉じてよろしいですか？", {
+      confirmText: "閉じる",
+      cancelText: "キャンセル",
+    });
+    if (!ok) return;
+  }
+  closeOricardModal();
+}
+
+document.getElementById("close-oricard-modal-btn").addEventListener("click", attemptCloseOricardModal);
+// 枠外クリックでは閉じない(bindModalDismissalを使わない)。誤操作で
+// 編集内容を失わないようにするための明示的な仕様。
 
 oricardAddBtn.addEventListener("click", async () => {
   const win = oricardFrame.contentWindow;
