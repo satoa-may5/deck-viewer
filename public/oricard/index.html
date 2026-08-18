@@ -1,0 +1,828 @@
+<meta charset="utf-8">
+<title>UNION カードメーカー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=block" rel="stylesheet">
+<style>
+  :root{--bg:#0f1216;--panel:#171b21;--panel2:#1d222a;--line:#2a313b;--txt:#e8edf3;--sub:#9aa6b4;--accent:#4ea1ff;--accent2:#2b6fd1;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--txt);font-family:"Noto Sans JP","Yu Gothic UI","Yu Gothic","Meiryo",sans-serif;-webkit-font-smoothing:antialiased;}
+  .wrap{display:flex;gap:20px;padding:20px;align-items:flex-start;flex-wrap:wrap}
+  .controls{flex:1 1 400px;min-width:340px;max-width:600px}
+  .preview{flex:1 1 380px;min-width:320px;position:sticky;top:20px;display:flex;flex-direction:column;align-items:center;gap:14px}
+  .tabbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .tabbtn{background:var(--panel2);border:1px solid var(--line);color:var(--sub);border-radius:8px 8px 0 0;padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit}
+  .tabbtn.on{background:var(--panel);color:var(--txt);border-color:var(--accent);font-weight:600}
+  .tabpanels{position:relative}
+  .tabpanel{display:none}
+  .tabpanel.on{display:block}
+  .g{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 14px 4px;margin-bottom:14px}
+  .g>.gt{font-size:12px;color:var(--sub);letter-spacing:.06em;margin:0 0 10px}
+  .subg{padding-top:12px;margin-top:12px;border-top:1px solid var(--line)}
+  .subg:first-child{padding-top:0;margin-top:0;border-top:0}
+  .gt2{font-size:12px;color:var(--txt);font-weight:600;margin:0 0 8px}
+  .row{margin-bottom:12px} label.lbl{display:block;font-size:12px;color:var(--sub);margin-bottom:5px}
+  input[type=text],input[type=number],textarea,select{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit;outline:none;}
+  input[type=color]{width:100%;height:34px;padding:2px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;cursor:pointer}
+  input:focus,textarea:focus,select:focus{border-color:var(--accent)} textarea{resize:vertical;min-height:76px;line-height:1.5}
+  .two{display:flex;gap:8px}.two>div{flex:1} .three{display:flex;gap:8px}.three>div{flex:1}
+  .six{
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    gap:6px;
+  }
+  .six input{
+      text-align:center;
+  }
+  .eight{
+    display:grid;
+    grid-template-columns:repeat(8,1fr);
+    gap:4px;
+  }
+  .eight input{
+      text-align:center;
+      min-width:0;
+  }
+  .sw{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+  .swatch{width:32px;height:32px;border-radius:7px;border:2px solid transparent;cursor:pointer}
+  .swatch.on{border-color:#fff;box-shadow:0 0 0 2px var(--accent)}
+  .seg{display:flex;gap:6px;flex-wrap:wrap}
+  .seg button{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:7px 12px;font-size:13px;cursor:pointer;font-family:inherit}
+  .seg button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  .hint{font-size:11px;color:var(--sub);margin-top:5px}
+  .drop{border:1.5px dashed var(--line);border-radius:9px;padding:14px;text-align:center;color:var(--sub);font-size:13px;cursor:pointer;background:var(--panel2)}
+  .drop:hover,.drop.hot{border-color:var(--accent);color:var(--txt)} .drop.set{border-style:solid;border-color:#2f9e44;color:#bfe6cc}
+  .imgtools{display:none;margin-top:9px}.imgtools.show{display:block}
+  .slider{display:flex;align-items:center;gap:9px;margin-bottom:7px}.slider span{font-size:12px;color:var(--sub);width:44px}
+  input[type=range]{flex:1;accent-color:var(--accent)}
+  .check{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}.check input{width:16px;height:16px;accent-color:var(--accent)}
+  .sp{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+  .sp button{background:var(--panel2);border:1px solid var(--line);color:var(--sub);border-radius:6px;padding:2px 5px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:flex-end}
+  .sp button:hover{border-color:var(--accent);color:var(--txt)}
+  .sp button img{display:block;pointer-events:none;zoom:1.0}
+  .btns{display:flex;gap:9px;flex-wrap:wrap}
+  button.act{background:linear-gradient(180deg,var(--accent),var(--accent2));color:#fff;border:0;padding:10px 16px;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+  button.ghost{background:var(--panel2);color:var(--txt);border:1px solid var(--line);padding:8px 13px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit}
+  button.ghost:hover{border-color:var(--accent)}
+  #card{width:min(420px,90vw);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.5);background:#222;display:block}
+  #status{font-size:12px;color:var(--sub);text-align:center}
+  .note{font-size:11px;color:var(--sub);text-align:center;line-height:1.6}
+  .lineOffsets{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap:8px 6px;
+  }
+  .lineOffsets label{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      font-size:11px;
+      color:var(--sub);
+  }
+  .lineOffsets input{
+      width:100%;
+      text-align:center;
+      padding:4px;
+      margin-top:2px;
+      font-size:13px;
+  }
+  </style>
+
+<div class="wrap">
+  <div class="controls">
+    <div class="tabbar" id="tabbar">
+      <button type="button" class="tabbtn on" data-tab="color">色 / 発生エナジー</button>
+      <button type="button" class="tabbtn" data-tab="type">種類 / コスト</button>
+      <button type="button" class="tabbtn" data-tab="illust">イラスト</button>
+      <button type="button" class="tabbtn" data-tab="name">カード名 / 特徴</button>
+      <button type="button" class="tabbtn" data-tab="effect">効果テキスト</button>
+      <button type="button" class="tabbtn" data-tab="trigger">トリガー</button>
+      <button type="button" class="tabbtn" id="tabbtn-raid" data-tab="raid">レイド</button>
+      <button type="button" class="tabbtn" id="tabbtn-bp" data-tab="bp">BP</button>
+    </div>
+
+    <div class="tabpanels">
+      <div class="g tabpanel on" data-tab="color">
+        <div class="row"><label class="lbl">色</label><div class="sw" id="colors"></div></div>
+        <div class="row two">
+          <div><label class="lbl">発生エナジー</label><div class="seg" id="genSeg"></div></div>
+          <div style="display:flex;align-items:flex-end;padding-bottom:6px"><label class="check"><input type="checkbox" id="addEnergy"> 追加エナジー（＋）</label></div>
+        </div>
+      </div>
+
+      <div class="g tabpanel" data-tab="type">
+        <div class="row"><label class="lbl">カード種類</label><div class="seg" id="typeSeg"></div></div>
+        <div class="row two">
+          <div><label class="lbl">必要エナジー</label><select id="req"></select></div>
+          <div><label class="lbl">消費AP</label><div class="seg" id="apSeg"></div></div>
+        </div>
+        <div class="hint" id="reqHint"></div>
+      </div>
+
+      <div class="g tabpanel" data-tab="illust">
+        <div class="subg">
+          <p class="gt2">カードイラスト</p>
+          <div class="drop" id="drop-card">イラスト画像を選択<br><span style="font-size:11px">ドラッグ＆ドロップ可</span><input type="file" id="file-card" accept="image/*" style="display:none"></div>
+          <div class="imgtools" id="imgtools-card">
+            <div class="slider"><span>ズーム</span><input type="range" id="zoom-card" min="1" max="3" step="0.01" value="1"></div>
+            <div class="slider"><span>左右</span><input type="range" id="panx-card" min="0" max="1" step="0.01" value="0.5"></div>
+            <div class="slider"><span>上下</span><input type="range" id="pany-card" min="0" max="1" step="0.01" value="0.5"></div>
+            <button class="ghost" id="clear-card">削除</button>
+          </div>
+        </div>
+
+        <div class="subg">
+          <p class="gt2">カード名イラスト</p>
+          <div class="drop" id="drop-name">イラスト画像を選択<br><span style="font-size:11px">ドラッグ＆ドロップ可</span><input type="file" id="file-name" accept="image/*" style="display:none"></div>
+          <div class="imgtools" id="imgtools-name">
+            <div class="slider"><span>ズーム</span><input type="range" id="zoom-name" min="1" max="3" step="0.01" value="1"></div>
+            <div class="slider"><span>左右</span><input type="range" id="panx-name" min="0" max="1" step="0.01" value="0.5"></div>
+            <div class="slider"><span>上下</span><input type="range" id="pany-name" min="0" max="1" step="0.01" value="0.5"></div>
+            <button class="ghost" id="clear-name">削除</button>
+          </div>
+          <div class="row" style="margin-top:10px"><label class="lbl">枠の色</label><input type="color" id="nameFrameColor" value="#ffffff"></div>
+          <div class="row"><label class="lbl">枠の明度</label><input type="range" id="nameFrameBrightness" min="30" max="200" step="1" value="100"></div>
+        </div>
+
+        <div class="subg">
+          <p class="gt2">背景イラスト</p>
+          <div class="drop" id="drop-bg">イラスト画像を選択<br><span style="font-size:11px">ドラッグ＆ドロップ可</span><input type="file" id="file-bg" accept="image/*" style="display:none"></div>
+          <div class="imgtools" id="imgtools-bg">
+            <div class="slider"><span>ズーム</span><input type="range" id="zoom-bg" min="1" max="3" step="0.01" value="1"></div>
+            <div class="slider"><span>左右</span><input type="range" id="panx-bg" min="0" max="1" step="0.01" value="0.5"></div>
+            <div class="slider"><span>上下</span><input type="range" id="pany-bg" min="0" max="1" step="0.01" value="0.5"></div>
+            <button class="ghost" id="clear-bg">削除</button>
+          </div>
+        </div>
+
+        <div class="subg">
+          <p class="gt2">テキストエリアイラスト</p>
+          <div class="drop" id="drop-textarea">イラスト画像を選択<br><span style="font-size:11px">ドラッグ＆ドロップ可</span><input type="file" id="file-textarea" accept="image/*" style="display:none"></div>
+          <div class="imgtools" id="imgtools-textarea">
+            <div class="slider"><span>ズーム</span><input type="range" id="zoom-textarea" min="1" max="3" step="0.01" value="1"></div>
+            <div class="slider"><span>左右</span><input type="range" id="panx-textarea" min="0" max="1" step="0.01" value="0.5"></div>
+            <div class="slider"><span>上下</span><input type="range" id="pany-textarea" min="0" max="1" step="0.01" value="0.5"></div>
+            <button class="ghost" id="clear-textarea">削除</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="g tabpanel" data-tab="name">
+        <div class="row"><label class="lbl">カード名</label><input type="text" id="name" maxlength="30" placeholder="カード名を入力"></div>
+        <div class="row"><label class="check"><input type="checkbox" id="hasTraits"> 特徴を表示</label></div>
+        <div class="row" id="traitsRow" style="display:none"><label class="lbl">特徴</label><input type="text" id="traits" maxlength="30" placeholder="特徴を入力"></div>
+      </div>
+
+      <div class="g tabpanel" data-tab="effect">
+        <div class="row"><textarea id="effect" placeholder="テキストを入力"></textarea>
+          <div class="sp" id="spBtns"></div>
+        </div>
+        <div class="row">
+          <label class="lbl">行オフセット</label>
+          <div class="lineOffsets">
+            <label>1行目 <input id="lineOffset0" type="number" value="0" step="1"></label>
+            <label>2行目 <input id="lineOffset1" type="number" value="0" step="1"></label>
+            <label>3行目 <input id="lineOffset2" type="number" value="0" step="1"></label>
+            <label>4行目 <input id="lineOffset3" type="number" value="0" step="1"></label>
+            <label>5行目 <input id="lineOffset4" type="number" value="0" step="1"></label>
+            <label>6行目 <input id="lineOffset5" type="number" value="0" step="1"></label>
+            <label>7行目 <input id="lineOffset6" type="number" value="0" step="1"></label>
+            <label>8行目 <input id="lineOffset7" type="number" value="0" step="1"></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="g tabpanel" data-tab="trigger">
+        <div class="row"><div class="seg" id="trigSeg"></div></div>
+      </div>
+
+      <div class="g tabpanel" id="raidGroup" data-tab="raid">
+        <div class="row"><div class="seg" id="raidSeg"></div></div>
+        <div class="row" id="raidRow" style="display:none"><label class="lbl">レイド元</label><input type="text" id="raidText" maxlength="24" placeholder="レイド元を入力"></div>
+      </div>
+
+      <div class="g tabpanel" id="bpGroup" data-tab="bp">
+        <div class="row two">
+          <div><label class="lbl">BP値</label><select id="bp"></select></div>
+          <div><label class="lbl">増減</label><div class="seg" id="bpModSeg"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="g"><p class="gt">保存 / 読み込み</p>
+      <div class="row btns">
+        <button class="act" id="download">PNG で保存</button>
+        <button class="ghost" id="saveJson">JSON保存</button>
+        <button class="ghost" id="loadJson">JSON読込</button>
+        <button class="ghost" id="reset">リセット</button>
+        <input type="file" id="jsonFile" accept="application/json,.json" style="display:none">
+      </div>
+    </div>
+  </div>
+
+  <div class="preview">
+    <canvas id="card" width="600" height="838"></canvas>
+    <div id="status">素材を読み込み中…</div>
+    <div class="note"></div>
+  </div>
+</div>
+
+<script src="materials.js"></script>
+<script>
+"use strict";
+const CW=600, CH=838;
+const COLORS=[{k:'B',jp:'青',c:'#1682c8'},{k:'G',jp:'緑',c:'#12a150'},{k:'P',jp:'紫',c:'#7e40b2'},{k:'R',jp:'赤',c:'#d81f26'},{k:'Y',jp:'黄',c:'#e0a000'}];
+const CNAME={B:'blue',G:'green',P:'purple',R:'red',Y:'yellow'};
+const TYPEF={character:'Cost-character',event:'Cost-event',field:'Cost-field'};
+/* 必要エナジーの選択肢は素材ファイル(Cost-*)から自動生成（素材を足せば自動で増える） */
+const AVAIL=(function(){
+  const r={character:{},event:{},field:{}};
+  if(window.MAT) for(const key in window.MAT){
+    const m=key.match(/^Cost-(character|event|field)\/([BGPRY])\/[a-z]+(\d+)\.png$/);
+    if(m){(r[m[1]][m[2]]=r[m[1]][m[2]]||[]).push(+m[3]);}
+  }
+  for(const t in r) for(const c in r[t]) r[t][c].sort((a,b)=>a-b);
+  return r;
+})();
+const TRIGGERS=[['none','なし'],['get','ゲット'],['color','カラー'],['drow','ドロー'],['active','アクティブ'],['raid','レイド'],['final','ファイナル'],['special','スペシャル']];
+const SP_GROUPS = [
+  {
+    title: '黄色テキスト',
+    items: [
+      ['impact-1','ｲﾝﾊﾟｸﾄ1'],
+      ['damage-2','ﾀﾞﾒｰｼﾞ2'],
+      ['impact-mukou','ｲﾝﾊﾟｸﾄ無効'],
+      ['nerai-uchi','狙い撃ち'],
+      ['2-attack','2回ｱﾀｯｸ'],
+      ['2-block','2回ﾌﾞﾛｯｸ'],
+      ['step','ｽﾃｯﾌﾟ'],
+      ['impact-plus-1','ｲﾝﾊﾟｸﾄ+1']
+    ]
+  },
+  {
+    title: '青色テキスト',
+    items: [
+      ['touzyouzi','登場時'],
+      ['taizyouzi','退場時'],
+      ['attack','アタック時'],
+      ['block','ブロック時'],
+      ['zibunno-turn-tyu','自分のターン中'],
+      ['aiteno-turn-tyu','相手のターン中'],
+      ['kido-main','起動メイン']
+    ]
+  },
+  {
+    title: '白色テキスト',
+    items: [
+      ['rest-ni-suru','レストにする'],
+      ['front-L','フロントLにある場合'],
+      ['energy-L','エナジーLにある場合'],
+      ['kono-cardo-wo-taizyo','退場させる'],
+      ['AP-1-harau','APを1支払う'],
+      ['tehuda-1','手札を1枚場外に置く'],
+      ['tehuda-2','手札を2枚場外に置く'],
+      ['zyougai','場外にある場合']
+    ]
+  },
+  {
+    title: 'トリガー',
+    items: [
+      ['trigger','トリガー'],
+      ['get', 'ゲット'],
+      ['drow','ドロー'],
+      ['active','アクティブ'],
+      ['raid','レイド'],
+      ['color','カラー'],
+      ['special','スペシャル'],
+      ['final','ファイナル'],
+    ]
+  },
+  {
+    title: 'エナジー',
+    items: [
+      ['character-2-energy','キャラクター2エナ'],
+    ]
+  },
+  {
+    title: 'その他',
+    items: [
+      ['turn-1','ターン1'],
+      ['raid_trigger','レイド'],
+      ['energy','エナ玉']
+    ]
+  }
+];
+
+const state={color:'B',gen:1,addEnergy:false,type:'character',req:4,ap:1,
+  name:'',hasTraits:true,traits:'',
+  effect:'',
+  trigger:'none',raid:'none',raidText:'',bp:4000,bpMod:'none',
+  illust:{
+    card:{data:null,zoom:1,panx:0.5,pany:0.5},
+    name:{data:null,zoom:1,panx:0.5,pany:0.5},
+    bg:{data:null,zoom:1,panx:0.5,pany:0.5},
+    textarea:{data:null,zoom:1,panx:0.5,pany:0.5}
+  },
+  nameFrameColor:'#ffffff',nameFrameBrightness:100,
+  lineOffset: Array(8).fill(0),};
+
+//const FF='"Noto Sans JP","Yu Gothic UI","Yu Gothic","Meiryo",sans-serif';
+const FF = '"Noto Sans JP",sans-serif';
+const canvas=document.getElementById('card'), ctx=canvas.getContext('2d');
+const IMG={};
+
+/* 領域定数 */
+const ILL={x:38,y:113,w:524,h:373};
+const TEXTAREA_ILL={x:37,y:494,w:526,h:260};
+const NAME={x:104,y:52,w:431,h:35,size:31};
+const TRAIT={x:119,y:90,w:394,h:17,size:14};
+const EFF={x:48,w:504,size:18,pitch:34,top:506,bottom:748,base:24,ipad:3};
+const RAIDCFG={
+ '1':{box:{x:150,y:506,w:161,h:21},above:0,belowTop:539,pitch:30},
+ '2':{box:{x:150,y:542,w:161,h:21},above:1,aboveTop:504,belowTop:574,pitch:30},
+ '3':{box:{x:150,y:582,w:161,h:21},above:2,aboveTop:505,belowTop:613,pitch:30}
+};
+const BP_POS={x:40,y:763};
+
+/* ---- 描画 ---- */
+function drawImg(key){ const im=IMG[key]; if(im&&im.complete&&im.naturalWidth) ctx.drawImage(im,0,0,CW,CH); }
+function drawCover(im,x,y,w,h,zoom,px,py){const bs=Math.max(w/im.width,h/im.height),sc=bs*zoom,dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+(w-dw)*px,y+(h-dh)*py,dw,dh);}
+
+function outlined(text,cx,cy,size,boxW){
+  if(!text) return;
+  ctx.save();
+
+  ctx.font=`700 ${size}px ${FF}`;
+
+  const w=ctx.measureText(text).width;
+  const sx=Math.min(1,boxW/w);
+
+  ctx.translate(cx,cy);
+  ctx.scale(sx,1);
+
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  ctx.lineJoin='round';
+  ctx.lineWidth=Math.max(3,size/8);
+
+  ctx.strokeStyle='#000';
+  ctx.strokeText(text,0,0);
+
+  ctx.fillStyle='#fff';
+  ctx.fillText(text,0,0);
+
+  ctx.restore();
+}
+
+/* 効果テキスト：インライン画像対応レイアウト */
+function spKey(raw){
+  return (raw === 'energy')
+    ? ('SP-Text/ico_circle_' + CNAME[state.color] + '.png')
+    : (raw.startsWith('character-') && raw.endsWith('-energy'))
+      ? (`SP-Text/${raw}-${CNAME[state.color]}.png`)
+      : ('SP-Text/' + raw + '.png');
+}
+function spDy(raw){
+  if(raw.startsWith('character-')&&raw.endsWith('-energy')) return 3;
+  if(raw==='color'||raw==='special'||raw==='final') return -2;
+  return 0;
+}
+function tokenize(text){
+  const out=[]; const parts=String(text).split(/(\[\[[^\]]+\]\])/);
+  for(const p of parts){ if(!p)continue; const m=p.match(/^\[\[([^\]]+)\]\]$/);
+    if(m){
+      const raw = m[1];
+      const key = spKey(raw);
+      const im=IMG[key];
+      if(im){
+        const dy=spDy(raw);
+        const valign=(raw==='color'||raw==='special'||raw==='final')?'center':'bottom';
+        out.push({t:'img',key,w:im.naturalWidth,h:im.naturalHeight,dy,valign});
+      }
+    }
+    else { for(const ch of p){ if(ch==='\n')out.push({t:'br'}); else out.push({t:'ch',ch}); } }
+  }
+  return out;
+}
+function buildLines(tokens){
+  const lines=[];
+  let cur=[];
+
+  for(const tk of tokens){
+    if(tk.t==='br'){
+      lines.push(cur);
+      cur=[];
+    }else{
+      cur.push(tk);
+    }
+  }
+
+  if(cur.length) lines.push(cur);
+  return lines;
+}
+function drawLine(items,x,topY){
+  ctx.font=`400 ${EFF.size}px ${FF}`;
+  ctx.textAlign='left';
+  ctx.textBaseline='alphabetic';
+  ctx.fillStyle='#fff';
+  const LS=-1;
+  const baseY=topY+EFF.base;
+  let textWidth=0;
+  let iconWidth=0;
+  for(const it of items){
+    if(it.t==='img'){
+      iconWidth+=EFF.ipad;
+      iconWidth+=it.w;
+      iconWidth+=EFF.ipad;
+    }else{
+      textWidth+=ctx.measureText(it.ch).width+LS;
+    }
+  }
+  const total=textWidth+iconWidth;
+  const scale=(total>EFF.w&&textWidth>0)
+    ?Math.max(.55,(EFF.w-iconWidth)/textWidth)
+    :1;
+  let cx=x;
+  ctx.save();
+  for(const it of items){
+    if(it.t==='img'){
+      cx+=EFF.ipad;
+      const im=IMG[it.key];
+      ctx.restore();
+      const iy=(it.valign==='center')?(topY+EFF.pitch/2-it.h/2+(it.dy||0)):(baseY-it.h+(it.dy||0));
+      ctx.drawImage(
+        im,
+        cx,
+        iy,
+        it.w,
+        it.h
+      );
+      cx+=it.w+EFF.ipad;
+      ctx.save();
+    }else{
+      ctx.save();
+      ctx.translate(cx,baseY-2);
+      ctx.scale(scale,1);
+      ctx.fillText(it.ch,0,0);
+      ctx.restore();
+      cx+=(ctx.measureText(it.ch).width+LS)*scale;
+    }
+  }
+  ctx.restore();
+}
+function drawEffect(){
+  const tokens=tokenize(state.effect || 'テキストを入力'); const lines=buildLines(tokens);
+  let currentOffset = 0; // 累積オフセット値
+
+  if(state.raid==='none'){
+    const maxN=Math.floor((EFF.bottom-EFF.top-EFF.base)/EFF.pitch)+1;
+    lines.slice(0,maxN).forEach((ln,i)=>{
+      currentOffset += (state.lineOffset[i] ?? 0);
+      drawLine(ln, EFF.x, EFF.top + i * EFF.pitch + currentOffset);
+    });
+  } else {
+    const cfg=RAIDCFG[state.raid]; let idx=0;
+    for(let i=0;i<cfg.above&&idx<lines.length;i++,idx++) {
+      currentOffset += (state.lineOffset[idx] ?? 0);
+      drawLine(lines[idx],EFF.x,cfg.aboveTop+i*cfg.pitch + currentOffset);
+    }
+    const belowMax=Math.floor((EFF.bottom-cfg.belowTop)/cfg.pitch)+1;
+    for(let i=0;i<belowMax&&idx<lines.length;i++,idx++) {
+      currentOffset += (state.lineOffset[idx] ?? 0);
+      drawLine(lines[idx],EFF.x,cfg.belowTop+i*cfg.pitch + currentOffset);
+    }
+    /* 〈 〉レイド元テキスト */
+    const b = cfg.box;
+    ctx.save();
+    ctx.font = `400 16px ${FF}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    const rt = `〈${state.raidText || 'テキストを入力'}〉`;
+    const textW = ctx.measureText(rt).width;
+    const scale = Math.min(1, (b.w - 4) / textW);
+    ctx.translate(b.x, b.y + b.h / 2);
+    ctx.scale(scale, 1);
+    ctx.fillStyle = "#fff";
+    ctx.fillText(rt, 0, 0);
+    ctx.restore();
+  }
+}
+function drawBP(){
+  if(state.type!=='character') return;
+  if(!state.bp) return;
+  const seq=[]; String(state.bp).split('').forEach(d=>seq.push('BP/'+d+'.png'));
+  if(state.bpMod==='plus')seq.push('BP/plus.png'); else if(state.bpMod==='minus')seq.push('BP/minus.png'); else if(state.bpMod==='plusminus')seq.push('BP/plusminus.png');
+  seq.push('BP/BP.png');
+  const baseB=BP_POS.y+39; let cx=BP_POS.x;
+
+  for(const k of seq){
+    const im=IMG[k];
+    if(!im)continue;
+    const one=(k==='BP/1.png');
+
+    let voff = 0;
+    if (one) voff = -1;
+    else if (k === 'BP/2.png') voff = -1;
+    else if (k === 'BP/minus.png') voff = -15;
+    else if (k === 'BP/plus.png') voff = -4;
+
+    ctx.drawImage(im, cx, baseB - im.naturalHeight + voff);
+    cx += im.naturalWidth + 1 + (one ? 3 : 0);
+  }
+}
+
+/* カード名イラスト：Main-components/Cardname_base.png の不透明部分にのみクリップして
+   ユーザーのイラストを配置し、その上に Main-components/Cardname_frame.png を
+   （色・明度を自由に調整した上で）重ねる。両ファイルとも600x838のフルサイズ画像で、
+   透明部分がそのままマスク形状になっている。 */
+function drawNameIllustration(){
+  const baseImg=IMG['Main-components/Cardname_base.png'];
+  const frameImg=IMG['Main-components/Cardname_frame.png'];
+  if(illustName.img && baseImg && baseImg.complete && baseImg.naturalWidth){
+    const st=illustName.getState();
+    const oc=document.createElement('canvas'); oc.width=CW; oc.height=CH;
+    const octx=oc.getContext('2d');
+    const bs=Math.max(CW/illustName.img.width,CH/illustName.img.height), sc=bs*st.zoom;
+    const dw=illustName.img.width*sc, dh=illustName.img.height*sc;
+    octx.drawImage(illustName.img,(CW-dw)*st.panx,(CH-dh)*st.pany,dw,dh);
+    octx.globalCompositeOperation='destination-in';
+    octx.drawImage(baseImg,0,0,CW,CH);
+    ctx.drawImage(oc,0,0);
+  }
+  if(frameImg && frameImg.complete && frameImg.naturalWidth){
+    const fc=document.createElement('canvas'); fc.width=CW; fc.height=CH;
+    const fctx=fc.getContext('2d');
+    fctx.filter=`brightness(${state.nameFrameBrightness}%)`;
+    fctx.drawImage(frameImg,0,0,CW,CH);
+    fctx.filter='none';
+    fctx.globalCompositeOperation='color';
+    fctx.fillStyle=state.nameFrameColor;
+    fctx.fillRect(0,0,CW,CH);
+    fctx.globalCompositeOperation='destination-in';
+    fctx.drawImage(frameImg,0,0,CW,CH);
+    ctx.drawImage(fc,0,0);
+  }
+}
+
+function render(){
+  ctx.clearRect(0,0,CW,CH);
+
+  /* 背景イラスト：すべてのコンポーネントの下（最背面） */
+  if(illustBg.img){
+    const st=illustBg.getState();
+    ctx.save();ctx.beginPath();ctx.rect(0,0,CW,CH);ctx.clip();
+    drawCover(illustBg.img,0,0,CW,CH,st.zoom,st.panx,st.pany);
+    ctx.restore();
+  }
+
+  drawImg('Main-components/Base_image.png');
+
+  if(illustCard.img){
+    const st=illustCard.getState();
+    ctx.save();ctx.beginPath();ctx.rect(ILL.x,ILL.y,ILL.w,ILL.h);ctx.clip();
+    drawCover(illustCard.img,ILL.x,ILL.y,ILL.w,ILL.h,st.zoom,st.panx,st.pany);
+    ctx.restore();
+  }
+
+  drawImg(`Base-${state.gen}/${state.color}-Base-${state.gen}.png`);
+  if(state.addEnergy) drawImg(`Base-${state.gen}/Additional-Energy-${state.gen}.png`);
+  drawImg(`${TYPEF[state.type]}/${state.color}/${CNAME[state.color]}${state.req}.png`);
+  drawImg(`AP/${state.ap}.png`);
+  if(state.trigger!=='none'){ drawImg(state.trigger==='color'?`Trigger/color-${state.color}.png`:`Trigger/${state.trigger}.png`); }
+  drawImg(`Types/${state.type}.png`);
+  if(state.raid!=='none') drawImg(`Raids/raid-${state.raid}.png`);
+  drawBP();
+
+  /* テキストエリアイラスト：効果テキストの背面（テキストより先に描画） */
+  if(illustTextarea.img){
+    const st=illustTextarea.getState();
+    ctx.save();ctx.beginPath();ctx.rect(TEXTAREA_ILL.x,TEXTAREA_ILL.y,TEXTAREA_ILL.w,TEXTAREA_ILL.h);ctx.clip();
+    drawCover(illustTextarea.img,TEXTAREA_ILL.x,TEXTAREA_ILL.y,TEXTAREA_ILL.w,TEXTAREA_ILL.h,st.zoom,st.panx,st.pany);
+    ctx.restore();
+  }
+
+  /* カード名イラスト＋枠：カード名テキストの背面 */
+  drawNameIllustration();
+
+  /* テキスト */
+  outlined(state.name||'',NAME.x+NAME.w/2,NAME.y+NAME.h/2,NAME.size,NAME.w-6);
+  if(state.hasTraits) outlined('特徴:'+(state.traits||''),TRAIT.x+TRAIT.w/2,TRAIT.y+TRAIT.h/2,TRAIT.size,TRAIT.w-6);
+  drawEffect();
+}
+
+/* ---- UI ---- */
+const $=id=>document.getElementById(id);
+
+/* タブ */
+const tabbar=$('tabbar');
+let activeTab='color';
+function switchTab(t){
+  activeTab=t;
+  tabbar.querySelectorAll('.tabbtn').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+  document.querySelectorAll('.tabpanel').forEach(p=>p.classList.toggle('on',p.dataset.tab===t));
+}
+tabbar.querySelectorAll('.tabbtn').forEach(b=>{ b.onclick=()=>switchTab(b.dataset.tab); });
+
+function seg(container,items,getVal,setVal){
+  const el=$(container); el.innerHTML='';
+  items.forEach(([v,label])=>{const b=document.createElement('button');b.textContent=label;b.dataset.v=v;
+    b.onclick=()=>{setVal(v);[...el.children].forEach(c=>c.classList.toggle('on',c.dataset.v==String(getVal())));render();};
+    if(String(v)===String(getVal()))b.classList.add('on');el.appendChild(b);});
+}
+function refreshSeg(container,getVal){const el=$(container);[...el.children].forEach(c=>c.classList.toggle('on',c.dataset.v==String(getVal())));}
+
+/* colors */
+const colorsEl=$('colors');
+COLORS.forEach(o=>{const s=document.createElement('div');s.className='swatch';s.style.background=o.c;s.title=o.jp;s.dataset.k=o.k;
+  s.onclick=()=>{state.color=o.k;[...colorsEl.children].forEach(c=>c.classList.toggle('on',c.dataset.k===o.k));rebuildReq();buildSpButtons();render();};colorsEl.appendChild(s);});
+
+function rebuildReq(){
+  const avail=(AVAIL[state.type]&&AVAIL[state.type][state.color])||[]; const sel=$('req'); sel.innerHTML='';
+  avail.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);});
+  if(!avail.includes(state.req)) state.req=avail[0];
+  sel.value=state.req;
+  $('reqHint').textContent='この色・種類で使える値のみ：'+avail.join(', ');
+}
+$('req').onchange=e=>{state.req=+e.target.value;render();};
+
+seg('genSeg',[[0,'0'],[1,'1'],[2,'2']],()=>state.gen,v=>state.gen=+v);
+seg('typeSeg',[['character','キャラ'],['event','イベント'],['field','フィールド']],()=>state.type,v=>{
+  state.type=v;
+  state.gen=(v==='event')?0:1;
+  if(v!=='character'){state.raid='none';$('raidRow').style.display='none';}
+  rebuildReq();updateBpVisibility();updateRaidVisibility();
+  refreshSeg('genSeg',()=>state.gen);refreshSeg('raidSeg',()=>state.raid);
+});
+function updateBpVisibility(){
+  const show=state.type==='character';
+  $('tabbtn-bp').style.display=show?'':'none';
+  if(!show && activeTab==='bp') switchTab('color');
+}
+function updateRaidVisibility(){
+  const show=state.type==='character';
+  $('tabbtn-raid').style.display=show?'':'none';
+  if(!show && activeTab==='raid') switchTab('color');
+}
+seg('apSeg',[[1,'1'],[2,'2']],()=>state.ap,v=>state.ap=+v);
+seg('trigSeg',TRIGGERS,()=>state.trigger,v=>state.trigger=v);
+seg('raidSeg',[['none','なし'],['1','レイド1'],['2','レイド2'],['3','レイド3']],()=>state.raid,v=>{state.raid=v;$('raidRow').style.display=v==='none'?'none':'';});
+seg('bpModSeg',[['none','なし'],['plus','＋'],['minus','－'],['plusminus','±']],()=>state.bpMod,v=>state.bpMod=v);
+
+$('addEnergy').onchange=e=>{state.addEnergy=e.target.checked;render();};
+$('name').oninput=e=>{state.name=e.target.value;render();};
+$('hasTraits').onchange=e=>{state.hasTraits=e.target.checked;$('traitsRow').style.display=e.target.checked?'':'none';render();};
+$('traits').oninput=e=>{state.traits=e.target.value;render();};
+$('effect').oninput=e=>{state.effect=e.target.value;render();};
+$('raidText').oninput=e=>{state.raidText=e.target.value;render();};
+for(let i=0;i<8;i++){
+    $(`lineOffset${i}`).oninput=e=>{
+        state.lineOffset[i]=-(Number(e.target.value)||0);
+        render();
+    };
+}
+
+/* BP options */
+(function(){const sel=$('bp');
+  for(let v=500;v<=6000;v+=500){const o=document.createElement('option');o.value=v;o.textContent=v;sel.appendChild(o);} sel.value=state.bp;
+  sel.onchange=e=>{state.bp=+e.target.value;render();};})();
+
+/* SP buttons */
+const spEl = $('spBtns');
+
+function buildSpButtons(){
+  spEl.innerHTML='';
+  SP_GROUPS.forEach(group => {
+    const title = document.createElement('div');
+    title.textContent = group.title;
+    title.style.width = '100%';
+    title.style.margin = '8px 0 4px';
+    title.style.fontSize = '12px';
+    title.style.color = '#9aa6b4';
+    title.style.fontWeight = '600';
+    spEl.appendChild(title);
+
+    group.items.forEach(([k, label]) => {
+        const b = document.createElement('button');
+        b.title = label;
+        b.setAttribute('aria-label', label);
+        const src = window.MAT && window.MAT[spKey(k)];
+        if(src){ const img=document.createElement('img'); img.src=src; img.alt=label; b.appendChild(img); }
+        else { b.textContent = label; }
+        b.onclick = () => insEffect(`[[${k}]]`);
+        spEl.appendChild(b);
+    });
+  });
+}
+buildSpButtons();
+function insEffect(t){const ta=$('effect');const s=ta.selectionStart??ta.value.length;ta.value=ta.value.slice(0,s)+t+ta.value.slice(ta.selectionEnd??s);state.effect=ta.value;ta.focus();render();}
+
+/* イラスト（カード/カード名/背景/テキストエリアの4種で共通のドロップ&ズーム操作を生成する） */
+function makeIllustration(key){
+  const drop=$(`drop-${key}`), file=$(`file-${key}`), tools=$(`imgtools-${key}`);
+  const zoomEl=$(`zoom-${key}`), panxEl=$(`panx-${key}`), panyEl=$(`pany-${key}`), clearBtn=$(`clear-${key}`);
+  const st=state.illust[key];
+  let img=null;
+  drop.onclick=()=>file.click();
+  drop.ondragover=e=>{e.preventDefault();drop.classList.add('hot');};
+  drop.ondragleave=()=>drop.classList.remove('hot');
+  drop.ondrop=e=>{e.preventDefault();drop.classList.remove('hot');if(e.dataTransfer.files[0])load(e.dataTransfer.files[0]);};
+  file.onchange=e=>{if(e.target.files[0])load(e.target.files[0]);};
+  function load(f){if(!f.type.startsWith('image/'))return;const r=new FileReader();r.onload=ev=>set(ev.target.result);r.readAsDataURL(f);}
+  function set(u){const im=new Image();im.onload=()=>{img=im;st.data=u;tools.classList.add('show');drop.classList.add('set');render();};im.src=u;}
+  zoomEl.oninput=e=>{st.zoom=+e.target.value;render();};
+  panxEl.oninput=e=>{st.panx=+e.target.value;render();};
+  panyEl.oninput=e=>{st.pany=+e.target.value;render();};
+  clearBtn.onclick=()=>{img=null;st.data=null;file.value='';tools.classList.remove('show');drop.classList.remove('set');render();};
+  return {
+    get img(){return img;},
+    getState(){return st;},
+    restore(){
+      zoomEl.value=st.zoom; panxEl.value=st.panx; panyEl.value=st.pany;
+      if(st.data){
+        const im=new Image();
+        im.onload=()=>{img=im;render();};
+        im.src=st.data;
+        tools.classList.add('show'); drop.classList.add('set');
+      } else {
+        img=null; tools.classList.remove('show'); drop.classList.remove('set');
+      }
+    }
+  };
+}
+const illustCard=makeIllustration('card');
+const illustName=makeIllustration('name');
+const illustBg=makeIllustration('bg');
+const illustTextarea=makeIllustration('textarea');
+$('nameFrameColor').oninput=e=>{state.nameFrameColor=e.target.value;render();};
+$('nameFrameBrightness').oninput=e=>{state.nameFrameBrightness=+e.target.value;render();};
+
+/* save/load */
+$('download').onclick=()=>{const a=document.createElement('a');a.download=(state.name||'card').replace(/[\\/:*?"<>|]/g,'_')+'.png';a.href=canvas.toDataURL('image/png');a.click();};
+$('saveJson').onclick=()=>{const b=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.download=(state.name||'card').replace(/[\\/:*?"<>|]/g,'_')+'.json';a.href=URL.createObjectURL(b);a.click();URL.revokeObjectURL(a.href);};
+$('loadJson').onclick=()=>$('jsonFile').click();
+$('jsonFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{applyState(JSON.parse(ev.target.result));}catch(err){alert('読込失敗:'+err.message);}};r.readAsText(f);e.target.value='';};
+function applyState(o){
+  /* 旧形式(単一イラスト imgData/zoom/panx/pany)のJSONを新形式(illust.card)へ移行 */
+  if(o && o.imgData !== undefined && !o.illust){
+    o.illust={
+      card:{data:o.imgData,zoom:o.zoom ?? 1,panx:o.panx ?? 0.5,pany:o.pany ?? 0.5},
+      name:{data:null,zoom:1,panx:0.5,pany:0.5},
+      bg:{data:null,zoom:1,panx:0.5,pany:0.5},
+      textarea:{data:null,zoom:1,panx:0.5,pany:0.5}
+    };
+  }
+  Object.assign(state,o);
+  state.illust=Object.assign({
+    card:{data:null,zoom:1,panx:0.5,pany:0.5},
+    name:{data:null,zoom:1,panx:0.5,pany:0.5},
+    bg:{data:null,zoom:1,panx:0.5,pany:0.5},
+    textarea:{data:null,zoom:1,panx:0.5,pany:0.5}
+  },state.illust||{});
+  $('name').value=state.name;$('traits').value=state.traits;$('effect').value=state.effect;$('raidText').value=state.raidText;
+  $('addEnergy').checked=state.addEnergy;$('hasTraits').checked=state.hasTraits;$('traitsRow').style.display=state.hasTraits?'':'none';
+  $('raidRow').style.display=state.raid==='none'?'none':'';$('bp').value=state.bp;
+  $('nameFrameColor').value=state.nameFrameColor;$('nameFrameBrightness').value=state.nameFrameBrightness;
+  [...colorsEl.children].forEach(c=>c.classList.toggle('on',c.dataset.k===state.color));
+  rebuildReq();buildSpButtons();
+  refreshSeg('genSeg',()=>state.gen);refreshSeg('typeSeg',()=>state.type);refreshSeg('apSeg',()=>state.ap);
+  refreshSeg('trigSeg',()=>state.trigger);refreshSeg('raidSeg',()=>state.raid);refreshSeg('bpModSeg',()=>state.bpMod);
+  updateBpVisibility();updateRaidVisibility();
+  for(let i=0;i<8;i++){$(`lineOffset${i}`).value=-((state.lineOffset||[])[i]||0);}
+  illustCard.restore();illustName.restore();illustBg.restore();illustTextarea.restore();
+  render();}
+$('reset').onclick=()=>{if(confirm('リセットしますか？'))location.reload();};
+
+/* init: preload all materials */
+function initForm(){$('name').value=state.name;$('traits').value=state.traits;$('effect').value=state.effect;
+  $('hasTraits').checked=state.hasTraits;$('traitsRow').style.display=state.hasTraits?'':'none';
+  $('nameFrameColor').value=state.nameFrameColor;$('nameFrameBrightness').value=state.nameFrameBrightness;
+  [...colorsEl.children].forEach(c=>c.classList.toggle('on',c.dataset.k===state.color));rebuildReq();updateBpVisibility();updateRaidVisibility();
+  for(let i=0;i<8;i++){
+    $(`lineOffset${i}`).value=-state.lineOffset[i];
+  }
+}
+(function preload(){
+  if(typeof window.MAT==='undefined'){$('status').textContent='materials.js が見つかりません。index.html と同じ場所に置いてください。';return;}
+  const keys=Object.keys(window.MAT);let n=0;
+  keys.forEach(k=>{const im=new Image();IMG[k]=im;im.onload=im.onerror=()=>{if(++n===keys.length){$('status').textContent='';
+  initForm();
+  if (document.fonts) {
+    document.fonts.load(`400 16px ${FF}`).then(() => {
+        document.fonts.load(`700 31px ${FF}`).then(() => {
+            render();
+        });
+    });
+  } else {
+      render();
+  }}};im.src=window.MAT[k];});
+})();
+
+/* ---- deck-viewer integration ----
+   This tool is normally loaded standalone; deck-viewer embeds it in an
+   iframe and reads the current design back out via this one entry point.
+   `state`/`canvas` are top-level const/let, so they're lexical bindings on
+   this script's own scope, not properties of `window` -- an outside frame
+   can't reach them directly (`iframe.contentWindow.state` is undefined).
+   This is the only line added for that integration; everything above is
+   unmodified from the standalone tool. */
+window.exportOricard=function(){return {state,canvas,COLORS,CNAME};};
+</script>
