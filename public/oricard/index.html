@@ -230,7 +230,9 @@
 <script src="materials.js"></script>
 <script>
 "use strict";
-const CW=600, CH=837;
+const CW=600, CH=838; /* 内部の作業解像度は素材と同じ838のまま(スケールさせない)。
+                          表示・書き出しは下のVIEW_H(837)へ最後に等倍でクロップする */
+const VIEW_H=837;
 const CORNER_RADIUS=30; /* カード全体の角丸半径。Base_image.png/背景イラストどちらでも
                             この半径でクリップするので、素材側の角丸が浅くても
                             見た目上は必ずこの丸みになる */
@@ -332,7 +334,17 @@ const state={color:'B',gen:1,addEnergy:false,type:'character',req:4,ap:1,
 
 //const FF='"Noto Sans JP","Yu Gothic UI","Yu Gothic","Meiryo",sans-serif';
 const FF = '"Noto Sans JP",sans-serif';
-const canvas=document.getElementById('card'), ctx=canvas.getContext('2d');
+/* 表示・書き出し用のcanvas(DOM上の実体、600xVIEW_H)。deck-viewer側もこれの
+   toBlob()を呼ぶので、exportOricard()は必ずこちらを返す。 */
+const viewCanvas=document.getElementById('card'), viewCtx=viewCanvas.getContext('2d');
+/* 全レイヤーの実際の描画先(作業用、600xCH=838、素材と同スケール)。
+   最後にrender()がここからVIEW_Hぶんだけを等倍でviewCanvasへコピーする。
+   スケール(縮小合成)でVIEW_Hに詰めてしまうと、素材(例: Base系の各色フレーム画像の
+   最下行が透明)のうち本来完全に切り落としたい行が、わずかな透明度を残したまま縮小され、
+   背景イラストがうっすら透けて見える不具合になっていた(実機報告で発覚)。
+   等倍クロップにすることで、その透明な最下行ごと物理的に切り捨てられる。 */
+const canvas=document.createElement('canvas'); canvas.width=CW; canvas.height=CH;
+const ctx=canvas.getContext('2d');
 const IMG={};
 
 /* 領域定数 */
@@ -672,8 +684,6 @@ function drawNameFrame(){
 
 function render(){
   ctx.clearRect(0,0,CW,CH);
-  ctx.save();
-  if(ctx.roundRect){ ctx.beginPath(); ctx.roundRect(0,0,CW,CH,CORNER_RADIUS); ctx.clip(); }
 
   drawBackgroundSlot(); /* 背景イラスト or Base_image.png */
   drawMaskedSlot(illustCard,'Main-components/Card_illustration.png'); /* カードイラスト */
@@ -698,7 +708,15 @@ function render(){
   outlined(state.name||'',NAME.x+NAME.w/2,NAME.y+NAME.h/2,NAME.size,NAME.w-6);
   if(state.hasTraits) outlined('特徴:'+(state.traits||''),TRAIT.x+TRAIT.w/2,TRAIT.y+TRAIT.h/2,TRAIT.size,TRAIT.w-6);
   drawEffect();
-  ctx.restore();
+
+  /* 最終合成：作業用canvas(CH=838)の上位VIEW_H(837)行だけを等倍でviewCanvasへ
+     コピーする(8引数drawImageでsw/shとdw/dhを同じ値にすることでスケールなしの
+     クロップになる)。角丸クリップもここで一括してかける。 */
+  viewCtx.clearRect(0,0,CW,VIEW_H);
+  viewCtx.save();
+  if(viewCtx.roundRect){ viewCtx.beginPath(); viewCtx.roundRect(0,0,CW,VIEW_H,CORNER_RADIUS); viewCtx.clip(); }
+  viewCtx.drawImage(canvas,0,0,CW,VIEW_H,0,0,CW,VIEW_H);
+  viewCtx.restore();
 }
 
 /* ---- UI ---- */
@@ -849,7 +867,7 @@ $('nameFrameColor').oninput=e=>{state.nameFrameColor=e.target.value;render();};
 $('nameFrameBrightness').oninput=e=>{state.nameFrameBrightness=+e.target.value;render();};
 
 /* save/load */
-$('download').onclick=()=>{const a=document.createElement('a');a.download=(state.name||'card').replace(/[\\/:*?"<>|]/g,'_')+'.png';a.href=canvas.toDataURL('image/png');a.click();};
+$('download').onclick=()=>{const a=document.createElement('a');a.download=(state.name||'card').replace(/[\\/:*?"<>|]/g,'_')+'.png';a.href=viewCanvas.toDataURL('image/png');a.click();};
 $('saveJson').onclick=()=>{const b=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.download=(state.name||'card').replace(/[\\/:*?"<>|]/g,'_')+'.json';a.href=URL.createObjectURL(b);a.click();URL.revokeObjectURL(a.href);};
 $('loadJson').onclick=()=>$('jsonFile').click();
 $('jsonFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{applyState(JSON.parse(ev.target.result));}catch(err){alert('読込失敗:'+err.message);}};r.readAsText(f);e.target.value='';};
@@ -918,7 +936,7 @@ function initForm(){$('name').value=state.name;$('traits').value=state.traits;$(
    can't reach them directly (`iframe.contentWindow.state` is undefined).
    This is the only line added for that integration; everything above is
    unmodified from the standalone tool. */
-window.exportOricard=function(){return {state,canvas,COLORS,CNAME};};
+window.exportOricard=function(){return {state,canvas:viewCanvas,COLORS,CNAME};};
 
 /* deck-viewer側が同じカードプール内の既存カードの「特徴」を渡すためのフック。
    渡された値は#traitsのdatalistに反映され、入力欄クリック時に候補として出る。 */
