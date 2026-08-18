@@ -16,3 +16,10 @@ data/cards.json
 data/cardpools.json
 data/decks/*
 !data/decks/.gitkeep
+
+# オリカメーカー(UA-maker)統合: materials一式は公式カードから切り出したと見られる
+# 素材を含むため、著作権上publicリポジトリにも配布用exeにも含めない(ローカル限定
+# 機能。詳細はCLAUDE.md参照)。npm run build:exe で配布用exeを作る前には
+# public/oricard/ を必ず退避すること。
+public/oricard/
+oricard-source/

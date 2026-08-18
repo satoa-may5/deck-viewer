@@ -1172,6 +1172,109 @@ document.getElementById("add-choice-bulk-btn").addEventListener("click", () => {
   closeAddChoiceModal();
   openBulkAddModal();
 });
+document.getElementById("add-choice-oricard-btn").addEventListener("click", () => {
+  closeAddChoiceModal();
+  openOricardModal();
+});
+
+// ---- オリカを追加(UA-makerを別ファイルのiframeとして埋め込む) ----
+//
+// このマシン専用の機能。public/oricard/(index.html + materials.js)は
+// 公式カードから切り出したと見られる素材を含むため、著作権上.gitignoreで
+// 除外していて、public化されているこのリポジトリにも配布用exeにも入らない。
+// 存在しない環境(他の人がリポジトリをcloneした場合など)では「利用不可」の
+// メッセージだけ出して静かに機能を諦める。
+
+const oricardModal = document.getElementById("oricard-modal");
+const oricardFrame = document.getElementById("oricard-frame");
+const oricardUnavailable = document.getElementById("oricard-unavailable");
+const oricardStatus = document.getElementById("oricard-status");
+const oricardAddBtn = document.getElementById("oricard-add-btn");
+
+async function openOricardModal() {
+  oricardStatus.textContent = "";
+  oricardStatus.className = "status-message";
+  oricardUnavailable.hidden = true;
+  oricardFrame.hidden = false;
+  oricardAddBtn.disabled = false;
+  let available = true;
+  try {
+    const res = await fetch("oricard/index.html", { method: "HEAD" });
+    available = res.ok;
+  } catch (err) {
+    available = false;
+  }
+  if (available) {
+    // 前回開いた時の入力を残さない、毎回まっさらな状態で開く。
+    oricardFrame.src = `oricard/index.html?_=${Date.now()}`;
+  } else {
+    oricardFrame.hidden = true;
+    oricardUnavailable.hidden = false;
+    oricardAddBtn.disabled = true;
+  }
+  oricardModal.hidden = false;
+}
+
+function closeOricardModal() {
+  oricardModal.hidden = true;
+  oricardFrame.src = "about:blank"; // 4.5MBのmaterials.jsをメモリに残さない
+}
+
+document.getElementById("close-oricard-modal-btn").addEventListener("click", closeOricardModal);
+bindModalDismissal(oricardModal, { onCancel: closeOricardModal });
+
+oricardAddBtn.addEventListener("click", async () => {
+  const win = oricardFrame.contentWindow;
+  const exportFn = win && win.exportOricard;
+  if (!exportFn) {
+    oricardStatus.textContent = "オリカメーカーの読み込みが完了していません";
+    oricardStatus.className = "status-message error";
+    return;
+  }
+  // state/canvasはUA-maker側のトップレベルconst/letなのでwindowのプロパティ
+  // としては見えない(iframe.contentWindow.state は常にundefined) -- 唯一
+  // window直下に生やしたexportOricard()経由でだけ読み出せる(oricard/index.html
+  // 末尾のコメント参照)。
+  const { state, canvas, COLORS } = exportFn();
+  // UA-maker側の色キー(B/G/P/R/Y)→このアプリの色表記(赤/青/緑/黄/紫)は、
+  // ハードコードせずUA-maker自身のCOLORS定義(jpラベル)から引く。
+  const colorEntry = COLORS.find((c) => c.k === state.color);
+  const bpSuffix = { plus: "+", minus: "-", plusminus: "±" }[state.bpMod] || "";
+
+  oricardStatus.textContent = "追加中...";
+  oricardStatus.className = "status-message";
+  oricardAddBtn.disabled = true;
+  try {
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("画像の生成に失敗しました"))), "image/png");
+    });
+    const card = await Api.addCard({
+      name: formatCardName(computeNextCardNumber(latestCards)),
+      cardName: state.name || "",
+      type: state.type,
+      cost: state.req,
+      color: colorEntry ? colorEntry.jp : "",
+      trigger: state.trigger === "none" ? "" : state.trigger,
+      ap: state.ap,
+      // BPはUA-maker側もキャラクター以外は非表示・無視しているのに合わせる。
+      bp: state.type === "character" && state.bp ? `${state.bp}${bpSuffix}` : "",
+      attribute: state.hasTraits && state.traits ? [state.traits] : [],
+      generatedEnergy: `${state.gen}${state.addEnergy ? "+" : ""}`,
+      effect: state.effect || "",
+      poolId,
+      imageBlob: blob,
+    });
+    oricardStatus.textContent = `「${displayName(card)}」を登録しました。`;
+    oricardStatus.className = "status-message success";
+    await renderCards();
+    setTimeout(closeOricardModal, 700);
+  } catch (err) {
+    oricardStatus.textContent = err.message;
+    oricardStatus.className = "status-message error";
+  } finally {
+    oricardAddBtn.disabled = false;
+  }
+});
 
 // ---- Bulk add: stage several images, no per-card metadata up front ----
 //

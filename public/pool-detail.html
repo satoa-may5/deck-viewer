@@ -258,8 +258,28 @@
           <button type="button" class="icon-btn" id="close-add-choice-modal-btn">✕</button>
         </div>
         <div class="add-choice-actions">
+          <button type="button" class="btn add-choice-btn" id="add-choice-oricard-btn">オリカを追加する</button>
           <button type="button" class="btn add-choice-btn" id="add-choice-single-btn">カードを1枚追加する</button>
           <button type="button" class="btn add-choice-btn" id="add-choice-bulk-btn">カードを複数枚追加する</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="oricard-modal" hidden>
+      <div class="modal-card oricard-modal-card">
+        <div class="modal-header">
+          <h2>オリカを追加</h2>
+          <button type="button" class="icon-btn" id="close-oricard-modal-btn">✕</button>
+        </div>
+        <div class="oricard-frame-wrap">
+          <iframe id="oricard-frame" class="oricard-frame" title="オリカメーカー"></iframe>
+          <div class="oricard-unavailable" id="oricard-unavailable" hidden>
+            オリカメーカーが見つかりません(このマシン専用の機能です)。
+          </div>
+        </div>
+        <div id="oricard-status" class="status-message"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn primary" id="oricard-add-btn">このカードを追加する</button>
         </div>
       </div>
     </div>
