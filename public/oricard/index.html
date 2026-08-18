@@ -49,6 +49,13 @@
   .seg button{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:7px 12px;font-size:13px;cursor:pointer;font-family:inherit}
   .seg button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
   .hint{font-size:11px;color:var(--sub);margin-top:5px}
+  .suggest-wrap{position:relative}
+  .suggest-list{display:none;position:absolute;left:0;right:0;top:100%;margin-top:4px;
+    background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+    max-height:150px;overflow-y:auto;z-index:20;box-shadow:0 6px 16px rgba(0,0,0,.35)}
+  .suggest-list.show{display:block}
+  .suggest-list .suggest-item{padding:7px 10px;font-size:13px;cursor:pointer}
+  .suggest-list .suggest-item:hover{background:var(--accent);color:#fff}
   .drop{border:1.5px dashed var(--line);border-radius:9px;padding:14px;text-align:center;color:var(--sub);font-size:13px;cursor:pointer;background:var(--panel2)}
   .drop:hover,.drop.hot{border-color:var(--accent);color:var(--txt)} .drop.set{border-style:solid;border-color:#2f9e44;color:#bfe6cc}
   .imgtools{display:none;margin-top:9px}.imgtools.show{display:block}
@@ -169,7 +176,12 @@
       <div class="g tabpanel" data-tab="name">
         <div class="row"><label class="lbl">カード名</label><input type="text" id="name" maxlength="30" placeholder="カード名を入力"></div>
         <div class="row"><label class="check"><input type="checkbox" id="hasTraits"> 特徴を表示</label></div>
-        <div class="row" id="traitsRow" style="display:none"><label class="lbl">特徴</label><input type="text" id="traits" maxlength="30" placeholder="特徴を入力" list="traitsList"><datalist id="traitsList"></datalist></div>
+        <div class="row" id="traitsRow" style="display:none"><label class="lbl">特徴</label>
+          <div class="suggest-wrap">
+            <input type="text" id="traits" maxlength="30" placeholder="特徴を入力" autocomplete="off">
+            <div class="suggest-list" id="traitsSuggestList"></div>
+          </div>
+        </div>
       </div>
 
       <div class="g tabpanel" data-tab="effect">
@@ -939,10 +951,34 @@ function initForm(){$('name').value=state.name;$('traits').value=state.traits;$(
 window.exportOricard=function(){return {state,canvas:viewCanvas,COLORS,CNAME};};
 
 /* deck-viewer側が同じカードプール内の既存カードの「特徴」を渡すためのフック。
-   渡された値は#traitsのdatalistに反映され、入力欄クリック時に候補として出る。 */
+   ブラウザ標準のdatalist(矢印が出る・幅や高さを揃えられない・スクロールも
+   効かない)ではなく、自前のドロップダウンで候補を表示する。 */
+let traitSuggestions=[];
+const traitsInput=$('traits'), traitsSuggestList=$('traitsSuggestList');
+function renderTraitSuggestions(){
+  const q=traitsInput.value.trim();
+  const items=q?traitSuggestions.filter(t=>t.includes(q)):traitSuggestions;
+  traitsSuggestList.innerHTML='';
+  if(items.length===0){ traitsSuggestList.classList.remove('show'); return; }
+  items.forEach(v=>{
+    const el=document.createElement('div');
+    el.className='suggest-item';
+    el.textContent=v;
+    el.onclick=()=>{
+      traitsInput.value=v; state.traits=v;
+      traitsSuggestList.classList.remove('show');
+      render();
+    };
+    traitsSuggestList.appendChild(el);
+  });
+  traitsSuggestList.classList.add('show');
+}
+traitsInput.addEventListener('focus',renderTraitSuggestions);
+traitsInput.addEventListener('input',renderTraitSuggestions);
+document.addEventListener('click',(e)=>{
+  if(!e.target.closest('.suggest-wrap')) traitsSuggestList.classList.remove('show');
+});
 window.setTraitSuggestions=function(list){
-  const dl=$('traitsList'); if(!dl) return;
-  dl.innerHTML='';
-  (list||[]).forEach(v=>{ const o=document.createElement('option'); o.value=v; dl.appendChild(o); });
+  traitSuggestions=(list||[]).slice();
 };
 </script>
