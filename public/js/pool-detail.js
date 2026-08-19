@@ -1205,6 +1205,7 @@ const oricardPngBtn = document.getElementById("oricard-png-btn");
 const oricardJsonSaveBtn = document.getElementById("oricard-json-save-btn");
 const oricardJsonLoadBtn = document.getElementById("oricard-json-load-btn");
 const oricardJsonFile = document.getElementById("oricard-json-file");
+let oricardOpenToken = 0;
 
 async function openOricardModal() {
   oricardStatus.textContent = "";
@@ -1221,14 +1222,18 @@ async function openOricardModal() {
   }
   if (available) {
     // 前回開いた時の入力を残さない、毎回まっさらな状態で開く。
+    // closeOricardModal()のsrc="about:blank"でもonloadは発火するので、この回の
+    // オープンを表すトークンを持たせ、閉じた後のポーリングが走り続けないようにする。
+    const openToken = ++oricardOpenToken;
     oricardFrame.onload = () => {
       const win = oricardFrame.contentWindow;
-      if (!win) return;
+      if (!win || openToken !== oricardOpenToken) return;
       // oricard/index.html側は素材(200枚超)を非同期で読み込んでおり、iframeの
       // load イベント自体はその完了を待たない。読み込み完了前にスタイルを
       // 適用すると、後から終わる非同期処理(initForm→render)に上書きされて
       // 何も反映されないことがあったため、window.oricardReady が立つまで待つ。
       const applyWhenReady = () => {
+        if (openToken !== oricardOpenToken) return; // 閉じられた/開き直された
         if (!win.oricardReady) {
           setTimeout(applyWhenReady, 50);
           return;
@@ -1275,6 +1280,7 @@ async function openOricardModal() {
 }
 
 function closeOricardModal() {
+  oricardOpenToken++; // 実行中のapplyWhenReadyポーリングを打ち切る
   oricardModal.hidden = true;
   oricardFrame.src = "about:blank"; // 4.5MBのmaterials.jsをメモリに残さない
   document.body.style.overflow = "";

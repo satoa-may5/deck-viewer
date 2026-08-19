@@ -847,7 +847,12 @@ function insEffect(t){const ta=$('effect');const s=ta.selectionStart??ta.value.l
 function makeIllustration(key){
   const drop=$(`drop-${key}`), file=$(`file-${key}`), tools=$(`imgtools-${key}`);
   const zoomEl=$(`zoom-${key}`), panxEl=$(`panx-${key}`), panyEl=$(`pany-${key}`), clearBtn=$(`clear-${key}`);
-  const st=state.illust[key];
+  /* state.illust[key]のオブジェクト参照をここでキャプチャしてはいけない。
+     applyOricardStyle()やapplyState()はstate.illust[key]を新しいオブジェクトで
+     「置き換える」ため、キャプチャしていると以降ずっと古い(空の)オブジェクトを
+     読み続けることになり、スタイルを適用してもrestore()がst.data=nullを見て
+     画像をクリアしてしまう(＝背景がデフォルトの灰色に戻る)。毎回引き直す。 */
+  const st=()=>state.illust[key];
   let img=null;
   drop.onclick=()=>file.click();
   drop.ondragover=e=>{e.preventDefault();drop.classList.add('hot');};
@@ -855,20 +860,21 @@ function makeIllustration(key){
   drop.ondrop=e=>{e.preventDefault();drop.classList.remove('hot');if(e.dataTransfer.files[0])load(e.dataTransfer.files[0]);};
   file.onchange=e=>{if(e.target.files[0])load(e.target.files[0]);};
   function load(f){if(!f.type.startsWith('image/'))return;const r=new FileReader();r.onload=ev=>set(ev.target.result);r.readAsDataURL(f);}
-  function set(u){const im=new Image();im.onload=()=>{img=im;st.data=u;tools.classList.add('show');drop.classList.add('set');render();};im.src=u;}
-  zoomEl.oninput=e=>{st.zoom=+e.target.value;render();};
-  panxEl.oninput=e=>{st.panx=+e.target.value;render();};
-  panyEl.oninput=e=>{st.pany=+e.target.value;render();};
-  clearBtn.onclick=()=>{img=null;st.data=null;file.value='';tools.classList.remove('show');drop.classList.remove('set');render();};
+  function set(u){const im=new Image();im.onload=()=>{img=im;st().data=u;tools.classList.add('show');drop.classList.add('set');render();};im.src=u;}
+  zoomEl.oninput=e=>{st().zoom=+e.target.value;render();};
+  panxEl.oninput=e=>{st().panx=+e.target.value;render();};
+  panyEl.oninput=e=>{st().pany=+e.target.value;render();};
+  clearBtn.onclick=()=>{img=null;st().data=null;file.value='';tools.classList.remove('show');drop.classList.remove('set');render();};
   return {
     get img(){return img;},
-    getState(){return st;},
+    getState(){return st();},
     restore(){
-      zoomEl.value=st.zoom; panxEl.value=st.panx; panyEl.value=st.pany;
-      if(st.data){
+      const s=st();
+      zoomEl.value=s.zoom; panxEl.value=s.panx; panyEl.value=s.pany;
+      if(s.data){
         const im=new Image();
         im.onload=()=>{img=im;render();};
-        im.src=st.data;
+        im.src=s.data;
         tools.classList.add('show'); drop.classList.add('set');
       } else {
         img=null; tools.classList.remove('show'); drop.classList.remove('set');
