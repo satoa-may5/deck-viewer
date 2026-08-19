@@ -43,6 +43,12 @@
     <div class="content-with-filter">
       <div class="content-main">
         <div id="card-list"></div>
+
+        <button type="button" class="card-style-summary" id="card-style-summary">
+          <span class="card-style-label">カードスタイル</span>
+          <span class="card-style-preview" id="card-style-preview"></span>
+          <span class="card-style-state" id="card-style-state"></span>
+        </button>
       </div>
 
       <aside class="filter-sidebar" id="filter-bar">
@@ -287,6 +293,28 @@
             <input type="file" id="oricard-json-file" accept="application/json,.json" hidden>
           </div>
           <button type="button" class="btn primary" id="oricard-add-btn">このカードを追加する</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="card-style-modal" hidden>
+      <div class="modal-card oricard-modal-card">
+        <div class="modal-header">
+          <h2>カードスタイルを編集</h2>
+          <button type="button" class="icon-btn" id="close-card-style-modal-btn">✕</button>
+        </div>
+        <div class="oricard-frame-wrap">
+          <iframe id="card-style-frame" class="oricard-frame" title="カードスタイル編集"></iframe>
+          <div class="oricard-unavailable" id="card-style-unavailable" hidden>
+            オリカメーカーが見つかりません。
+          </div>
+        </div>
+        <div id="card-style-status" class="status-message"></div>
+        <div class="modal-actions">
+          <div class="oricard-save-load-group">
+            <button type="button" class="btn danger" id="card-style-clear-btn">スタイルを解除</button>
+          </div>
+          <button type="button" class="btn primary" id="card-style-save-btn">保存する</button>
         </div>
       </div>
     </div>

@@ -241,11 +241,15 @@ app.patch("/api/pools/:id", (req, res) => {
       pool.thumbnailCardId = thumbnailCardId;
     }
   }
-  // オリカメーカー(このマシン専用機能)の「カードプールにこのスタイルを保存」用。
+  // オリカメーカーの「カードプールにこのスタイルを保存」用。
   // 中身(カード名/背景/テキストエリアイラストやフレーム色など)はoricard側だけが
   // 解釈する不透明なオブジェクトとして、そのまま保存/上書きする。nullで解除。
   if (req.body.oricardStyle !== undefined) {
-    pool.oricardStyle = req.body.oricardStyle;
+    if (req.body.oricardStyle === null) {
+      delete pool.oricardStyle; // 解除時はキーごと消す(nullを残さない)
+    } else {
+      pool.oricardStyle = req.body.oricardStyle;
+    }
   }
   writePools(pools);
   res.json(pool);

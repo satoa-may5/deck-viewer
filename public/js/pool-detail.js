@@ -1377,13 +1377,13 @@ oricardAddBtn.addEventListener("click", async () => {
 // カードプールに保存し、次回オリカメーカーを開いたときに自動適用されるようにする。
 // oricard側の「カードプールにこのスタイルを保存」ボタン(window.onSaveStyleClick)
 // から呼ばれる。戻り値の文字列がそのままoricard側のステータス表示に使われる。
-async function saveOricardStyleToPool() {
-  const win = oricardFrame.contentWindow;
+async function saveOricardStyleToPool(frame = oricardFrame, { confirmOverwrite = true } = {}) {
+  const win = frame.contentWindow;
   if (!win || typeof win.getOricardStyle !== "function") {
     throw new Error("読み込みが完了していません");
   }
   let applyGoingForward = true;
-  if (currentPool.oricardStyle) {
+  if (confirmOverwrite && currentPool.oricardStyle) {
     const result = await showConfirm("現在保存されているスタイルは消えますが、よろしいですか？", {
       confirmText: "保存する",
       cancelText: "キャンセル",
@@ -1393,10 +1393,19 @@ async function saveOricardStyleToPool() {
     });
     if (!result.confirmed) return "";
     applyGoingForward = result.checked;
+  } else if (currentPool.oricardStyle) {
+    // 上書き確認を出さない場合(スタイル編集モーダル)は、既存の適用ON/OFFを引き継ぐ。
+    applyGoingForward = currentPool.oricardStyle.enabled !== false;
   }
   const style = win.getOricardStyle();
   style.enabled = applyGoingForward;
+  // 一覧に小さく出すためのプレビュー画像を一緒に保存しておく(表示のたびに
+  // 4.6MBのオリカメーカーを読み込み直さずに済ませるため)。
+  if (typeof win.getStylePreviewDataUrl === "function") {
+    style.previewImage = win.getStylePreviewDataUrl(120);
+  }
   currentPool = await Api.updatePool(poolId, { oricardStyle: style });
+  renderCardStyleSummary();
   return "カードプールにスタイルを保存しました";
 }
 
@@ -1425,6 +1434,120 @@ oricardJsonFile.addEventListener("change", (e) => {
     }
   };
   reader.readAsText(file);
+});
+
+// ---- カードスタイル(カード一覧の下の行 + 専用の編集モーダル) ----
+//
+// 「オリカを追加」画面はカード1枚を作る画面なので、スタイルだけを直したいときに
+// 使うには余計な入力欄が多い。ここでは同じオリカメーカーをstyleOnlyモードで開き、
+// スタイルに含まれる4項目(カード名イラスト・枠の色/明度・背景イラスト・
+// テキストエリアイラスト)だけを編集できるようにしている。
+
+const cardStyleSummary = document.getElementById("card-style-summary");
+const cardStylePreview = document.getElementById("card-style-preview");
+const cardStyleState = document.getElementById("card-style-state");
+const cardStyleModal = document.getElementById("card-style-modal");
+const cardStyleFrame = document.getElementById("card-style-frame");
+const cardStyleUnavailable = document.getElementById("card-style-unavailable");
+const cardStyleStatus = document.getElementById("card-style-status");
+const cardStyleSaveBtn = document.getElementById("card-style-save-btn");
+const cardStyleClearBtn = document.getElementById("card-style-clear-btn");
+let cardStyleOpenToken = 0;
+
+function renderCardStyleSummary() {
+  const style = currentPool && currentPool.oricardStyle;
+  if (!style) {
+    cardStylePreview.style.backgroundImage = "";
+    cardStyleState.textContent = "未設定";
+    return;
+  }
+  // previewImageはこの機能を入れる前に保存されたスタイルには無いので、
+  // その場合は背景イラストで代用する(次に保存し直せば正式なプレビューになる)。
+  const src = style.previewImage || (style.bgIllust && style.bgIllust.data);
+  cardStylePreview.style.backgroundImage = src ? `url("${src}")` : "";
+  cardStyleState.textContent = style.enabled === false ? "設定済み(自動適用オフ)" : "設定済み";
+}
+
+async function openCardStyleModal() {
+  cardStyleStatus.textContent = "";
+  cardStyleStatus.className = "status-message";
+  cardStyleUnavailable.hidden = true;
+  cardStyleFrame.hidden = false;
+  cardStyleSaveBtn.disabled = false;
+  cardStyleClearBtn.hidden = !(currentPool && currentPool.oricardStyle);
+
+  let available = true;
+  try {
+    const res = await fetch("oricard/index.html", { method: "HEAD" });
+    available = res.ok;
+  } catch (err) {
+    available = false;
+  }
+  if (!available) {
+    cardStyleFrame.hidden = true;
+    cardStyleUnavailable.hidden = false;
+    cardStyleSaveBtn.disabled = true;
+    cardStyleModal.hidden = false;
+    document.body.style.overflow = "hidden";
+    return;
+  }
+
+  const openToken = ++cardStyleOpenToken;
+  cardStyleFrame.onload = () => {
+    const win = cardStyleFrame.contentWindow;
+    if (!win || openToken !== cardStyleOpenToken) return;
+    const applyWhenReady = () => {
+      if (openToken !== cardStyleOpenToken) return;
+      if (!win.oricardReady) {
+        setTimeout(applyWhenReady, 50);
+        return;
+      }
+      if (typeof win.setStyleOnlyMode === "function") win.setStyleOnlyMode(true);
+      if (currentPool && currentPool.oricardStyle && typeof win.applyOricardStyle === "function") {
+        win.applyOricardStyle(currentPool.oricardStyle);
+      }
+    };
+    applyWhenReady();
+  };
+  cardStyleFrame.src = `oricard/index.html?_=${Date.now()}`;
+  cardStyleModal.hidden = false;
+  document.body.style.overflow = "hidden";
+}
+
+function closeCardStyleModal() {
+  cardStyleOpenToken++;
+  cardStyleModal.hidden = true;
+  cardStyleFrame.src = "about:blank";
+  document.body.style.overflow = "";
+}
+
+cardStyleSummary.addEventListener("click", openCardStyleModal);
+document.getElementById("close-card-style-modal-btn").addEventListener("click", closeCardStyleModal);
+
+cardStyleSaveBtn.addEventListener("click", async () => {
+  cardStyleStatus.textContent = "保存中...";
+  cardStyleStatus.className = "status-message";
+  cardStyleSaveBtn.disabled = true;
+  try {
+    // このモーダルはスタイルを編集するためだけの画面なので、上書き確認は出さない
+    // (「オリカを追加」画面からの保存と違い、上書きこそがこの画面の目的のため)。
+    const msg = await saveOricardStyleToPool(cardStyleFrame, { confirmOverwrite: false });
+    cardStyleStatus.textContent = msg;
+    cardStyleStatus.className = "status-message success";
+    setTimeout(closeCardStyleModal, 700);
+  } catch (err) {
+    cardStyleStatus.textContent = err.message;
+    cardStyleStatus.className = "status-message error";
+  } finally {
+    cardStyleSaveBtn.disabled = false;
+  }
+});
+
+cardStyleClearBtn.addEventListener("click", async () => {
+  if (!(await showConfirm("このカードプールのカードスタイルを解除します。よろしいですか?"))) return;
+  currentPool = await Api.updatePool(poolId, { oricardStyle: null });
+  renderCardStyleSummary();
+  closeCardStyleModal();
 });
 
 // ---- Bulk add: stage several images, no per-card metadata up front ----
@@ -1671,6 +1794,7 @@ async function init() {
   }
   currentPool = pool;
   nameInput.value = pool.name;
+  renderCardStyleSummary();
   await renderCards();
 }
 

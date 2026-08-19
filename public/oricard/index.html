@@ -1013,6 +1013,28 @@ window.applyOricardStyle=function(style){
   illustName.restore();illustBg.restore();illustTextarea.restore();
   render();
 };
+/* スタイル編集専用モード：カードスタイル(カード名イラスト・枠の色/明度・背景
+   イラスト・テキストエリアイラスト)だけを触れるようにし、個別カード用の入力
+   (カード名・効果・種類・コスト・BP等)とカードイラストは隠す。
+   deck-viewer側の「カードスタイル」編集モーダルから呼ばれる。 */
+window.setStyleOnlyMode=function(on){
+  tabbar.hidden=!!on;
+  /* カードイラストは個別カードごとの絵なのでスタイルには含めない */
+  const cardSlot=$('drop-card').closest('.subg');
+  if(cardSlot) cardSlot.style.display=on?'none':'';
+  $('saveStyleBtn').style.display=on?'none':''; /* 保存は親モーダルのボタンで行う */
+  if(on) switchTab('illust');
+};
+
+/* 保存済みスタイルの一覧表示用に、現在のプレビューを縮小したPNGを返す。 */
+window.getStylePreviewDataUrl=function(maxW){
+  const w=maxW||120, h=Math.round(w*VIEW_H/CW);
+  const oc=document.createElement('canvas'); oc.width=w; oc.height=h;
+  const octx=oc.getContext('2d');
+  octx.drawImage(viewCanvas,0,0,w,h);
+  return oc.toDataURL('image/png');
+};
+
 $('saveStyleBtn').onclick=async ()=>{
   const statusEl=$('styleSaveStatus');
   if(typeof window.onSaveStyleClick!=='function'){

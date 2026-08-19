@@ -3039,6 +3039,52 @@ button {
   background: var(--surface-2);
 }
 
+/* カード一覧の下に置く「カードスタイル」行(クリックで編集モーダルを開く) */
+.card-style-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 18px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.card-style-summary:hover {
+  border-color: var(--accent);
+}
+
+.card-style-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+/* 保存済みスタイルのミニプレビュー(カード比率のまま小さく表示する) */
+.card-style-preview {
+  display: block;
+  width: 34px;
+  aspect-ratio: 600 / 837;
+  border-radius: 3px;
+  background: var(--surface-2);
+  background-size: cover;
+  background-position: center;
+  flex: 0 0 auto;
+}
+
+.card-style-state {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-left: auto;
+}
+
 .oricard-save-load-group {
   display: flex;
   gap: 10px;
