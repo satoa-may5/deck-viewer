@@ -3039,14 +3039,15 @@ button {
   background: var(--surface-2);
 }
 
-/* カード一覧の下に置く「カードスタイル」行(クリックで編集モーダルを開く) */
+/* フィルターサイドバー(240px)の「サムネイルを設定」の下に置く「カードスタイル」。
+   クリックでスタイル編集モーダルを開く。幅が狭いので、ラベル+状態を縦に積み、
+   左にミニプレビューを並べる2カラム構成にしている。 */
 .card-style-summary {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  margin-top: 18px;
-  padding: 10px 14px;
+  padding: 8px 10px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -3060,29 +3061,34 @@ button {
   border-color: var(--accent);
 }
 
-.card-style-label {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--muted);
-  letter-spacing: 0.04em;
-}
-
 /* 保存済みスタイルのミニプレビュー(カード比率のまま小さく表示する) */
 .card-style-preview {
   display: block;
-  width: 34px;
+  width: 30px;
   aspect-ratio: 600 / 837;
   border-radius: 3px;
+  border: 1px solid var(--border);
   background: var(--surface-2);
   background-size: cover;
   background-position: center;
   flex: 0 0 auto;
 }
 
+.card-style-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.card-style-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
 .card-style-state {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--muted);
-  margin-left: auto;
 }
 
 .oricard-save-load-group {

@@ -28,3 +28,9 @@ data/decks/*
 # 追跡対象。oricard-source/(materials.js再生成用の生素材フォルダ、pool-exports/と
 # 同じ位置づけの作業用データ)は引き続きgit管理外。
 oricard-source/
+
+# pool-exports/ は配布ラインナップの`.dvpool`と`index.json`だけをgit管理する。
+# その隣にある`<名前>/`(manifest.json + images/ の生データ。`.dvpool`を作り直す
+# ときの元データ)は管理外(READMEにもそう書いてある)。ディレクトリだけを対象に
+# するので`.dvpool`/`index.json`はそのまま追跡される。
+pool-exports/*/

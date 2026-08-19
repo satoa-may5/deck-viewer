@@ -1638,6 +1638,31 @@ Claude(画像認識による見た目の印象)だけを根拠にしており、
   `GET /api/pools`が空配列を返すか」で確認する(開発者のプール一覧が入っていたら
   退避が効いていない)。
 
+### 事故: ビルドが`dist/deck-viewer-<version>/`のデータを消していた
+
+上記の退避を入れた直後、ユーザーから「`dist/deck-viewer-1.1.0`にdata/imagesが
+戻っていない」という指摘があり発覚した。**退避すべき対象はプロジェクト直下の
+`data/`・`images/`だけではなかった**。
+
+`package-release.js`は元々`fs.rmSync(releaseDir, {recursive:true})`で
+`dist/deck-viewer-<version>/`をフォルダごと消してからビルドしていた。ところが
+ユーザーはそのフォルダのexeを普段使いのアプリとして起動しており、exeは自分の隣に
+`data/`・`images/`を作るので、**ビルドのたびにそこに溜めた実カードデータが
+消えていた**(実際に仮面ライダー296枚のプールを消してしまった)。
+
+修正: `releaseDir`をフォルダごと消すのをやめ、差し替えるのは`exePath`(exe本体)
+だけにした。ただしそれだけだと`zip.addLocalFolder(releaseDir)`が隣のdata/images
+まで配布zipに巻き込んでしまうため、zip作成も`zip.addLocalFile(exePath, releaseName)`
+に変更し、**zipにはexe1個だけ**が入るようにした(zip内の階層は従来と同じ
+`deck-viewer-<version>/deck-viewer-<version>.exe`)。使い捨てのバージョン番号で、
+(1)releaseDir内のダミーデータが残ること (2)zipの中身がexe1件だけであること、を
+`unzip -l`で確認済み。
+
+**教訓**: 「ビルド成果物フォルダ」は開発者にとっては使い捨てでも、そこのexeを
+普段使いしていればユーザーデータの置き場でもある。ビルドスクリプトで
+`rmSync(recursive)`する対象は、実行前に「そこに人が作ったデータが入っていないか」
+を必ず疑うこと。
+
 ## 「ビルドは勝手にしていい」の標準許可(2026-08-19)
 
 コミット/プッシュに続き、「ビルドとかも勝手にしてね」という明示的な標準許可を得た。

@@ -76,8 +76,11 @@ recoverAbandonedStash();
 
 const stashed = stashUserData();
 try {
-  fs.rmSync(releaseDir, { recursive: true, force: true });
+  // releaseDirはフォルダごと消さないこと。ここのexeをそのまま普段使いしている場合、
+  // 隣に data/ images/ が生成されていて、消すとそのカードデータごと失われる
+  // (実際に一度やってしまった)。差し替えるのはexe本体だけにする。
   fs.mkdirSync(releaseDir, { recursive: true });
+  fs.rmSync(exePath, { force: true });
 
   console.log(`pkgでビルド中: ${exePath}`);
   execFileSync(
@@ -86,10 +89,12 @@ try {
     { cwd: ROOT, stdio: "inherit", shell: true }
   );
 
+  // 配布zipにはexeだけを入れる。releaseDirをまるごと固めると、上記の
+  // data/ images/(普段使いで溜めた自分のカードデータ)が配布物に混入してしまう。
   console.log(`zip化中: ${zipPath}`);
   fs.rmSync(zipPath, { force: true });
   const zip = new AdmZip();
-  zip.addLocalFolder(releaseDir, releaseName);
+  zip.addLocalFile(exePath, releaseName);
   zip.writeZip(zipPath);
 
   console.log(`完了: ${zipPath}`);
