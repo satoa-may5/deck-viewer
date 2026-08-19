@@ -1402,7 +1402,8 @@ async function saveOricardStyleToPool(frame = oricardFrame, { confirmOverwrite =
   // 一覧に小さく出すためのプレビュー画像を一緒に保存しておく(表示のたびに
   // 4.6MBのオリカメーカーを読み込み直さずに済ませるため)。
   if (typeof win.getStylePreviewDataUrl === "function") {
-    style.previewImage = win.getStylePreviewDataUrl(120);
+    // 表示は130px幅なので、高DPI環境でぼやけないよう2倍の解像度で持っておく。
+    style.previewImage = win.getStylePreviewDataUrl(260);
   }
   currentPool = await Api.updatePool(poolId, { oricardStyle: style });
   renderCardStyleSummary();

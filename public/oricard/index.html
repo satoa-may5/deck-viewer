@@ -237,6 +237,11 @@
   <div class="preview">
     <canvas id="card" width="600" height="837"></canvas>
     <div id="status">素材を読み込み中…</div>
+    <div class="note" id="styleOnlyNote" hidden>
+      この画面ではカード名イラスト・背景イラスト・テキストエリアイラストと<br>
+      枠の色/明度のみが変更されます。<br>
+      それ以外(カード名・効果テキスト・コストなど)はプレビュー用の表示です。
+    </div>
     <button type="button" class="ghost" id="saveStyleBtn">カードプールにこのスタイルを保存</button>
     <div id="styleSaveStatus" class="hint"></div>
     <div class="note"></div>
@@ -1023,6 +1028,7 @@ window.setStyleOnlyMode=function(on){
   const cardSlot=$('drop-card').closest('.subg');
   if(cardSlot) cardSlot.style.display=on?'none':'';
   $('saveStyleBtn').style.display=on?'none':''; /* 保存は親モーダルのボタンで行う */
+  $('styleOnlyNote').hidden=!on;
   if(on) switchTab('illust');
 };
 

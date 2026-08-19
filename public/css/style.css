@@ -3040,45 +3040,39 @@ button {
 }
 
 /* フィルターサイドバー(240px)の「サムネイルを設定」の下に置く「カードスタイル」。
-   クリックでスタイル編集モーダルを開く。幅が狭いので、ラベル+状態を縦に積み、
-   左にミニプレビューを並べる2カラム構成にしている。 */
+   クリックでスタイル編集モーダルを開く。「カードスタイル」→カードのプレビュー→
+   「設定済み/未設定」を縦に積む。 */
 .card-style-summary {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
-  padding: 8px 10px;
+  padding: 12px 10px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   cursor: pointer;
   font: inherit;
   color: inherit;
-  text-align: left;
 }
 
 .card-style-summary:hover {
   border-color: var(--accent);
 }
 
-/* 保存済みスタイルのミニプレビュー(カード比率のまま小さく表示する) */
+/* 保存済みスタイルのプレビュー(カード比率のまま表示する) */
 .card-style-preview {
   display: block;
-  width: 30px;
+  width: 130px;
+  max-width: 100%;
   aspect-ratio: 600 / 837;
-  border-radius: 3px;
+  border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface-2);
   background-size: cover;
   background-position: center;
   flex: 0 0 auto;
-}
-
-.card-style-text {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
 }
 
 .card-style-label {
@@ -3087,7 +3081,7 @@ button {
 }
 
 .card-style-state {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: var(--muted);
 }
 
