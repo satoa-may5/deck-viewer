@@ -974,6 +974,7 @@ function parseAttributeInput(value) {
     .filter(Boolean);
 }
 const modalSaveBtn = document.getElementById("modal-save-btn");
+const modalDeleteBtn = document.getElementById("modal-delete-btn");
 const modalStatus = document.getElementById("modal-status");
 const modalActionsNormal = document.getElementById("modal-actions-normal");
 
@@ -1102,6 +1103,7 @@ function openAddCardModal() {
   modalEffectInput.value = "";
   setModalStatus("", "");
   modalTitle.textContent = "カードを追加";
+  modalDeleteBtn.hidden = true;
   showImagePlaceholder();
   modal.hidden = false;
 }
@@ -1126,9 +1128,18 @@ function openEditCardModal(card) {
   modalEffectInput.value = card.effect || "";
   setModalStatus("", "");
   modalTitle.textContent = "カードを編集";
+  modalDeleteBtn.hidden = false;
   showImagePreview(Api.cardImageUrl(card));
   modal.hidden = false;
 }
+
+modalDeleteBtn.addEventListener("click", async () => {
+  if (!editingCard) return;
+  if (!(await showConfirm(`「${displayName(editingCard)}」を削除します。よろしいですか?`))) return;
+  await Api.deleteCard(editingCard.id);
+  closeAddCardModal();
+  await renderCards();
+});
 
 function closeAddCardModal() {
   modal.hidden = true;
@@ -1274,17 +1285,12 @@ function closeOricardModal() {
 // 記録しておき、「編集内容あり」の判定はそこからの差分だけで行う。スタイルが
 // 自動適用されただけの状態(name/illustが埋まっている)を「編集済み」と誤判定して
 // 毎回確認ダイアログを出してしまう不具合があったための対応。
+// state全体(BP・レイド・トリガー・色なども含む)を比較対象にする -- 一部の
+// フィールドだけを抜き出していたところ、そこに含まれていないフィールド
+// (BP・レイドなど)を変更しても「編集なし」と誤判定される不具合があった。
 let oricardBaselineSnapshot = null;
 function snapshotOricardState(state) {
-  return JSON.stringify({
-    name: state.name,
-    effect: state.effect,
-    traits: state.traits,
-    hasTraits: state.hasTraits,
-    illust: state.illust,
-    nameFrameColor: state.nameFrameColor,
-    nameFrameBrightness: state.nameFrameBrightness,
-  });
+  return JSON.stringify(state);
 }
 function oricardModalHasEdits() {
   const win = oricardFrame.contentWindow;
