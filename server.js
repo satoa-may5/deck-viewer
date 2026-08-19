@@ -127,7 +127,9 @@ function uniqueId(prefix, takenIds) {
 }
 
 const app = express();
-app.use(express.json());
+// オリカメーカーのスタイル保存(カード名/背景/テキストエリアイラストをbase64の
+// data URLとしてpools.jsonに埋め込む)がデフォルトの100kbを超えることがあるため拡張。
+app.use(express.json({ limit: "25mb" }));
 app.use(express.static(path.join(ASSETS_ROOT, "public")));
 app.use("/images", express.static(IMAGES_DIR));
 
@@ -238,6 +240,12 @@ app.patch("/api/pools/:id", (req, res) => {
       }
       pool.thumbnailCardId = thumbnailCardId;
     }
+  }
+  // オリカメーカー(このマシン専用機能)の「カードプールにこのスタイルを保存」用。
+  // 中身(カード名/背景/テキストエリアイラストやフレーム色など)はoricard側だけが
+  // 解釈する不透明なオブジェクトとして、そのまま保存/上書きする。nullで解除。
+  if (req.body.oricardStyle !== undefined) {
+    pool.oricardStyle = req.body.oricardStyle;
   }
   writePools(pools);
   res.json(pool);

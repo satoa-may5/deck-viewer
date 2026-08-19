@@ -1190,6 +1190,10 @@ const oricardFrame = document.getElementById("oricard-frame");
 const oricardUnavailable = document.getElementById("oricard-unavailable");
 const oricardStatus = document.getElementById("oricard-status");
 const oricardAddBtn = document.getElementById("oricard-add-btn");
+const oricardPngBtn = document.getElementById("oricard-png-btn");
+const oricardJsonSaveBtn = document.getElementById("oricard-json-save-btn");
+const oricardJsonLoadBtn = document.getElementById("oricard-json-load-btn");
+const oricardJsonFile = document.getElementById("oricard-json-file");
 
 async function openOricardModal() {
   oricardStatus.textContent = "";
@@ -1217,6 +1221,18 @@ async function openOricardModal() {
           for (const a of card.attribute || []) traits.add(a);
         }
         win.setTraitSuggestions([...traits].sort());
+      }
+      // このカードプールに保存済みの「スタイル」(カード名イラスト・枠の色/明度・
+      // 背景イラスト・テキストエリアイラスト)があれば自動的に適用する。
+      if (win && currentPool && currentPool.oricardStyle && currentPool.oricardStyle.enabled !== false) {
+        if (typeof win.applyOricardStyle === "function") {
+          win.applyOricardStyle(currentPool.oricardStyle);
+        }
+      }
+      // 「カードプールにこのスタイルを保存」ボタン(oricard側のUI)からの
+      // 呼び出しを受け取るフック。実際の保存処理はpoolIdを知っているこちら側で行う。
+      if (win) {
+        win.onSaveStyleClick = saveOricardStyleToPool;
       }
     };
     oricardFrame.src = `oricard/index.html?_=${Date.now()}`;
@@ -1317,6 +1333,60 @@ oricardAddBtn.addEventListener("click", async () => {
   } finally {
     oricardAddBtn.disabled = false;
   }
+});
+
+// カード名イラスト・枠の色/明度・背景イラスト・テキストエリアイラストをこの
+// カードプールに保存し、次回オリカメーカーを開いたときに自動適用されるようにする。
+// oricard側の「カードプールにこのスタイルを保存」ボタン(window.onSaveStyleClick)
+// から呼ばれる。戻り値の文字列がそのままoricard側のステータス表示に使われる。
+async function saveOricardStyleToPool() {
+  const win = oricardFrame.contentWindow;
+  if (!win || typeof win.getOricardStyle !== "function") {
+    throw new Error("読み込みが完了していません");
+  }
+  let applyGoingForward = true;
+  if (currentPool.oricardStyle) {
+    const result = await showConfirm("現在保存されているスタイルは消えますが、よろしいですか？", {
+      confirmText: "保存する",
+      cancelText: "キャンセル",
+      danger: false,
+      checkboxLabel: "全てのオリカにこのスタイルを適用",
+      checkboxDefault: true,
+    });
+    if (!result.confirmed) return "";
+    applyGoingForward = result.checked;
+  }
+  const style = win.getOricardStyle();
+  style.enabled = applyGoingForward;
+  currentPool = await Api.updatePool(poolId, { oricardStyle: style });
+  return "カードプールにスタイルを保存しました";
+}
+
+oricardPngBtn.addEventListener("click", () => {
+  const win = oricardFrame.contentWindow;
+  if (win && typeof win.oricardDownloadPng === "function") win.oricardDownloadPng();
+});
+oricardJsonSaveBtn.addEventListener("click", () => {
+  const win = oricardFrame.contentWindow;
+  if (win && typeof win.oricardSaveJson === "function") win.oricardSaveJson();
+});
+oricardJsonLoadBtn.addEventListener("click", () => oricardJsonFile.click());
+oricardJsonFile.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const win = oricardFrame.contentWindow;
+    if (!win || typeof win.oricardLoadJsonText !== "function") return;
+    try {
+      win.oricardLoadJsonText(ev.target.result);
+    } catch (err) {
+      oricardStatus.textContent = "JSON読込に失敗しました: " + err.message;
+      oricardStatus.className = "status-message error";
+    }
+  };
+  reader.readAsText(file);
 });
 
 // ---- Bulk add: stage several images, no per-card metadata up front ----

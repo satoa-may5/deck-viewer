@@ -11,7 +11,7 @@
   .preview{flex:1 1 380px;min-width:320px;position:sticky;top:20px;display:flex;flex-direction:column;align-items:center;gap:14px}
   .tabbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
   .tabbtn{background:var(--panel2);border:1px solid var(--line);color:var(--sub);border-radius:8px 8px 0 0;padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit}
-  .tabbtn.on{background:var(--panel);color:var(--txt);border-color:var(--accent);font-weight:600}
+  .tabbtn.on{background:linear-gradient(180deg,var(--accent),var(--accent2));color:#fff;border-color:var(--accent);font-weight:700;box-shadow:0 2px 8px rgba(78,161,255,.4)}
   .tabpanels{position:relative}
   .tabpanel{display:none}
   .tabpanel.on{display:block}
@@ -64,13 +64,21 @@
   .check{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}.check input{width:16px;height:16px;accent-color:var(--accent)}
   .sp{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
   .sp button{background:var(--panel2);border:1px solid var(--line);color:var(--sub);border-radius:6px;padding:2px 5px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:flex-end}
+  .sp button.icon-center{align-items:center}
   .sp button:hover{border-color:var(--accent);color:var(--txt)}
   .sp button img{display:block;pointer-events:none;zoom:1.0}
   .btns{display:flex;gap:9px;flex-wrap:wrap}
   button.act{background:linear-gradient(180deg,var(--accent),var(--accent2));color:#fff;border:0;padding:10px 16px;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
   button.ghost{background:var(--panel2);color:var(--txt);border:1px solid var(--line);padding:8px 13px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit}
   button.ghost:hover{border-color:var(--accent)}
-  #card{width:min(420px,90vw);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.5);background:#222;display:block}
+  #card{
+    width:auto;height:auto;
+    max-width:min(420px,90vw);
+    max-height:calc(100vh - 170px); /* プレビュー下のボタン/ステータス分を差し引いた高さに収める。
+                                        これが無いと縦の狭いiframe内でページ自体がスクロールしてしまう */
+    aspect-ratio:600/837;
+    border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.5);background:#222;display:block;
+  }
   #status{font-size:12px;color:var(--sub);text-align:center}
   .note{font-size:11px;color:var(--sub);text-align:center;line-height:1.6}
   .lineOffsets{
@@ -221,20 +229,13 @@
       </div>
     </div>
 
-    <div class="g"><p class="gt">保存 / 読み込み</p>
-      <div class="row btns">
-        <button class="act" id="download">PNG で保存</button>
-        <button class="ghost" id="saveJson">JSON保存</button>
-        <button class="ghost" id="loadJson">JSON読込</button>
-        <button class="ghost" id="reset">リセット</button>
-        <input type="file" id="jsonFile" accept="application/json,.json" style="display:none">
-      </div>
-    </div>
   </div>
 
   <div class="preview">
     <canvas id="card" width="600" height="837"></canvas>
     <div id="status">素材を読み込み中…</div>
+    <button type="button" class="ghost" id="saveStyleBtn">カードプールにこのスタイルを保存</button>
+    <div id="styleSaveStatus" class="hint"></div>
     <div class="note"></div>
   </div>
 </div>
@@ -697,24 +698,23 @@ function drawNameFrame(){
 function render(){
   ctx.clearRect(0,0,CW,CH);
 
+  /* 背景イラストのすぐ上に、カード/カード名/テキストエリアの3イラストを
+     まとめて貼る。それ以外のパーツ(色フレーム・コスト・AP・トリガー等)と
+     テキストは、すべてその上に重なる。 */
   drawBackgroundSlot(); /* 背景イラスト or Base_image.png */
   drawMaskedSlot(illustCard,'Main-components/Card_illustration.png'); /* カードイラスト */
+  drawMaskedSlot(illustName,'Main-components/Cardname_base.png'); /* カード名イラスト */
+  drawNameFrame();
+  drawMaskedSlot(illustTextarea,'Main-components/Text_area.png'); /* テキストエリアイラスト */
 
   drawImg(`Base-${state.gen}/${state.color}-Base-${state.gen}.png`);
   if(state.addEnergy) drawImg(`Base-${state.gen}/Additional-Energy-${state.gen}.png`);
-
-  /* カード名イラスト＋枠：必要エナジー・APより下のレイヤー */
-  drawMaskedSlot(illustName,'Main-components/Cardname_base.png');
-  drawNameFrame();
-
   drawImg(`${TYPEF[state.type]}/${state.color}/${CNAME[state.color]}${state.req}.png`);
   drawImg(`AP/${state.ap}.png`);
   if(state.trigger!=='none'){ drawImg(state.trigger==='color'?`Trigger/color-${state.color}.png`:`Trigger/${state.trigger}.png`); }
   drawImg(`Types/${state.type}.png`);
   if(state.raid!=='none') drawImg(`Raids/raid-${state.raid}.png`);
   drawBP();
-
-  drawMaskedSlot(illustTextarea,'Main-components/Text_area.png'); /* テキストエリアイラスト（効果テキストの背面） */
 
   /* テキスト */
   outlined(state.name||'',NAME.x+NAME.w/2,NAME.y+NAME.h/2,NAME.size,NAME.w-6);
@@ -823,8 +823,10 @@ function buildSpButtons(){
     title.style.fontWeight = '600';
     spEl.appendChild(title);
 
+    const centerIcons=(group.title==='トリガー'||group.title==='エナジー'||group.title==='その他');
     group.items.forEach(([k, label]) => {
         const b = document.createElement('button');
+        if(centerIcons) b.classList.add('icon-center');
         b.title = label;
         b.setAttribute('aria-label', label);
         const src = window.MAT && window.MAT[spKey(k)];
@@ -878,11 +880,27 @@ const illustTextarea=makeIllustration('textarea');
 $('nameFrameColor').oninput=e=>{state.nameFrameColor=e.target.value;render();};
 $('nameFrameBrightness').oninput=e=>{state.nameFrameBrightness=+e.target.value;render();};
 
-/* save/load */
-$('download').onclick=()=>{const a=document.createElement('a');a.download=(state.name||'card').replace(/[\\/:*?"<>|]/g,'_')+'.png';a.href=viewCanvas.toDataURL('image/png');a.click();};
-$('saveJson').onclick=()=>{const b=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.download=(state.name||'card').replace(/[\\/:*?"<>|]/g,'_')+'.json';a.href=URL.createObjectURL(b);a.click();URL.revokeObjectURL(a.href);};
-$('loadJson').onclick=()=>$('jsonFile').click();
-$('jsonFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{applyState(JSON.parse(ev.target.result));}catch(err){alert('読込失敗:'+err.message);}};r.readAsText(f);e.target.value='';};
+/* 保存/読み込み：以前はここに専用のUI(PNG保存/JSON保存/JSON読込/リセット)が
+   あったが、deck-viewer側の「このカードを追加する」と同じ行に置きたいという
+   要望を受けてUI自体は削除し、window直下のフックだけを公開する形にした
+   (deck-viewer側のボタンがこれらを呼ぶ)。リセット機能はUIごと廃止した。 */
+window.oricardDownloadPng=function(){
+  const a=document.createElement('a');
+  a.download=(state.name||'card').replace(/[\\/:*?"<>|]/g,'_')+'.png';
+  a.href=viewCanvas.toDataURL('image/png');
+  a.click();
+};
+window.oricardSaveJson=function(){
+  const b=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.download=(state.name||'card').replace(/[\\/:*?"<>|]/g,'_')+'.json';
+  a.href=URL.createObjectURL(b);
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+window.oricardLoadJsonText=function(text){
+  applyState(JSON.parse(text));
+};
 function applyState(o){
   /* 旧形式(単一イラスト imgData/zoom/panx/pany)のJSONを新形式(illust.card)へ移行 */
   if(o && o.imgData !== undefined && !o.illust){
@@ -913,7 +931,6 @@ function applyState(o){
   for(let i=0;i<8;i++){$(`lineOffset${i}`).value=-((state.lineOffset||[])[i]||0);}
   illustCard.restore();illustName.restore();illustBg.restore();illustTextarea.restore();
   render();}
-$('reset').onclick=()=>{if(confirm('リセットしますか？'))location.reload();};
 
 /* init: preload all materials */
 function initForm(){$('name').value=state.name;$('traits').value=state.traits;$('effect').value=state.effect;
@@ -949,6 +966,49 @@ function initForm(){$('name').value=state.name;$('traits').value=state.traits;$(
    This is the only line added for that integration; everything above is
    unmodified from the standalone tool. */
 window.exportOricard=function(){return {state,canvas:viewCanvas,COLORS,CNAME};};
+
+/* ---- カードプール単位の「スタイル」保存/適用 ----
+   カード名イラスト・枠の色/明度・背景イラスト・テキストエリアイラストの4点だけを
+   まとめて、deck-viewer側がカードプールに保存/復元できるようにするフック。
+   保存先(カードプールのJSON)を持っているのはdeck-viewer側なので、実際のAPI
+   呼び出しはdeck-viewer側(window.onSaveStyleClick、iframeのonload時に
+   parentからセットされる)に任せ、ここではcanvas上のstateとの受け渡しだけ行う。 */
+window.getOricardStyle=function(){
+  return {
+    nameIllust:{...state.illust.name},
+    bgIllust:{...state.illust.bg},
+    textareaIllust:{...state.illust.textarea},
+    nameFrameColor:state.nameFrameColor,
+    nameFrameBrightness:state.nameFrameBrightness,
+  };
+};
+window.applyOricardStyle=function(style){
+  if(!style) return;
+  const blank=()=>({data:null,zoom:1,panx:0.5,pany:0.5});
+  if(style.nameIllust) state.illust.name=Object.assign(blank(),style.nameIllust);
+  if(style.bgIllust) state.illust.bg=Object.assign(blank(),style.bgIllust);
+  if(style.textareaIllust) state.illust.textarea=Object.assign(blank(),style.textareaIllust);
+  if(style.nameFrameColor) state.nameFrameColor=style.nameFrameColor;
+  if(style.nameFrameBrightness!==undefined) state.nameFrameBrightness=style.nameFrameBrightness;
+  $('nameFrameColor').value=state.nameFrameColor;
+  $('nameFrameBrightness').value=state.nameFrameBrightness;
+  illustName.restore();illustBg.restore();illustTextarea.restore();
+  render();
+};
+$('saveStyleBtn').onclick=async ()=>{
+  const statusEl=$('styleSaveStatus');
+  if(typeof window.onSaveStyleClick!=='function'){
+    statusEl.textContent='この機能はカードプール画面から開いた場合のみ使えます';
+    return;
+  }
+  statusEl.textContent='保存中…';
+  try{
+    const msg=await window.onSaveStyleClick();
+    statusEl.textContent=msg||'';
+  }catch(err){
+    statusEl.textContent=(err&&err.message)||'保存に失敗しました';
+  }
+};
 
 /* deck-viewer側が同じカードプール内の既存カードの「特徴」を渡すためのフック。
    ブラウザ標準のdatalist(矢印が出る・幅や高さを揃えられない・スクロールも

@@ -17,7 +17,7 @@
 
 function showConfirm(
   message,
-  { confirmText = "削除する", cancelText = "キャンセル", danger = true, checkboxLabel } = {}
+  { confirmText = "削除する", cancelText = "キャンセル", danger = true, checkboxLabel, checkboxDefault = false } = {}
 ) {
   return new Promise((resolve) => {
     const overlay = document.createElement("div");
@@ -53,6 +53,7 @@ function showConfirm(
       checkboxWrap.className = "filter-checkbox confirm-checkbox";
       checkboxInput = document.createElement("input");
       checkboxInput.type = "checkbox";
+      checkboxInput.checked = checkboxDefault;
       checkboxWrap.appendChild(checkboxInput);
       checkboxWrap.appendChild(document.createTextNode(checkboxLabel));
       card.appendChild(checkboxWrap);
