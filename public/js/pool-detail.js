@@ -1357,7 +1357,9 @@ oricardAddBtn.addEventListener("click", async () => {
       bp: state.type === "character" && state.bp ? `${state.bp}${bpSuffix}` : "",
       attribute: state.hasTraits && state.traits ? [state.traits] : [],
       generatedEnergy: `${state.gen}${state.addEnergy ? "+" : ""}`,
-      effect: state.effect || "",
+      // [[トークン]]は他の.dvpoolと同じ表記([登場時]等)に変換して保存する。
+      // オリカメーカー側の入力欄は[[ ]]のままで、変換はここ(登録時)だけ。
+      effect: oricardEffectToText(state.effect, colorEntry ? colorEntry.jp : ""),
       poolId,
       imageBlob: blob,
     });
@@ -1372,6 +1374,63 @@ oricardAddBtn.addEventListener("click", async () => {
     oricardAddBtn.disabled = false;
   }
 });
+
+// オリカメーカーの効果テキストは、アイコン素材を [[トークン]] という独自記法で
+// 埋め込んでいる(オリカメーカー内ではそのまま画像に描画される)。カードプールに
+// 登録するときは、他の .dvpool のカードと同じ書き方に揃えたいので、ここで実際の
+// 文字列へ置き換える。対応表は pool-exports/*.dvpool の効果テキスト実データ
+// (約9000件)から拾った表記に合わせてある(丸括弧は全角、数字と+は半角)。
+const ORICARD_EFFECT_TOKEN_TEXT = {
+  // 黄色テキスト
+  "impact-1": "[インパクト（1）]",
+  "damage-2": "[ダメージ（2）]",
+  "impact-mukou": "[インパクト無効]",
+  "nerai-uchi": "[狙い撃ち]",
+  "2-attack": "[2回アタック]",
+  "2-block": "[2回ブロック]",
+  step: "[ステップ]",
+  "impact-plus-1": "[インパクト（+1）]",
+  // 青色テキスト
+  touzyouzi: "[登場時]",
+  taizyouzi: "[退場時]",
+  attack: "[アタック時]",
+  block: "[ブロック時]",
+  "zibunno-turn-tyu": "[自分のターン中]",
+  "aiteno-turn-tyu": "[相手のターン中]",
+  "kido-main": "[起動メイン]",
+  // 白色テキスト
+  "rest-ni-suru": "[レストにする]",
+  "front-L": "[フロントLにある場合]",
+  "energy-L": "[エナジーLにある場合]",
+  "kono-cardo-wo-taizyo": "[このカードを退場させる]",
+  "AP-1-harau": "[APを1支払う]",
+  "tehuda-1": "[手札を1枚場外に置く]",
+  "tehuda-2": "[手札を2枚場外に置く]",
+  zyougai: "[場外にある場合]",
+  // トリガー種別
+  trigger: "[トリガー]",
+  get: "[ゲット]",
+  drow: "[ドロートリガー]",
+  active: "[アクティブ]",
+  color: "[カラートリガー]",
+  special: "[スペシャルトリガー]",
+  final: "[ファイナルトリガー]",
+  raid_trigger: "[レイドトリガー]",
+  // その他
+  "turn-1": "[ターン1]",
+  raid: "[レイド]",
+  "character-2-energy": "2",
+};
+
+// [[energy]] は「そのカードの色のエナジー玉」なので、色名に置き換える
+// (実データでは [赤×2] のように 色×数 の形で使われている)。
+function oricardEffectToText(effect, colorJp) {
+  return String(effect || "").replace(/\[\[([^\]]+)\]\]/g, (whole, token) => {
+    if (token === "energy") return colorJp || whole;
+    const text = ORICARD_EFFECT_TOKEN_TEXT[token];
+    return text !== undefined ? text : whole; // 未知のトークンはそのまま残す
+  });
+}
 
 // カード名イラスト・枠の色/明度・背景イラスト・テキストエリアイラストをこの
 // カードプールに保存し、次回オリカメーカーを開いたときに自動適用されるようにする。

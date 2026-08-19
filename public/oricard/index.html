@@ -311,13 +311,16 @@ const SP_GROUPS = [
     ]
   },
   {
+    /* トリガー種別のバッジ(get.png等と同じ濃色系)。「レイドトリガー」は
+       raid_trigger.png 側。赤い raid.png は下の「その他」にある効果テキスト用の
+       〔レイド〕キーワードで、別物なので混同しないこと。 */
     title: 'トリガー',
     items: [
       ['trigger','トリガー'],
       ['get', 'ゲット'],
       ['drow','ドロー'],
       ['active','アクティブ'],
-      ['raid','レイド'],
+      ['raid_trigger','レイドトリガー'],
       ['color','カラー'],
       ['special','スペシャル'],
       ['final','ファイナル'],
@@ -333,7 +336,7 @@ const SP_GROUPS = [
     title: 'その他',
     items: [
       ['turn-1','ターン1'],
-      ['raid_trigger','レイド'],
+      ['raid','レイド'],
       ['energy','エナ玉']
     ]
   }
