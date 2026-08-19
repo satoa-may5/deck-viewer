@@ -3039,6 +3039,13 @@ button {
   background: var(--surface-2);
 }
 
+.oricard-save-load-group {
+  display: flex;
+  gap: 10px;
+  margin-right: auto; /* .modal-actionsはjustify-content:flex-endなので、
+                          このグループだけ左端に押し出す */
+}
+
 /* ---- カードを複数枚追加 ---- */
 
 .bulk-add-card {

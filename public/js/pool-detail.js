@@ -1211,29 +1211,47 @@ async function openOricardModal() {
   if (available) {
     // 前回開いた時の入力を残さない、毎回まっさらな状態で開く。
     oricardFrame.onload = () => {
-      // 同じカードプール内の既存カードの「特徴」を、オリカメーカー側の
-      // 特徴欄の入力候補として渡す(setTraitSuggestionsはoricard/index.html側で
-      // 公開しているフック)。
       const win = oricardFrame.contentWindow;
-      if (win && typeof win.setTraitSuggestions === "function") {
-        const traits = new Set();
-        for (const card of latestCards) {
-          for (const a of card.attribute || []) traits.add(a);
+      if (!win) return;
+      // oricard/index.html側は素材(200枚超)を非同期で読み込んでおり、iframeの
+      // load イベント自体はその完了を待たない。読み込み完了前にスタイルを
+      // 適用すると、後から終わる非同期処理(initForm→render)に上書きされて
+      // 何も反映されないことがあったため、window.oricardReady が立つまで待つ。
+      const applyWhenReady = () => {
+        if (!win.oricardReady) {
+          setTimeout(applyWhenReady, 50);
+          return;
         }
-        win.setTraitSuggestions([...traits].sort());
-      }
-      // このカードプールに保存済みの「スタイル」(カード名イラスト・枠の色/明度・
-      // 背景イラスト・テキストエリアイラスト)があれば自動的に適用する。
-      if (win && currentPool && currentPool.oricardStyle && currentPool.oricardStyle.enabled !== false) {
-        if (typeof win.applyOricardStyle === "function") {
+        // 同じカードプール内の既存カードの「特徴」を、オリカメーカー側の
+        // 特徴欄の入力候補として渡す(setTraitSuggestionsはoricard/index.html側で
+        // 公開しているフック)。
+        if (typeof win.setTraitSuggestions === "function") {
+          const traits = new Set();
+          for (const card of latestCards) {
+            for (const a of card.attribute || []) traits.add(a);
+          }
+          win.setTraitSuggestions([...traits].sort());
+        }
+        // このカードプールに保存済みの「スタイル」(カード名イラスト・枠の色/明度・
+        // 背景イラスト・テキストエリアイラスト)があれば自動的に適用する。
+        if (
+          currentPool &&
+          currentPool.oricardStyle &&
+          currentPool.oricardStyle.enabled !== false &&
+          typeof win.applyOricardStyle === "function"
+        ) {
           win.applyOricardStyle(currentPool.oricardStyle);
         }
-      }
-      // 「カードプールにこのスタイルを保存」ボタン(oricard側のUI)からの
-      // 呼び出しを受け取るフック。実際の保存処理はpoolIdを知っているこちら側で行う。
-      if (win) {
+        // 「カードプールにこのスタイルを保存」ボタン(oricard側のUI)からの
+        // 呼び出しを受け取るフック。実際の保存処理はpoolIdを知っているこちら側で行う。
         win.onSaveStyleClick = saveOricardStyleToPool;
-      }
+        // ここまでの内容(スタイル自動適用込み)を「まだ何も編集していない」基準点として
+        // 記録する。X閉じるときの確認要否はここからの差分だけで判定する。
+        if (typeof win.exportOricard === "function") {
+          oricardBaselineSnapshot = snapshotOricardState(win.exportOricard().state);
+        }
+      };
+      applyWhenReady();
     };
     oricardFrame.src = `oricard/index.html?_=${Date.now()}`;
   } else {
@@ -1249,22 +1267,31 @@ function closeOricardModal() {
   oricardModal.hidden = true;
   oricardFrame.src = "about:blank"; // 4.5MBのmaterials.jsをメモリに残さない
   document.body.style.overflow = "";
+  oricardBaselineSnapshot = null;
 }
 
-// オリカメーカーの入力内容(カード名・効果・特徴・いずれかのイラスト)が
-// 空でなければ「編集内容あり」とみなす。
+// モーダルを開いた直後(カードプールのスタイル自動適用が終わった時点)の状態を
+// 記録しておき、「編集内容あり」の判定はそこからの差分だけで行う。スタイルが
+// 自動適用されただけの状態(name/illustが埋まっている)を「編集済み」と誤判定して
+// 毎回確認ダイアログを出してしまう不具合があったための対応。
+let oricardBaselineSnapshot = null;
+function snapshotOricardState(state) {
+  return JSON.stringify({
+    name: state.name,
+    effect: state.effect,
+    traits: state.traits,
+    hasTraits: state.hasTraits,
+    illust: state.illust,
+    nameFrameColor: state.nameFrameColor,
+    nameFrameBrightness: state.nameFrameBrightness,
+  });
+}
 function oricardModalHasEdits() {
   const win = oricardFrame.contentWindow;
   const exportFn = win && win.exportOricard;
   if (!exportFn) return false;
-  const { state } = exportFn();
-  if (state.name || state.effect || state.traits) return true;
-  if (state.illust) {
-    for (const key in state.illust) {
-      if (state.illust[key] && state.illust[key].data) return true;
-    }
-  }
-  return false;
+  if (oricardBaselineSnapshot === null) return false; // まだ読み込み中(=何も編集できていない)
+  return snapshotOricardState(exportFn().state) !== oricardBaselineSnapshot;
 }
 
 async function attemptCloseOricardModal() {

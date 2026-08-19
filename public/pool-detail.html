@@ -279,10 +279,12 @@
         </div>
         <div id="oricard-status" class="status-message"></div>
         <div class="modal-actions">
-          <button type="button" class="btn" id="oricard-png-btn">PNG で保存</button>
-          <button type="button" class="btn" id="oricard-json-save-btn">JSON保存</button>
-          <button type="button" class="btn" id="oricard-json-load-btn">JSON読込</button>
-          <input type="file" id="oricard-json-file" accept="application/json,.json" hidden>
+          <div class="oricard-save-load-group">
+            <button type="button" class="btn" id="oricard-png-btn">PNG で保存</button>
+            <button type="button" class="btn" id="oricard-json-save-btn">JSON保存</button>
+            <button type="button" class="btn" id="oricard-json-load-btn">JSON読込</button>
+            <input type="file" id="oricard-json-file" accept="application/json,.json" hidden>
+          </div>
           <button type="button" class="btn primary" id="oricard-add-btn">このカードを追加する</button>
         </div>
       </div>

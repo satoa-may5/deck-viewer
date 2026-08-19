@@ -5,12 +5,15 @@
 <style>
   :root{--bg:#0f1216;--panel:#171b21;--panel2:#1d222a;--line:#2a313b;--txt:#e8edf3;--sub:#9aa6b4;--accent:#4ea1ff;--accent2:#2b6fd1;}
   *{box-sizing:border-box} html,body{margin:0;height:100%}
+  html{scrollbar-gutter:stable} /* タブによって縦スクロールの有無が変わっても、
+    スクロールバー分の幅を常に確保しておき、プレビュー列の位置がタブ切り替えで
+    左右にガタつかないようにする */
   body{background:var(--bg);color:var(--txt);font-family:"Noto Sans JP","Yu Gothic UI","Yu Gothic","Meiryo",sans-serif;-webkit-font-smoothing:antialiased;}
   .wrap{display:flex;gap:20px;padding:20px;align-items:flex-start;flex-wrap:wrap}
   .controls{flex:1 1 400px;min-width:340px;max-width:600px}
   .preview{flex:1 1 380px;min-width:320px;position:sticky;top:20px;display:flex;flex-direction:column;align-items:center;gap:14px}
   .tabbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-  .tabbtn{background:var(--panel2);border:1px solid var(--line);color:var(--sub);border-radius:8px 8px 0 0;padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit}
+  .tabbtn{background:var(--line);border:1px solid var(--line);color:var(--sub);border-radius:8px 8px 0 0;padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit}
   .tabbtn.on{background:linear-gradient(180deg,var(--accent),var(--accent2));color:#fff;border-color:var(--accent);font-weight:700;box-shadow:0 2px 8px rgba(78,161,255,.4)}
   .tabpanels{position:relative}
   .tabpanel{display:none}
@@ -941,11 +944,15 @@ function initForm(){$('name').value=state.name;$('traits').value=state.traits;$(
     $(`lineOffset${i}`).value=-state.lineOffset[i];
   }
 }
+/* deck-viewer側がスタイル自動適用などを行う前にこれをポーリングする
+   (preload完了より前に触ると、非同期の画像読み込みが後から上書きしてしまうため)。 */
+window.oricardReady=false;
 (function preload(){
   if(typeof window.MAT==='undefined'){$('status').textContent='materials.js が見つかりません。index.html と同じ場所に置いてください。';return;}
   const keys=Object.keys(window.MAT);let n=0;
   keys.forEach(k=>{const im=new Image();IMG[k]=im;im.onload=im.onerror=()=>{if(++n===keys.length){$('status').textContent='';
   initForm();
+  window.oricardReady=true;
   if (document.fonts) {
     document.fonts.load(`400 16px ${FF}`).then(() => {
         document.fonts.load(`700 31px ${FF}`).then(() => {
