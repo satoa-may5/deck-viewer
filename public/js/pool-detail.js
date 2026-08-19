@@ -1390,6 +1390,9 @@ const ORICARD_EFFECT_TOKEN_TEXT = {
   "2-block": "[2回ブロック]",
   step: "[ステップ]",
   "impact-plus-1": "[インパクト（+1）]",
+  "damage-plus-1": "[ダメージ（+1）]",
+  // ボタンは無いが、テンプレート文([[impact-mukou]]の説明など)の中で使われる
+  impact: "[インパクト]",
   // 青色テキスト
   touzyouzi: "[登場時]",
   taizyouzi: "[退場時]",

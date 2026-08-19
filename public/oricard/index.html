@@ -70,6 +70,11 @@
   .sp button.icon-center{align-items:center}
   .sp button:hover{border-color:var(--accent);color:var(--txt)}
   .sp button img{display:block;pointer-events:none;zoom:1.0}
+  /* テンプレート文のボタンは1行まるごとなので全幅・折り返しあり。
+     文中のアイコンはテキストと同じ行に流したいので inline-block + 下揃え。 */
+  .sp button.tmpl{width:100%;display:block;text-align:left;padding:6px 8px;
+    color:var(--txt);font-size:12px;line-height:1.7;white-space:normal;word-break:break-all}
+  .sp button.tmpl img{display:inline-block;vertical-align:-3px;zoom:0.85}
   .btns{display:flex;gap:9px;flex-wrap:wrap}
   button.act{background:linear-gradient(180deg,var(--accent),var(--accent2));color:#fff;border:0;padding:10px 16px;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
   button.ghost{background:var(--panel2);color:var(--txt);border:1px solid var(--line);padding:8px 13px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit}
@@ -108,32 +113,62 @@
 <div class="wrap">
   <div class="controls">
     <div class="tabbar" id="tabbar">
-      <button type="button" class="tabbtn on" data-tab="color">色 / 発生エナジー</button>
-      <button type="button" class="tabbtn" data-tab="type">種類 / コスト</button>
+      <button type="button" class="tabbtn on" data-tab="basic">カード情報</button>
       <button type="button" class="tabbtn" data-tab="illust">イラスト</button>
-      <button type="button" class="tabbtn" data-tab="name">カード名 / 特徴</button>
       <button type="button" class="tabbtn" data-tab="effect">効果テキスト</button>
-      <button type="button" class="tabbtn" data-tab="trigger">トリガー</button>
-      <button type="button" class="tabbtn" id="tabbtn-raid" data-tab="raid">レイド</button>
-      <button type="button" class="tabbtn" id="tabbtn-bp" data-tab="bp">BP</button>
     </div>
 
     <div class="tabpanels">
-      <div class="g tabpanel on" data-tab="color">
-        <div class="row"><label class="lbl">色</label><div class="sw" id="colors"></div></div>
-        <div class="row two">
-          <div><label class="lbl">発生エナジー</label><div class="seg" id="genSeg"></div></div>
-          <div style="display:flex;align-items:flex-end;padding-bottom:6px"><label class="check"><input type="checkbox" id="addEnergy"> 追加エナジー（＋）</label></div>
+      <div class="g tabpanel on" data-tab="basic">
+        <div class="subg">
+          <p class="gt2">色 / 発生エナジー</p>
+          <div class="row"><label class="lbl">色</label><div class="sw" id="colors"></div></div>
+          <div class="row two">
+            <div><label class="lbl">発生エナジー</label><div class="seg" id="genSeg"></div></div>
+            <div style="display:flex;align-items:flex-end;padding-bottom:6px"><label class="check"><input type="checkbox" id="addEnergy"> 追加エナジー（＋）</label></div>
+          </div>
         </div>
-      </div>
 
-      <div class="g tabpanel" data-tab="type">
-        <div class="row"><label class="lbl">カード種類</label><div class="seg" id="typeSeg"></div></div>
-        <div class="row two">
-          <div><label class="lbl">必要エナジー</label><select id="req"></select></div>
-          <div><label class="lbl">消費AP</label><div class="seg" id="apSeg"></div></div>
+        <div class="subg">
+          <p class="gt2">種類 / コスト</p>
+          <div class="row"><label class="lbl">カード種類</label><div class="seg" id="typeSeg"></div></div>
+          <div class="row two">
+            <div><label class="lbl">必要エナジー</label><select id="req"></select></div>
+            <div><label class="lbl">消費AP</label><div class="seg" id="apSeg"></div></div>
+          </div>
+          <div class="hint" id="reqHint"></div>
         </div>
-        <div class="hint" id="reqHint"></div>
+
+        <div class="subg">
+          <p class="gt2">カード名 / 特徴</p>
+          <div class="row"><label class="lbl">カード名</label><input type="text" id="name" maxlength="30" placeholder="カード名を入力"></div>
+          <div class="row"><label class="check"><input type="checkbox" id="hasTraits"> 特徴を表示</label></div>
+          <div class="row" id="traitsRow" style="display:none"><label class="lbl">特徴</label>
+            <div class="suggest-wrap">
+              <input type="text" id="traits" maxlength="30" placeholder="特徴を入力" autocomplete="off">
+              <div class="suggest-list" id="traitsSuggestList"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="subg">
+          <p class="gt2">トリガー</p>
+          <div class="row"><div class="seg" id="trigSeg"></div></div>
+        </div>
+
+        <div class="subg" id="raidGroup">
+          <p class="gt2">レイド</p>
+          <div class="row"><div class="seg" id="raidSeg"></div></div>
+          <div class="row" id="raidRow" style="display:none"><label class="lbl">レイド元</label><input type="text" id="raidText" maxlength="24" placeholder="レイド元を入力"></div>
+        </div>
+
+        <div class="subg" id="bpGroup">
+          <p class="gt2">BP</p>
+          <div class="row two">
+            <div><label class="lbl">BP値</label><select id="bp"></select></div>
+            <div><label class="lbl">増減</label><div class="seg" id="bpModSeg"></div></div>
+          </div>
+        </div>
       </div>
 
       <div class="g tabpanel" data-tab="illust">
@@ -184,17 +219,6 @@
         </div>
       </div>
 
-      <div class="g tabpanel" data-tab="name">
-        <div class="row"><label class="lbl">カード名</label><input type="text" id="name" maxlength="30" placeholder="カード名を入力"></div>
-        <div class="row"><label class="check"><input type="checkbox" id="hasTraits"> 特徴を表示</label></div>
-        <div class="row" id="traitsRow" style="display:none"><label class="lbl">特徴</label>
-          <div class="suggest-wrap">
-            <input type="text" id="traits" maxlength="30" placeholder="特徴を入力" autocomplete="off">
-            <div class="suggest-list" id="traitsSuggestList"></div>
-          </div>
-        </div>
-      </div>
-
       <div class="g tabpanel" data-tab="effect">
         <div class="row"><label class="lbl">文字色</label><div class="seg" id="effColorSeg"></div></div>
         <div class="row"><textarea id="effect" placeholder="テキストを入力"></textarea>
@@ -215,21 +239,6 @@
         </div>
       </div>
 
-      <div class="g tabpanel" data-tab="trigger">
-        <div class="row"><div class="seg" id="trigSeg"></div></div>
-      </div>
-
-      <div class="g tabpanel" id="raidGroup" data-tab="raid">
-        <div class="row"><div class="seg" id="raidSeg"></div></div>
-        <div class="row" id="raidRow" style="display:none"><label class="lbl">レイド元</label><input type="text" id="raidText" maxlength="24" placeholder="レイド元を入力"></div>
-      </div>
-
-      <div class="g tabpanel" id="bpGroup" data-tab="bp">
-        <div class="row two">
-          <div><label class="lbl">BP値</label><select id="bp"></select></div>
-          <div><label class="lbl">増減</label><div class="seg" id="bpModSeg"></div></div>
-        </div>
-      </div>
     </div>
 
   </div>
@@ -282,7 +291,8 @@ const SP_GROUPS = [
       ['2-attack','2回ｱﾀｯｸ'],
       ['2-block','2回ﾌﾞﾛｯｸ'],
       ['step','ｽﾃｯﾌﾟ'],
-      ['impact-plus-1','ｲﾝﾊﾟｸﾄ+1']
+      ['impact-plus-1','ｲﾝﾊﾟｸﾄ+1'],
+      ['damage-plus-1','ﾀﾞﾒｰｼﾞ+1']
     ]
   },
   {
@@ -340,6 +350,28 @@ const SP_GROUPS = [
       ['energy','エナ玉']
     ]
   }
+];
+
+/* よく使う一文をまるごと貼り付けるためのテンプレート。ボタン内では [[トークン]] が
+   素材画像に置き換わって表示され、押すと元の [[ ]] 付きの文字列がそのまま効果
+   テキストへ挿入される。 */
+const EFFECT_TEMPLATES = [
+  '自分の場にカードが1枚もない場合、手札にあるこのカードの必要エナジーを[[character-2-energy]]減らす。',
+  '[[kido-main]][[rest-ni-suru]] [[turn-1]]このキャラはこのターン中、発生エナジー+[[energy]]と「メインフェイズ終了時、このキャラを退場させる。」を得る。',
+  'このキャラがアクティブの場合、このキャラの発生エナジー+[[energy]]。',
+  'このキャラはBP4000以上のキャラにブロックされない。',
+  '[[touzyouzi]]カードを1枚引き、自分の手札を1枚場外に置く。',
+  '[[touzyouzi]]自分の山札の上からN枚見る。その中からXを1枚まで公開し手札に加える。残りを望む順で自分の山札の下に置く。手札に加えた場合、自分の手札を1枚場外に置く。',
+  '自分のAPカードを2枚まで選び、アクティブにする。',
+  '[[impact-1]]（アタックしてバトルに勝利した時、相手プレイヤーに1ダメージ）',
+  '[[damage-2]]（このキャラがアタックで直接ダメージを与える時、代わりに2ダメージ）',
+  '[[impact-mukou]]（このキャラとバトルをしたキャラはこのバトル中、[[impact]]を失う）',
+  '[[nerai-uchi]]（相手のフロントLのキャラを指定してアタックでき、指定した場合、相手はブロックできない）',
+  '[[2-attack]]（このキャラがこのターン初めてアタックした時、アクティブにする）',
+  '[[2-block]]（このキャラがこのターン初めてブロックした時、アクティブにする）',
+  '[[step]]（自分の移動フェイズにフロントLからエナジーLへ移動できる）',
+  '[[impact-plus-1]]（インパクトの与えるダメージが+1され、インパクトを持たない場合、[[impact-1]]を得る）',
+  '[[damage-plus-1]]（このキャラがアタックで直接ダメージを与える時、追加で1ダメージ）',
 ];
 
 const state={color:'B',gen:1,addEnergy:false,type:'character',req:4,ap:1,
@@ -747,7 +779,7 @@ const $=id=>document.getElementById(id);
 
 /* タブ */
 const tabbar=$('tabbar');
-let activeTab='color';
+let activeTab='basic';
 function switchTab(t){
   activeTab=t;
   tabbar.querySelectorAll('.tabbtn').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
@@ -785,15 +817,13 @@ seg('typeSeg',[['character','キャラ'],['event','イベント'],['field','フ�
   rebuildReq();updateBpVisibility();updateRaidVisibility();
   refreshSeg('genSeg',()=>state.gen);refreshSeg('raidSeg',()=>state.raid);
 });
+/* レイド/BPは「カード情報」タブ内のセクションなので、キャラクター以外では
+   セクションごと隠す(以前は専用タブだったのでタブボタンを隠していた)。 */
 function updateBpVisibility(){
-  const show=state.type==='character';
-  $('tabbtn-bp').style.display=show?'':'none';
-  if(!show && activeTab==='bp') switchTab('color');
+  $('bpGroup').style.display=state.type==='character'?'':'none';
 }
 function updateRaidVisibility(){
-  const show=state.type==='character';
-  $('tabbtn-raid').style.display=show?'':'none';
-  if(!show && activeTab==='raid') switchTab('color');
+  $('raidGroup').style.display=state.type==='character'?'':'none';
 }
 seg('apSeg',[[1,'1'],[2,'2']],()=>state.ap,v=>state.ap=+v);
 seg('effColorSeg',[['white','白'],['black','黒'],['white-outline','白(縁あり)'],['black-outline','黒(縁あり)']],()=>state.effectTextColor,v=>state.effectTextColor=v);
@@ -846,6 +876,33 @@ function buildSpButtons(){
         b.onclick = () => insEffect(`[[${k}]]`);
         spEl.appendChild(b);
     });
+  });
+
+  /* テンプレート文: ボタンの中身は[[トークン]]を画像に置き換えた見た目にし、
+     押すと元の[[ ]]付きの文字列をそのまま挿入する。 */
+  const tmplTitle = document.createElement('div');
+  tmplTitle.textContent = 'テンプレート文';
+  tmplTitle.style.width = '100%';
+  tmplTitle.style.margin = '8px 0 4px';
+  tmplTitle.style.fontSize = '12px';
+  tmplTitle.style.color = '#9aa6b4';
+  tmplTitle.style.fontWeight = '600';
+  spEl.appendChild(tmplTitle);
+
+  EFFECT_TEMPLATES.forEach(tpl => {
+    const b = document.createElement('button');
+    b.className = 'tmpl';
+    b.title = tpl;
+    b.setAttribute('aria-label', tpl);
+    for(const part of tpl.split(/(\[\[[^\]]+\]\])/)){
+      if(!part) continue;
+      const m = part.match(/^\[\[([^\]]+)\]\]$/);
+      const src = m && window.MAT && window.MAT[spKey(m[1])];
+      if(src){ const img=document.createElement('img'); img.src=src; img.alt=m[1]; b.appendChild(img); }
+      else b.appendChild(document.createTextNode(part));
+    }
+    b.onclick = () => insEffect(tpl);
+    spEl.appendChild(b);
   });
 }
 buildSpButtons();
