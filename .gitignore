@@ -5,6 +5,11 @@ node_modules/
 dist/
 __pycache__/
 
+# npm run build:exe がビルド中だけ data/ images/ を退避する先(ビルド完了時に
+# 中身は元へ戻され、このフォルダ自体も消える。残っていたら異常終了した名残で、
+# 次回ビルドの冒頭で自動的に復元される)
+.build-stash/
+
 # カード画像は著作権/サイズの都合でgit管理外にする(README参照)
 images/*
 !images/.gitkeep

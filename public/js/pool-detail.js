@@ -1190,11 +1190,10 @@ document.getElementById("add-choice-oricard-btn").addEventListener("click", () =
 
 // ---- オリカを追加(UA-makerを別ファイルのiframeとして埋め込む) ----
 //
-// このマシン専用の機能。public/oricard/(index.html + materials.js)は
-// 公式カードから切り出したと見られる素材を含むため、著作権上.gitignoreで
-// 除外していて、public化されているこのリポジトリにも配布用exeにも入らない。
-// 存在しない環境(他の人がリポジトリをcloneした場合など)では「利用不可」の
-// メッセージだけ出して静かに機能を諦める。
+// public/oricard/(index.html + materials.js)はgit管理対象で、配布用exeにも
+// 同梱される(pkg.assetsの"public/**/*"配下)。ただし念のため、ファイルが
+// 存在しない環境でも壊れないよう、開く前にHEADで存在確認し、無ければ
+// 「利用不可」のメッセージだけ出して静かに機能を諦める。
 
 const oricardModal = document.getElementById("oricard-modal");
 const oricardFrame = document.getElementById("oricard-frame");

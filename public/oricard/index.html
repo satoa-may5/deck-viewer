@@ -971,13 +971,18 @@ window.oricardReady=false;
 })();
 
 /* ---- deck-viewer integration ----
-   This tool is normally loaded standalone; deck-viewer embeds it in an
-   iframe and reads the current design back out via this one entry point.
+   This tool started life as a standalone page (C:\Users\user\Desktop\UA-maker)
+   and still runs that way; deck-viewer embeds it in an iframe and talks to it
+   only through the window.* hooks defined from here down.
+   Everything must be reached through an explicit window.* assignment:
    `state`/`canvas` are top-level const/let, so they're lexical bindings on
    this script's own scope, not properties of `window` -- an outside frame
    can't reach them directly (`iframe.contentWindow.state` is undefined).
-   This is the only line added for that integration; everything above is
-   unmodified from the standalone tool. */
+   Note the returned canvas is viewCanvas (the cropped/rounded 600x837 one
+   that's actually displayed and exported), not the taller work buffer.
+   The standalone original has since diverged: this copy has the tabbed UI,
+   the four illustration slots, and the pool-style hooks; UA-maker's own
+   index.html was not updated to match. */
 window.exportOricard=function(){return {state,canvas:viewCanvas,COLORS,CNAME};};
 
 /* ---- カードプール単位の「スタイル」保存/適用 ----
