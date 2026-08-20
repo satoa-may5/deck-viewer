@@ -20,9 +20,21 @@
   .tabpanel.on{display:block}
   .g{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 14px 4px;margin-bottom:14px}
   .g>.gt{font-size:12px;color:var(--sub);letter-spacing:.06em;margin:0 0 10px}
-  .subg{padding-top:12px;margin-top:12px;border-top:1px solid var(--line)}
-  .subg:first-child{padding-top:0;margin-top:0;border-top:0}
-  .gt2{font-size:12px;color:var(--txt);font-weight:600;margin:0 0 8px}
+  /* パネル(.g)の左右いっぱいまで広げ、1つおきに背景を変えて区切りを分かりやすくする */
+  .subg{margin:0 -14px;padding:12px 14px 4px;border-top:1px solid var(--line)}
+  .subg:first-child{border-top:0}
+  .subg:nth-of-type(even){background:rgba(255,255,255,.04)}
+  .subghead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px}
+  .gt2{font-size:12px;color:var(--txt);font-weight:600;margin:0}
+  /* ホバーで説明を出す小さなアイコンボタン */
+  .tipbtn{position:relative;background:var(--panel2);border:1px solid var(--line);color:var(--sub);
+    border-radius:6px;width:26px;height:22px;line-height:1;font-size:14px;cursor:pointer;
+    font-family:inherit;flex:0 0 auto;padding:0}
+  .tipbtn:hover{border-color:var(--accent);color:var(--txt)}
+  .tipbtn::after{content:attr(data-tip);position:absolute;right:0;top:calc(100% + 6px);white-space:nowrap;
+    background:#000;color:#fff;font-size:11px;font-weight:400;padding:4px 8px;border-radius:6px;
+    opacity:0;pointer-events:none;transition:opacity .12s;z-index:30}
+  .tipbtn:hover::after{opacity:1}
   .row{margin-bottom:12px} label.lbl{display:block;font-size:12px;color:var(--sub);margin-bottom:5px}
   input[type=text],input[type=number],textarea,select{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit;outline:none;}
   input[type=color]{width:100%;height:34px;padding:2px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;cursor:pointer}
@@ -178,9 +190,8 @@
 
       <div class="g tabpanel" data-tab="illust">
         <div class="subg" id="illust-sec-card1" hidden>
-          <p class="gt2">カードイラスト1</p>
+          <div class="subghead"><p class="gt2">カードイラスト1</p><button class="tipbtn" id="tmpl-card1" data-tip="テンプレートをダウンロード" aria-label="テンプレートをダウンロード">⤓</button></div>
           <div class="drop" id="drop-card1">イラスト画像を選択<br><span style="font-size:11px">ドラッグ＆ドロップ可</span><input type="file" id="file-card1" accept="image/*" style="display:none"></div>
-          <div style="margin-top:7px"><button class="ghost" id="tmpl-card1" title="この枠にぴったり収まるサイズの下敷き画像を書き出します">テンプレートをDL</button></div>
           <div class="imgtools" id="imgtools-card1">
             <div class="slider"><span>ズーム</span><input type="range" id="zoom-card1" min="1" max="3" step="0.01" value="1"></div>
             <div class="slider"><span>左右</span><input type="range" id="panx-card1" min="0" max="1" step="0.01" value="0.5"></div>
@@ -190,9 +201,8 @@
         </div>
 
         <div class="subg" id="illust-sec-card">
-          <p class="gt2" id="illust-label-card">カードイラスト</p>
+          <div class="subghead"><p class="gt2" id="illust-label-card">カードイラスト</p><button class="tipbtn" id="tmpl-card" data-tip="テンプレートをダウンロード" aria-label="テンプレートをダウンロード">⤓</button></div>
           <div class="drop" id="drop-card">イラスト画像を選択<br><span style="font-size:11px">ドラッグ＆ドロップ可</span><input type="file" id="file-card" accept="image/*" style="display:none"></div>
-          <div style="margin-top:7px"><button class="ghost" id="tmpl-card" title="この枠にぴったり収まるサイズの下敷き画像を書き出します">テンプレートをDL</button></div>
           <div class="imgtools" id="imgtools-card">
             <div class="slider"><span>ズーム</span><input type="range" id="zoom-card" min="1" max="3" step="0.01" value="1"></div>
             <div class="slider"><span>左右</span><input type="range" id="panx-card" min="0" max="1" step="0.01" value="0.5"></div>
@@ -202,9 +212,8 @@
         </div>
 
         <div class="subg">
-          <p class="gt2">カード名イラスト</p>
+          <div class="subghead"><p class="gt2">カード名イラスト</p><button class="tipbtn" id="tmpl-name" data-tip="テンプレートをダウンロード" aria-label="テンプレートをダウンロード">⤓</button></div>
           <div class="drop" id="drop-name">イラスト画像を選択<br><span style="font-size:11px">ドラッグ＆ドロップ可</span><input type="file" id="file-name" accept="image/*" style="display:none"></div>
-          <div style="margin-top:7px"><button class="ghost" id="tmpl-name" title="この枠にぴったり収まるサイズの下敷き画像を書き出します">テンプレートをDL</button></div>
           <div class="imgtools" id="imgtools-name">
             <div class="slider"><span>ズーム</span><input type="range" id="zoom-name" min="1" max="3" step="0.01" value="1"></div>
             <div class="slider"><span>左右</span><input type="range" id="panx-name" min="0" max="1" step="0.01" value="0.5"></div>
@@ -216,9 +225,8 @@
         </div>
 
         <div class="subg">
-          <p class="gt2">背景イラスト</p>
+          <div class="subghead"><p class="gt2">背景イラスト</p><button class="tipbtn" id="tmpl-bg" data-tip="テンプレートをダウンロード" aria-label="テンプレートをダウンロード">⤓</button></div>
           <div class="drop" id="drop-bg">イラスト画像を選択<br><span style="font-size:11px">ドラッグ＆ドロップ可</span><input type="file" id="file-bg" accept="image/*" style="display:none"></div>
-          <div style="margin-top:7px"><button class="ghost" id="tmpl-bg" title="この枠にぴったり収まるサイズの下敷き画像を書き出します">テンプレートをDL</button></div>
           <div class="imgtools" id="imgtools-bg">
             <div class="slider"><span>ズーム</span><input type="range" id="zoom-bg" min="1" max="3" step="0.01" value="1"></div>
             <div class="slider"><span>左右</span><input type="range" id="panx-bg" min="0" max="1" step="0.01" value="0.5"></div>
@@ -228,9 +236,8 @@
         </div>
 
         <div class="subg" id="illust-sec-textarea">
-          <p class="gt2">テキストエリアイラスト</p>
+          <div class="subghead"><p class="gt2">テキストエリアイラスト</p><button class="tipbtn" id="tmpl-textarea" data-tip="テンプレートをダウンロード" aria-label="テンプレートをダウンロード">⤓</button></div>
           <div class="drop" id="drop-textarea">イラスト画像を選択<br><span style="font-size:11px">ドラッグ＆ドロップ可</span><input type="file" id="file-textarea" accept="image/*" style="display:none"></div>
-          <div style="margin-top:7px"><button class="ghost" id="tmpl-textarea" title="この枠にぴったり収まるサイズの下敷き画像を書き出します">テンプレートをDL</button></div>
           <div class="imgtools" id="imgtools-textarea">
             <div class="slider"><span>ズーム</span><input type="range" id="zoom-textarea" min="1" max="3" step="0.01" value="1"></div>
             <div class="slider"><span>左右</span><input type="range" id="panx-textarea" min="0" max="1" step="0.01" value="0.5"></div>
@@ -1064,14 +1071,24 @@ function downloadIllustTemplate(key){
   x.strokeRect(lw/2, lw/2, w-lw, h-lw);
   x.setLineDash([]);
 
-  // サイズの表記(細長い枠でもはみ出さないよう、枠の短辺から字の大きさを決める)
-  const fontPx=Math.max(12*S, Math.min(w,h)*0.10);
+  // スロット名とサイズは2行に分け、枠に収まるまで字を縮める
+  // (縦長の枠だと短辺基準では横にはみ出すので、実測して合わせる)
+  const lines=[spec.label, `${w} × ${h} px`];
+  let fontPx=Math.min(w,h)*0.12;
+  x.font=`700 ${fontPx}px ${FF}`;
+  const widest=Math.max(...lines.map(t=>x.measureText(t).width));
+  if(widest>0) fontPx=Math.min(fontPx, fontPx*(w*0.84)/widest); // 横幅に収める
+  fontPx=Math.min(fontPx, (h*0.5)/(lines.length*1.3));          // 縦にも収める
+  fontPx=Math.max(fontPx, 8*S);
   x.font=`700 ${fontPx}px ${FF}`;
   x.textAlign='center'; x.textBaseline='middle';
-  const label=`${spec.label}  ${w} × ${h} px`;
   x.lineJoin='round'; x.lineWidth=fontPx*0.22;
-  x.strokeStyle='rgba(255,255,255,0.9)'; x.strokeText(label,w/2,h/2);
-  x.fillStyle='rgba(0,0,0,0.7)'; x.fillText(label,w/2,h/2);
+  const lh=fontPx*1.3, top=h/2-((lines.length-1)*lh)/2;
+  lines.forEach((t,i)=>{
+    const y=top+i*lh;
+    x.strokeStyle='rgba(255,255,255,0.9)'; x.strokeText(t,w/2,y);
+    x.fillStyle='rgba(0,0,0,0.7)'; x.fillText(t,w/2,y);
+  });
 
   const a=document.createElement('a');
   a.download=`oricard-template-${spec.label}-${w}x${h}.png`;
