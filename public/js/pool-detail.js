@@ -1520,7 +1520,9 @@ async function saveOricardStyleToPool(frame = oricardFrame, { confirmOverwrite =
   }
   currentPool = await Api.updatePool(poolId, { oricardStyle: style });
   renderCardStyleSummary();
-  return "カードプールにスタイルを保存しました";
+  // 結果はモーダル/iframe内ではなく画面右下のトーストで知らせる。
+  showToast("カードプールにスタイルを保存しました");
+  return "";
 }
 
 oricardPngBtn.addEventListener("click", () => {
@@ -1639,21 +1641,24 @@ cardStyleSummary.addEventListener("click", openCardStyleModal);
 document.getElementById("close-card-style-modal-btn").addEventListener("click", closeCardStyleModal);
 
 cardStyleSaveBtn.addEventListener("click", async () => {
-  cardStyleStatus.textContent = "保存中...";
+  // 進行中はボタンのラベルで示す(モーダル内に別途メッセージは出さない)。
+  const label = cardStyleSaveBtn.textContent;
+  cardStyleSaveBtn.textContent = "保存中...";
+  cardStyleStatus.textContent = "";
   cardStyleStatus.className = "status-message";
   cardStyleSaveBtn.disabled = true;
   try {
     // このモーダルはスタイルを編集するためだけの画面なので、上書き確認は出さない
     // (「オリカを追加」画面からの保存と違い、上書きこそがこの画面の目的のため)。
-    const msg = await saveOricardStyleToPool(cardStyleFrame, { confirmOverwrite: false });
-    cardStyleStatus.textContent = msg;
-    cardStyleStatus.className = "status-message success";
-    setTimeout(closeCardStyleModal, 700);
+    // 完了の知らせは saveOricardStyleToPool 側がトーストで出す。
+    await saveOricardStyleToPool(cardStyleFrame, { confirmOverwrite: false });
+    closeCardStyleModal();
   } catch (err) {
     cardStyleStatus.textContent = err.message;
     cardStyleStatus.className = "status-message error";
   } finally {
     cardStyleSaveBtn.disabled = false;
+    cardStyleSaveBtn.textContent = label;
   }
 });
 

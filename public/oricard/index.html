@@ -1107,12 +1107,20 @@ $('saveStyleBtn').onclick=async ()=>{
     statusEl.textContent='この機能はカードプール画面から開いた場合のみ使えます';
     return;
   }
-  statusEl.textContent='保存中…';
+  /* 進行中はボタンのラベルで示す。完了の知らせは呼び出し元(deck-viewer)が
+     画面右下のトーストで出すので、ここには何も表示しない。 */
+  const btn=$('saveStyleBtn'), label=btn.textContent;
+  btn.textContent='保存中...';
+  btn.disabled=true;
+  statusEl.textContent='';
   try{
     const msg=await window.onSaveStyleClick();
     statusEl.textContent=msg||'';
   }catch(err){
     statusEl.textContent=(err&&err.message)||'保存に失敗しました';
+  }finally{
+    btn.disabled=false;
+    btn.textContent=label;
   }
 };
 
