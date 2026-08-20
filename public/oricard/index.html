@@ -180,6 +180,7 @@
         <div class="subg" id="illust-sec-card1" hidden>
           <p class="gt2">カードイラスト1</p>
           <div class="drop" id="drop-card1">イラスト画像を選択<br><span style="font-size:11px">ドラッグ＆ドロップ可</span><input type="file" id="file-card1" accept="image/*" style="display:none"></div>
+          <div style="margin-top:7px"><button class="ghost" id="tmpl-card1" title="この枠にぴったり収まるサイズの下敷き画像を書き出します">テンプレートをDL</button></div>
           <div class="imgtools" id="imgtools-card1">
             <div class="slider"><span>ズーム</span><input type="range" id="zoom-card1" min="1" max="3" step="0.01" value="1"></div>
             <div class="slider"><span>左右</span><input type="range" id="panx-card1" min="0" max="1" step="0.01" value="0.5"></div>
@@ -191,6 +192,7 @@
         <div class="subg" id="illust-sec-card">
           <p class="gt2" id="illust-label-card">カードイラスト</p>
           <div class="drop" id="drop-card">イラスト画像を選択<br><span style="font-size:11px">ドラッグ＆ドロップ可</span><input type="file" id="file-card" accept="image/*" style="display:none"></div>
+          <div style="margin-top:7px"><button class="ghost" id="tmpl-card" title="この枠にぴったり収まるサイズの下敷き画像を書き出します">テンプレートをDL</button></div>
           <div class="imgtools" id="imgtools-card">
             <div class="slider"><span>ズーム</span><input type="range" id="zoom-card" min="1" max="3" step="0.01" value="1"></div>
             <div class="slider"><span>左右</span><input type="range" id="panx-card" min="0" max="1" step="0.01" value="0.5"></div>
@@ -202,6 +204,7 @@
         <div class="subg">
           <p class="gt2">カード名イラスト</p>
           <div class="drop" id="drop-name">イラスト画像を選択<br><span style="font-size:11px">ドラッグ＆ドロップ可</span><input type="file" id="file-name" accept="image/*" style="display:none"></div>
+          <div style="margin-top:7px"><button class="ghost" id="tmpl-name" title="この枠にぴったり収まるサイズの下敷き画像を書き出します">テンプレートをDL</button></div>
           <div class="imgtools" id="imgtools-name">
             <div class="slider"><span>ズーム</span><input type="range" id="zoom-name" min="1" max="3" step="0.01" value="1"></div>
             <div class="slider"><span>左右</span><input type="range" id="panx-name" min="0" max="1" step="0.01" value="0.5"></div>
@@ -215,6 +218,7 @@
         <div class="subg">
           <p class="gt2">背景イラスト</p>
           <div class="drop" id="drop-bg">イラスト画像を選択<br><span style="font-size:11px">ドラッグ＆ドロップ可</span><input type="file" id="file-bg" accept="image/*" style="display:none"></div>
+          <div style="margin-top:7px"><button class="ghost" id="tmpl-bg" title="この枠にぴったり収まるサイズの下敷き画像を書き出します">テンプレートをDL</button></div>
           <div class="imgtools" id="imgtools-bg">
             <div class="slider"><span>ズーム</span><input type="range" id="zoom-bg" min="1" max="3" step="0.01" value="1"></div>
             <div class="slider"><span>左右</span><input type="range" id="panx-bg" min="0" max="1" step="0.01" value="0.5"></div>
@@ -226,6 +230,7 @@
         <div class="subg" id="illust-sec-textarea">
           <p class="gt2">テキストエリアイラスト</p>
           <div class="drop" id="drop-textarea">イラスト画像を選択<br><span style="font-size:11px">ドラッグ＆ドロップ可</span><input type="file" id="file-textarea" accept="image/*" style="display:none"></div>
+          <div style="margin-top:7px"><button class="ghost" id="tmpl-textarea" title="この枠にぴったり収まるサイズの下敷き画像を書き出します">テンプレートをDL</button></div>
           <div class="imgtools" id="imgtools-textarea">
             <div class="slider"><span>ズーム</span><input type="range" id="zoom-textarea" min="1" max="3" step="0.01" value="1"></div>
             <div class="slider"><span>左右</span><input type="range" id="panx-textarea" min="0" max="1" step="0.01" value="0.5"></div>
@@ -412,7 +417,7 @@ const SR_TEMPLATE='sr';
 const SR_EFF={ maxLines:12, bottomNoTrigger:748, bottomShortTrigger:706, bottomTallTrigger:677 };
 const SR_TALL_TRIGGERS=['final']; // バナーが2行ぶんの高さになるトリガー
 /* Typesバッジは素材PNGに y=474〜495 で焼き込まれているので、そのぶんずらして描く */
-const SR_TYPES={ bakedTop:474, height:22, gapAboveText:0 };
+const SR_TYPES={ bakedTop:474, height:22, gapAboveText:12 };
 
 const state={template:'normal',color:'B',gen:1,addEnergy:false,type:'character',req:4,ap:1,
   name:'',hasTraits:true,traits:'',
@@ -1018,6 +1023,62 @@ function buildSpButtons(){
 buildSpButtons();
 function insEffect(t){const ta=$('effect');const s=ta.selectionStart??ta.value.length;ta.value=ta.value.slice(0,s)+t+ta.value.slice(ta.selectionEnd??s);state.effect=ta.value;ta.focus();render();}
 
+/* ---- イラストの下敷きテンプレート ----
+   各スロットの「ここに収まる」領域と同じピクセルサイズのPNGを書き出す。
+   これと同じサイズで絵を描いてアップロードすれば、ズーム1倍のまま
+   ぴったり収まる。描画は2倍解像度なので、テンプレートも2倍で出す。 */
+function illustSlotSpec(key){
+  const srCard = isSR() ? 'Main-components/Card_illustration_SR.png' : 'Main-components/Card_illustration.png';
+  const specs={
+    card:   { label: isSR()?'カードイラスト2':'カードイラスト', mask: srCard },
+    card1:  { label:'カードイラスト1', mask:null },   // カード全面
+    name:   { label:'カード名イラスト', mask:'Main-components/Cardname_base.png' },
+    bg:     { label:'背景イラスト', mask:null },       // カード全面
+    textarea:{ label:'テキストエリアイラスト', mask:'Main-components/Text_area.png' },
+  };
+  const spec=specs[key];
+  const box = spec.mask ? getMaskBox(spec.mask) : {x:0,y:0,w:CW,h:CH};
+  return box ? {...spec, box} : null;
+}
+
+function downloadIllustTemplate(key){
+  const spec=illustSlotSpec(key);
+  if(!spec) return;
+  const S=RENDER_SCALE, w=spec.box.w*S, h=spec.box.h*S;
+  const c=document.createElement('canvas'); c.width=w; c.height=h;
+  const x=c.getContext('2d');
+
+  // 収まる形をうっすら塗る(カード名イラストのように斜めに切れた形も分かるように)
+  if(spec.mask && IMG[spec.mask]){
+    x.drawImage(IMG[spec.mask], spec.box.x, spec.box.y, spec.box.w, spec.box.h, 0, 0, w, h);
+    x.globalCompositeOperation='source-in';
+    x.fillStyle='rgba(0,0,0,0.10)'; x.fillRect(0,0,w,h);
+    x.globalCompositeOperation='source-over';
+  }else{
+    x.fillStyle='rgba(0,0,0,0.10)'; x.fillRect(0,0,w,h);
+  }
+
+  // 外周(=アップロードする画像の端)を破線で示す
+  const lw=Math.max(2,S);
+  x.strokeStyle='rgba(0,0,0,0.55)'; x.lineWidth=lw; x.setLineDash([12*S,8*S]);
+  x.strokeRect(lw/2, lw/2, w-lw, h-lw);
+  x.setLineDash([]);
+
+  // サイズの表記(細長い枠でもはみ出さないよう、枠の短辺から字の大きさを決める)
+  const fontPx=Math.max(12*S, Math.min(w,h)*0.10);
+  x.font=`700 ${fontPx}px ${FF}`;
+  x.textAlign='center'; x.textBaseline='middle';
+  const label=`${spec.label}  ${w} × ${h} px`;
+  x.lineJoin='round'; x.lineWidth=fontPx*0.22;
+  x.strokeStyle='rgba(255,255,255,0.9)'; x.strokeText(label,w/2,h/2);
+  x.fillStyle='rgba(0,0,0,0.7)'; x.fillText(label,w/2,h/2);
+
+  const a=document.createElement('a');
+  a.download=`oricard-template-${spec.label}-${w}x${h}.png`;
+  a.href=c.toDataURL('image/png');
+  a.click();
+}
+
 /* イラスト（カード/カード名/背景/テキストエリアの4種で共通のドロップ&ズーム操作を生成する） */
 function makeIllustration(key){
   const drop=$(`drop-${key}`), file=$(`file-${key}`), tools=$(`imgtools-${key}`);
@@ -1045,6 +1106,7 @@ function makeIllustration(key){
   panxEl.oninput=e=>{st().panx=+e.target.value;render();};
   panyEl.oninput=e=>{st().pany=+e.target.value;render();};
   clearBtn.onclick=()=>{loadSeq++;img=null;st().data=null;file.value='';tools.classList.remove('show');drop.classList.remove('set');render();};
+  $(`tmpl-${key}`).onclick=()=>downloadIllustTemplate(key);
   return {
     get img(){return img;},
     getState(){return st();},
