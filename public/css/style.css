@@ -3288,3 +3288,10 @@ button {
   font-weight: 400;
   color: var(--muted);
 }
+
+/* 警告(赤)ではなく、補足として出す注記 */
+.print-estimate-note {
+  margin: 6px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
