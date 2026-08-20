@@ -1249,12 +1249,10 @@ async function openOricardModal() {
         }
         // このカードプールに保存済みの「スタイル」(カード名イラスト・枠の色/明度・
         // 背景イラスト・テキストエリアイラスト)があれば自動的に適用する。
-        if (
-          currentPool &&
-          currentPool.oricardStyle &&
-          currentPool.oricardStyle.enabled !== false &&
-          typeof win.applyOricardStyle === "function"
-        ) {
+        // 保存済みスタイルは常に反映する。以前は「自動適用オフ」で読み込まない
+        // 設定にしていたが、その状態だと編集を始めた時点で画面が素の状態になり、
+        // そのまま保存すると保存済みスタイルを空で上書きしてしまっていた。
+        if (currentPool && currentPool.oricardStyle && typeof win.applyOricardStyle === "function") {
           win.applyOricardStyle(currentPool.oricardStyle);
         }
         // 「カードプールにこのスタイルを保存」ボタン(oricard側のUI)からの
@@ -1351,7 +1349,7 @@ oricardAddBtn.addEventListener("click", async () => {
         [
           { label: "保存しない", value: "no" },
           { label: "保存する", value: "save" },
-          { label: "保存して全てのオリカに適用する", value: "apply", variant: "primary" },
+          { label: "保存して既存のオリカも作り直す", value: "apply", variant: "primary" },
         ],
         { wide: true }
       );
@@ -1386,6 +1384,13 @@ oricardAddBtn.addEventListener("click", async () => {
       poolId,
       imageBlob: blob,
     });
+    // 作成時の設定を控えておく(後でスタイルを変えたときに描き直せるように)。
+    // 失敗しても登録自体は成功しているので、握りつぶして先へ進む。
+    try {
+      await Api.saveOricardState(card.id, state);
+    } catch (err) {
+      console.warn("作成時の設定を保存できませんでした", err);
+    }
     if (styleChoice !== "no") {
       // 上書き確認は既に「保存しますか？」で取ってあるので、ここでは出さない。
       await saveOricardStyleToPool(oricardFrame, {
@@ -1487,31 +1492,63 @@ function oricardStyleSignature(style) {
   });
 }
 
-async function saveOricardStyleToPool(frame = oricardFrame, { confirmOverwrite = true, applyToAll } = {}) {
+// 保存済みスタイルを、既に登録されているオリカにも反映する(画像を作り直す)。
+// 作成時の設定(state)を残しているカードだけが対象で、それ以前に作られたカードや
+// オリカ以外のカードは元データが無いので描き直せない。
+// 描き直しにはオリカメーカーが要るので、画面外に一時的なiframeを立てて使う。
+async function reRenderPoolOricards(style, onProgress) {
+  const targets = latestCards.filter((c) => c.hasOricardState);
+  if (targets.length === 0) return { done: 0, total: 0 };
+
+  const frame = document.createElement("iframe");
+  frame.style.cssText = "position:fixed;left:-10000px;top:0;width:1200px;height:900px;border:0;";
+  document.body.appendChild(frame);
+  try {
+    const win = await new Promise((resolve, reject) => {
+      frame.onload = () => {
+        const w = frame.contentWindow;
+        const startedAt = Date.now();
+        const wait = () => {
+          if (w.oricardReady) return resolve(w);
+          if (Date.now() - startedAt > 20000) return reject(new Error("オリカメーカーを読み込めませんでした"));
+          setTimeout(wait, 50);
+        };
+        wait();
+      };
+      frame.src = `oricard/index.html?_=${Date.now()}`;
+    });
+
+    let done = 0;
+    for (const card of targets) {
+      const state = await Api.getOricardState(card.id);
+      if (!state) continue; // 印はあるがファイルが無い(手で消した等) — 飛ばす
+      const dataUrl = await win.renderOricardWithStyle(state, style);
+      const blob = await (await fetch(dataUrl)).blob();
+      await Api.replaceCardImage(card.id, blob);
+      done++;
+      if (onProgress) onProgress(done, targets.length);
+    }
+    return { done, total: targets.length };
+  } finally {
+    frame.remove();
+  }
+}
+
+// applyToAll: true なら、保存した上で既存のオリカも同じスタイルで描き直す。
+async function saveOricardStyleToPool(frame = oricardFrame, { confirmOverwrite = true, applyToAll = false } = {}) {
   const win = frame.contentWindow;
   if (!win || typeof win.getOricardStyle !== "function") {
     throw new Error("読み込みが完了していません");
   }
-  let applyGoingForward = true;
-  if (applyToAll !== undefined) {
-    // 呼び出し元が既に「全てのオリカに適用するか」を確定させている場合はそれに従う。
-    applyGoingForward = applyToAll;
-  } else if (confirmOverwrite && currentPool.oricardStyle) {
-    const result = await showConfirm("現在保存されているスタイルは消えますが、よろしいですか？", {
+  if (confirmOverwrite && currentPool.oricardStyle) {
+    const ok = await showConfirm("現在保存されているスタイルは消えますが、よろしいですか？", {
       confirmText: "保存する",
       cancelText: "キャンセル",
       danger: false,
-      checkboxLabel: "全てのオリカにこのスタイルを適用",
-      checkboxDefault: true,
     });
-    if (!result.confirmed) return "";
-    applyGoingForward = result.checked;
-  } else if (currentPool.oricardStyle) {
-    // 上書き確認を出さない場合(スタイル編集モーダル)は、既存の適用ON/OFFを引き継ぐ。
-    applyGoingForward = currentPool.oricardStyle.enabled !== false;
+    if (!ok) return "";
   }
   const style = win.getOricardStyle();
-  style.enabled = applyGoingForward;
   // 一覧に小さく出すためのプレビュー画像を一緒に保存しておく(表示のたびに
   // 4.6MBのオリカメーカーを読み込み直さずに済ませるため)。
   if (typeof win.getStylePreviewDataUrl === "function") {
@@ -1522,6 +1559,25 @@ async function saveOricardStyleToPool(frame = oricardFrame, { confirmOverwrite =
   renderCardStyleSummary();
   // 結果はモーダル/iframe内ではなく画面右下のトーストで知らせる。
   showToast("カードプールにスタイルを保存しました");
+
+  if (applyToAll) {
+    const progress = showToast("既存のオリカを描き直しています...", { duration: 600000 });
+    try {
+      const { done, total } = await reRenderPoolOricards(style, (d, t) => {
+        progress.textContent = `既存のオリカを描き直しています... (${d}/${t})`;
+      });
+      progress.remove();
+      await renderCards();
+      if (total === 0) {
+        showToast("描き直せる既存のオリカはありませんでした");
+      } else {
+        showToast(`既存のオリカ${done}枚を描き直しました`);
+      }
+    } catch (err) {
+      progress.remove();
+      showToast(`描き直しに失敗しました: ${err.message}`, { type: "error", duration: 6000 });
+    }
+  }
   return "";
 }
 
@@ -1581,7 +1637,7 @@ function renderCardStyleSummary() {
   // その場合は背景イラストで代用する(次に保存し直せば正式なプレビューになる)。
   const src = style.previewImage || (style.bgIllust && style.bgIllust.data);
   cardStylePreview.style.backgroundImage = src ? `url("${src}")` : "";
-  cardStyleState.textContent = style.enabled === false ? "設定済み(自動適用オフ)" : "設定済み";
+  cardStyleState.textContent = "設定済み";
 }
 
 async function openCardStyleModal() {
@@ -1650,8 +1706,20 @@ cardStyleSaveBtn.addEventListener("click", async () => {
   try {
     // このモーダルはスタイルを編集するためだけの画面なので、上書き確認は出さない
     // (「オリカを追加」画面からの保存と違い、上書きこそがこの画面の目的のため)。
-    // 完了の知らせは saveOricardStyleToPool 側がトーストで出す。
-    await saveOricardStyleToPool(cardStyleFrame, { confirmOverwrite: false });
+    // 代わりに、既存のオリカも作り直すかどうかだけ聞く。
+    const choice = await showChoice(
+      "このスタイルを保存しますか？",
+      [
+        { label: "キャンセル", value: "cancel" },
+        { label: "保存する", value: "save" },
+        { label: "保存して既存のオリカも作り直す", value: "apply", variant: "primary" },
+      ],
+      { wide: true }
+    );
+    if (choice === "cancel") return;
+    // 先に保存する。closeCardStyleModal()はiframeをabout:blankにしてしまうので、
+    // スタイルを読み終える前に閉じてはいけない。完了の知らせはトーストで出る。
+    await saveOricardStyleToPool(cardStyleFrame, { confirmOverwrite: false, applyToAll: choice === "apply" });
     closeCardStyleModal();
   } catch (err) {
     cardStyleStatus.textContent = err.message;

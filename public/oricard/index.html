@@ -919,29 +919,40 @@ function makeIllustration(key){
      画像をクリアしてしまう(＝背景がデフォルトの灰色に戻る)。毎回引き直す。 */
   const st=()=>state.illust[key];
   let img=null;
+  /* 画像の読み込みは非同期なので、続けて別の画像を読み込ませると、先に始めた方が
+     後から onload して新しい方を上書きしてしまうことがある(state復元→スタイル適用
+     のように短時間に2回差し替える場合に実際に起きた)。読み込みごとに番号を振って、
+     最新の読み込みだけが img を更新するようにする。 */
+  let loadSeq=0;
   drop.onclick=()=>file.click();
   drop.ondragover=e=>{e.preventDefault();drop.classList.add('hot');};
   drop.ondragleave=()=>drop.classList.remove('hot');
   drop.ondrop=e=>{e.preventDefault();drop.classList.remove('hot');if(e.dataTransfer.files[0])load(e.dataTransfer.files[0]);};
   file.onchange=e=>{if(e.target.files[0])load(e.target.files[0]);};
   function load(f){if(!f.type.startsWith('image/'))return;const r=new FileReader();r.onload=ev=>set(ev.target.result);r.readAsDataURL(f);}
-  function set(u){const im=new Image();im.onload=()=>{img=im;st().data=u;tools.classList.add('show');drop.classList.add('set');render();};im.src=u;}
+  function set(u){const seq=++loadSeq;img=null;const im=new Image();im.onload=()=>{if(seq!==loadSeq)return;img=im;st().data=u;tools.classList.add('show');drop.classList.add('set');render();};im.src=u;}
   zoomEl.oninput=e=>{st().zoom=+e.target.value;render();};
   panxEl.oninput=e=>{st().panx=+e.target.value;render();};
   panyEl.oninput=e=>{st().pany=+e.target.value;render();};
-  clearBtn.onclick=()=>{img=null;st().data=null;file.value='';tools.classList.remove('show');drop.classList.remove('set');render();};
+  clearBtn.onclick=()=>{loadSeq++;img=null;st().data=null;file.value='';tools.classList.remove('show');drop.classList.remove('set');render();};
   return {
     get img(){return img;},
     getState(){return st();},
+    /* データが入っているのに img がまだ古い/未ロード、という状態を外から
+       判別できるようにしておく(一括描き直しで読み込み完了を待つのに使う)。 */
+    isSettled(){ const s=st(); return !s.data || !!img; },
     restore(){
       const s=st();
       zoomEl.value=s.zoom; panxEl.value=s.panx; panyEl.value=s.pany;
       if(s.data){
+        const seq=++loadSeq;
+        img=null; // 読み込み完了までは「未確定」にしておく(isSettled用)
         const im=new Image();
-        im.onload=()=>{img=im;render();};
+        im.onload=()=>{ if(seq!==loadSeq) return; img=im; render(); };
         im.src=s.data;
         tools.classList.add('show'); drop.classList.add('set');
       } else {
+        loadSeq++; // 進行中の読み込みがあれば無効化する
         img=null; tools.classList.remove('show'); drop.classList.remove('set');
       }
     }
@@ -1090,6 +1101,29 @@ window.setStyleOnlyMode=function(on){
   $('saveStyleBtn').style.display=on?'none':''; /* 保存は親モーダルのボタンで行う */
   $('styleOnlyNote').hidden=!on;
   if(on) switchTab('illust');
+};
+
+/* 保存済みのstate(作成時の設定)を読み込み、指定のスタイルを被せて描き直し、
+   結果のPNGをdata URLで返す。カードプールのスタイルを変えたときに、既存の
+   オリカを一括で作り直すために deck-viewer 側から呼ばれる。
+   イラストの読み込みは非同期なので、全スロットが確定するまで待ってから描画する。 */
+window.renderOricardWithStyle=function(stateObj,style){
+  applyState(stateObj);
+  if(style) window.applyOricardStyle(style);
+  const slots=[illustCard,illustName,illustBg,illustTextarea];
+  return new Promise((resolve,reject)=>{
+    const started=Date.now();
+    const wait=()=>{
+      if(slots.every(s=>s.isSettled())){
+        render(); // 念のため確定後にもう一度描く
+        resolve(viewCanvas.toDataURL('image/png'));
+        return;
+      }
+      if(Date.now()-started>15000){ reject(new Error('イラストの読み込みが終わりませんでした')); return; }
+      setTimeout(wait,50);
+    };
+    wait();
+  });
 };
 
 /* 保存済みスタイルの一覧表示用に、現在のプレビューを縮小したPNGを返す。 */

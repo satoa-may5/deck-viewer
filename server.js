@@ -17,6 +17,10 @@ const DECKS_DIR = path.join(DATA_DIR, "decks");
 const IMAGES_DIR = path.join(APP_ROOT, "images");
 const CARDS_FILE = path.join(DATA_DIR, "cards.json");
 const POOLS_FILE = path.join(DATA_DIR, "cardpools.json");
+// オリカメーカーで作ったカードの「作成時の設定」(state)を1カード1ファイルで置く。
+// カードプールのスタイルを変えたときに既存のオリカを描き直すのに使う。
+// cards.json に混ぜるとイラストのbase64で巨大になるので別ファイルにしている。
+const ORICARD_STATES_DIR = path.join(DATA_DIR, "oricard-states");
 // Pre-made card pools now live as committed pool-exports/*.dvpool files in the
 // (public) GitHub repo and are fetched live at import time — see the
 // "Pre-made card pool import from GitHub" section below. Nothing is bundled
@@ -24,7 +28,7 @@ const POOLS_FILE = path.join(DATA_DIR, "cardpools.json");
 const GITHUB_REPO = "satoa-may5/deck-viewer";
 const GITHUB_BRANCH = "master";
 
-for (const dir of [DATA_DIR, DECKS_DIR, IMAGES_DIR]) {
+for (const dir of [DATA_DIR, DECKS_DIR, IMAGES_DIR, ORICARD_STATES_DIR]) {
   fs.mkdirSync(dir, { recursive: true });
 }
 if (!fs.existsSync(CARDS_FILE)) {
@@ -280,6 +284,7 @@ app.delete("/api/pools/:id", (req, res) => {
   for (const card of removedCards) {
     const file = path.join(IMAGES_DIR, `${card.id}.${card.imageExt}`);
     if (fs.existsSync(file)) fs.unlinkSync(file);
+    deleteOricardState(card.id);
   }
   writeCards(remainingCards);
   writePools(pools.filter((p) => p.id !== req.params.id));
@@ -807,7 +812,47 @@ app.delete("/api/cards/:id", (req, res) => {
 
   const file = path.join(IMAGES_DIR, `${card.id}.${card.imageExt}`);
   if (fs.existsSync(file)) fs.unlinkSync(file);
+  deleteOricardState(card.id);
   writeCards(cards.filter((c) => c.id !== req.params.id));
+  res.status(204).end();
+});
+
+// ---- オリカメーカーの作成時設定(カード1枚ぶん) ----
+//
+// カードプールのスタイルを変えたあと既存のオリカを描き直すために、作成時の
+// state(オリカメーカーのフォーム内容とイラスト)をカードごとに保存しておく。
+// イラストがbase64で大きいので cards.json ではなく1カード1ファイルにしている。
+
+function oricardStateFile(id) {
+  // deckFile()と同じ理由でIDを検証する(URLパラメータをそのままファイル名にしない)
+  if (typeof id !== "string" || !ID_PATTERN.test(id)) return null;
+  return path.join(ORICARD_STATES_DIR, `${id}.json`);
+}
+
+function deleteOricardState(id) {
+  const file = oricardStateFile(id);
+  if (file && fs.existsSync(file)) fs.unlinkSync(file);
+}
+
+app.get("/api/cards/:id/oricard-state", (req, res) => {
+  const file = oricardStateFile(req.params.id);
+  if (!file || !fs.existsSync(file)) {
+    return res.status(404).json({ error: "作成時の設定が保存されていません" });
+  }
+  res.type("application/json").send(fs.readFileSync(file, "utf8"));
+});
+
+app.put("/api/cards/:id/oricard-state", (req, res) => {
+  const file = oricardStateFile(req.params.id);
+  if (!file) return res.status(400).json({ error: "不正なカードIDです" });
+  const cards = readCards();
+  const card = cards.find((c) => c.id === req.params.id);
+  if (!card) return res.status(404).json({ error: "カードが見つかりません" });
+
+  fs.writeFileSync(file, JSON.stringify(req.body));
+  // 一覧から「描き直せるカード」を判別できるよう、カード側にも印を付ける。
+  card.hasOricardState = true;
+  writeCards(cards);
   res.status(204).end();
 });
 

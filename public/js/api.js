@@ -69,6 +69,23 @@ const Api = {
     return data;
   },
 
+  // オリカメーカーで作ったカードの「作成時の設定」。カードプールのスタイルを
+  // 変えたときに、この設定を読み直して描き直すのに使う。
+  async saveOricardState(id, state) {
+    const res = await fetch(`/api/cards/${encodeURIComponent(id)}/oricard-state`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(state),
+    });
+    if (!res.ok) throw new Error("作成時の設定の保存に失敗しました");
+  },
+
+  async getOricardState(id) {
+    const res = await fetch(`/api/cards/${encodeURIComponent(id)}/oricard-state`);
+    if (!res.ok) return null; // 保存されていない(この機能より前に作られたカード)
+    return res.json();
+  },
+
   async updateCard(id, patch) {
     const res = await fetch(`/api/cards/${encodeURIComponent(id)}`, {
       method: "PATCH",

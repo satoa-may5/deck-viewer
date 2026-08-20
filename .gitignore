@@ -21,6 +21,9 @@ data/cards.json
 data/cardpools.json
 data/decks/*
 !data/decks/.gitkeep
+# オリカの「作成時の設定」(イラストのbase64を含むので大きい)。個人データなので管理外。
+data/oricard-states/*
+!data/oricard-states/.gitkeep
 
 # オリカメーカー(UA-maker)統合: 2026-08-19に著作権懸念からローカル限定にしていたが、
 # 素材はユーザー本人が作成したものであることを確認し、公開リポジトリ・配布用exeにも
