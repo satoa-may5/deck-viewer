@@ -279,6 +279,12 @@
 const CW=600, CH=838; /* 内部の作業解像度は素材と同じ838のまま(スケールさせない)。
                           表示・書き出しは下のVIEW_H(837)へ最後に等倍でクロップする */
 const VIEW_H=837;
+/* 印刷用に2倍の解像度で描き出す(1200x1674 = 63x88mmで約484DPI相当)。
+   座標・レイアウトの定数は今まで通り600x838系のまま書き、拡大は
+   ctx.scale() で吸収する。素材PNGは600px幅のままなので枠やバッジ自体は
+   引き伸ばしになるが、canvasに直接描くテキストとユーザーのイラストは
+   実際に解像度が上がる。 */
+const RENDER_SCALE=2;
 const CORNER_RADIUS=30; /* カード全体の角丸半径。Base_image.png/背景イラストどちらでも
                             この半径でクリップするので、素材側の角丸が浅くても
                             見た目上は必ずこの丸みになる */
@@ -428,13 +434,14 @@ const FF = '"Noto Sans JP",sans-serif';
 /* 表示・書き出し用のcanvas(DOM上の実体、600xVIEW_H)。deck-viewer側もこれの
    toBlob()を呼ぶので、exportOricard()は必ずこちらを返す。 */
 const viewCanvas=document.getElementById('card'), viewCtx=viewCanvas.getContext('2d');
+viewCanvas.width=CW*RENDER_SCALE; viewCanvas.height=VIEW_H*RENDER_SCALE;
 /* 全レイヤーの実際の描画先(作業用、600xCH=838、素材と同スケール)。
    最後にrender()がここからVIEW_Hぶんだけを等倍でviewCanvasへコピーする。
    スケール(縮小合成)でVIEW_Hに詰めてしまうと、素材(例: Base系の各色フレーム画像の
    最下行が透明)のうち本来完全に切り落としたい行が、わずかな透明度を残したまま縮小され、
    背景イラストがうっすら透けて見える不具合になっていた(実機報告で発覚)。
    等倍クロップにすることで、その透明な最下行ごと物理的に切り捨てられる。 */
-const canvas=document.createElement('canvas'); canvas.width=CW; canvas.height=CH;
+const canvas=document.createElement('canvas'); canvas.width=CW*RENDER_SCALE; canvas.height=CH*RENDER_SCALE;
 const ctx=canvas.getContext('2d');
 const IMG={};
 
@@ -763,14 +770,16 @@ function drawMaskedSlot(illust,maskKey){
   const box=getMaskBox(maskKey);
   if(!box){ drawImg(maskKey); return; }
   const st=illust.getState();
-  const oc=document.createElement('canvas'); oc.width=CW; oc.height=CH;
+  // マスク合成も2倍解像度で行う(ここを600のままにするとイラストだけ甘くなる)
+  const oc=document.createElement('canvas'); oc.width=CW*RENDER_SCALE; oc.height=CH*RENDER_SCALE;
   const octx=oc.getContext('2d');
+  octx.setTransform(RENDER_SCALE,0,0,RENDER_SCALE,0,0);
   const bs=Math.max(box.w/illust.img.width,box.h/illust.img.height), sc=bs*st.zoom;
   const dw=illust.img.width*sc, dh=illust.img.height*sc;
   octx.drawImage(illust.img,box.x+(box.w-dw)*st.panx,box.y+(box.h-dh)*st.pany,dw,dh);
   octx.globalCompositeOperation='destination-in';
   octx.drawImage(maskImg,0,0,CW,CH);
-  ctx.drawImage(oc,0,0);
+  ctx.drawImage(oc,0,0,CW,CH); // 論理サイズで貼る=デバイスピクセル等倍
 }
 
 /* 背景イラストは他の3スロットと違い「置き換え」対象がBase_image.png全体
@@ -798,16 +807,19 @@ function drawNameFrame(){
   const frameImg=IMG['Main-components/Cardname_frame.png'];
   if(!frameImg||!frameImg.complete||!frameImg.naturalWidth) return;
   const [r,g,b]=frameColorRgb();
-  const fc=document.createElement('canvas'); fc.width=CW; fc.height=CH;
+  const fc=document.createElement('canvas'); fc.width=CW*RENDER_SCALE; fc.height=CH*RENDER_SCALE;
   const fctx=fc.getContext('2d');
+  fctx.setTransform(RENDER_SCALE,0,0,RENDER_SCALE,0,0);
   fctx.fillStyle=`rgb(${r},${g},${b})`;
   fctx.fillRect(0,0,CW,CH);
   fctx.globalCompositeOperation='destination-in';
   fctx.drawImage(frameImg,0,0,CW,CH);
-  ctx.drawImage(fc,0,0);
+  ctx.drawImage(fc,0,0,CW,CH);
 }
 
 function render(){
+  // 毎回この変換から始める(描画関数のsave/restoreに左右されないように)
+  ctx.setTransform(RENDER_SCALE,0,0,RENDER_SCALE,0,0);
   ctx.clearRect(0,0,CW,CH);
 
   /* 背景イラストのすぐ上に、カード/カード名/テキストエリアの3イラストを
@@ -854,10 +866,11 @@ function render(){
   /* 最終合成：作業用canvas(CH=838)の上位VIEW_H(837)行だけを等倍でviewCanvasへ
      コピーする(8引数drawImageでsw/shとdw/dhを同じ値にすることでスケールなしの
      クロップになる)。角丸クリップもここで一括してかける。 */
-  viewCtx.clearRect(0,0,CW,VIEW_H);
+  const vw=viewCanvas.width, vh=viewCanvas.height; // = CW/VIEW_H の RENDER_SCALE 倍
+  viewCtx.clearRect(0,0,vw,vh);
   viewCtx.save();
-  if(viewCtx.roundRect){ viewCtx.beginPath(); viewCtx.roundRect(0,0,CW,VIEW_H,CORNER_RADIUS); viewCtx.clip(); }
-  viewCtx.drawImage(canvas,0,0,CW,VIEW_H,0,0,CW,VIEW_H);
+  if(viewCtx.roundRect){ viewCtx.beginPath(); viewCtx.roundRect(0,0,vw,vh,CORNER_RADIUS*RENDER_SCALE); viewCtx.clip(); }
+  viewCtx.drawImage(canvas,0,0,vw,vh,0,0,vw,vh);
   viewCtx.restore();
 }
 

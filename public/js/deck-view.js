@@ -533,15 +533,17 @@ async function persistOrder() {
 
 // ---- Print (multi-page TIFF sheets for physically cutting out proxies) ----
 
-// 2067x2923 at these DPIs is A4 (210x297mm) almost exactly (250.0 DPI both
-// axes). A true 63x88mm card at that same 250 DPI is 620x866px — using
-// 600x838 (as originally suggested) would print at ~61x85mm, about 3%
-// smaller than a real card, so the corrected size is used here instead.
-const PRINT_PAGE_W = 2067;
-const PRINT_PAGE_H = 2923;
-const PRINT_DPI = 250;
-const PRINT_CARD_W = 620;
-const PRINT_CARD_H = 866;
+// 350 DPI(日本の商業印刷の入稿標準)で A4 = 210x297mm ≒ 2894x4093px、
+// 63x88mm のカードは 868x1213px。以前は 250 DPI だったが、オリカメーカーが
+// 2倍解像度(1200x1674px ≒ 484 DPI相当)で書き出すようになり、250 DPI では
+// せっかくの情報を捨ててしまうため引き上げた。
+// これ以上(400 DPI超)にしても通常の視距離では差が分からない一方、TIFFは
+// 無圧縮なのでファイルサイズだけが増える(1ページあたり約35MB)。
+const PRINT_PAGE_W = 2894;
+const PRINT_PAGE_H = 4093;
+const PRINT_DPI = 350;
+const PRINT_CARD_W = 868;
+const PRINT_CARD_H = 1213;
 const PRINT_COLS = 3;
 const PRINT_ROWS = 3;
 const PRINT_PER_PAGE = PRINT_COLS * PRINT_ROWS;
