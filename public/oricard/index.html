@@ -114,8 +114,8 @@
   <div class="controls">
     <div class="tabbar" id="tabbar">
       <button type="button" class="tabbtn on" data-tab="basic">カード情報</button>
-      <button type="button" class="tabbtn" data-tab="illust">イラスト</button>
       <button type="button" class="tabbtn" data-tab="effect">効果テキスト</button>
+      <button type="button" class="tabbtn" data-tab="illust">イラスト</button>
     </div>
 
     <div class="tabpanels">
@@ -554,7 +554,9 @@ function drawLine(items,x,topY){
   ctx.restore();
 }
 function drawEffect(){
-  const tokens=tokenize(state.effect || 'テキストを入力'); const lines=buildLines(tokens);
+  /* 未入力のときはプレースホルダーを描かず、そのまま空にする
+     (入力欄側のplaceholder属性で案内は出ているので、絵には出さない)。 */
+  const tokens=tokenize(state.effect || ''); const lines=buildLines(tokens);
   let currentOffset = 0; // 累積オフセット値
 
   if(state.raid==='none'){

@@ -975,6 +975,7 @@ function parseAttributeInput(value) {
 }
 const modalSaveBtn = document.getElementById("modal-save-btn");
 const modalDeleteBtn = document.getElementById("modal-delete-btn");
+const modalOricardEditBtn = document.getElementById("modal-oricard-edit-btn");
 const modalStatus = document.getElementById("modal-status");
 const modalActionsNormal = document.getElementById("modal-actions-normal");
 
@@ -1104,6 +1105,7 @@ function openAddCardModal() {
   setModalStatus("", "");
   modalTitle.textContent = "カードを追加";
   modalDeleteBtn.hidden = true;
+  modalOricardEditBtn.hidden = true;
   showImagePlaceholder();
   modal.hidden = false;
 }
@@ -1129,9 +1131,18 @@ function openEditCardModal(card) {
   setModalStatus("", "");
   modalTitle.textContent = "カードを編集";
   modalDeleteBtn.hidden = false;
+  // オリカメーカーで作ったカード(作成時の設定が残っている)だけ再編集できる。
+  modalOricardEditBtn.hidden = !card.hasOricardState;
   showImagePreview(Api.cardImageUrl(card));
   modal.hidden = false;
 }
+
+modalOricardEditBtn.addEventListener("click", () => {
+  const card = editingCard;
+  if (!card) return;
+  closeAddCardModal();
+  openOricardModal(card);
+});
 
 modalDeleteBtn.addEventListener("click", async () => {
   if (!editingCard) return;
@@ -1204,9 +1215,16 @@ const oricardPngBtn = document.getElementById("oricard-png-btn");
 const oricardJsonSaveBtn = document.getElementById("oricard-json-save-btn");
 const oricardJsonLoadBtn = document.getElementById("oricard-json-load-btn");
 const oricardJsonFile = document.getElementById("oricard-json-file");
+const oricardModalTitle = document.getElementById("oricard-modal-title");
 let oricardOpenToken = 0;
+let oricardEditingCard = null; // null = 新規追加、カード = そのカードの編集
 
-async function openOricardModal() {
+// card を渡すと、そのオリカを作成時の設定で開き直す「編集モード」になる
+// (保存すると新規追加ではなく、そのカードを更新する)。
+async function openOricardModal(card = null) {
+  oricardEditingCard = card;
+  oricardModalTitle.textContent = card ? "オリカを編集" : "オリカを追加";
+  oricardAddBtn.textContent = card ? "このカードを更新する" : "このカードを追加する";
   oricardStatus.textContent = "";
   oricardStatus.className = "status-message";
   oricardUnavailable.hidden = true;
@@ -1249,20 +1267,37 @@ async function openOricardModal() {
         }
         // このカードプールに保存済みの「スタイル」(カード名イラスト・枠の色/明度・
         // 背景イラスト・テキストエリアイラスト)があれば自動的に適用する。
+        // 「カードプールにこのスタイルを保存」ボタン(oricard側のUI)からの
+        // 呼び出しを受け取るフック。実際の保存処理はpoolIdを知っているこちら側で行う。
+        win.onSaveStyleClick = saveOricardStyleToPool;
+
+        // ここまでの内容を「まだ何も編集していない」基準点として記録する。
+        // X閉じるときの確認要否はここからの差分だけで判定する。
+        const captureBaseline = () => {
+          if (typeof win.exportOricard === "function") {
+            oricardBaselineSnapshot = snapshotOricardState(win.exportOricard().state);
+          }
+        };
+
+        if (oricardEditingCard) {
+          // 編集モード: そのカードを作ったときの設定をそのまま読み込む
+          // (スタイルもその中に入っているので、プールのスタイルは被せない)。
+          Api.getOricardState(oricardEditingCard.id).then((state) => {
+            if (openToken !== oricardOpenToken) return;
+            if (state && typeof win.oricardLoadJsonText === "function") {
+              win.oricardLoadJsonText(JSON.stringify(state));
+            }
+            captureBaseline(); // 読み込み後の状態を基準にする
+          });
+          return;
+        }
         // 保存済みスタイルは常に反映する。以前は「自動適用オフ」で読み込まない
         // 設定にしていたが、その状態だと編集を始めた時点で画面が素の状態になり、
         // そのまま保存すると保存済みスタイルを空で上書きしてしまっていた。
         if (currentPool && currentPool.oricardStyle && typeof win.applyOricardStyle === "function") {
           win.applyOricardStyle(currentPool.oricardStyle);
         }
-        // 「カードプールにこのスタイルを保存」ボタン(oricard側のUI)からの
-        // 呼び出しを受け取るフック。実際の保存処理はpoolIdを知っているこちら側で行う。
-        win.onSaveStyleClick = saveOricardStyleToPool;
-        // ここまでの内容(スタイル自動適用込み)を「まだ何も編集していない」基準点として
-        // 記録する。X閉じるときの確認要否はここからの差分だけで判定する。
-        if (typeof win.exportOricard === "function") {
-          oricardBaselineSnapshot = snapshotOricardState(win.exportOricard().state);
-        }
+        captureBaseline();
       };
       applyWhenReady();
     };
@@ -1278,6 +1313,7 @@ async function openOricardModal() {
 
 function closeOricardModal() {
   oricardOpenToken++; // 実行中のapplyWhenReadyポーリングを打ち切る
+  oricardEditingCard = null;
   oricardModal.hidden = true;
   oricardFrame.src = "about:blank"; // 4.5MBのmaterials.jsをメモリに残さない
   document.body.style.overflow = "";
@@ -1359,8 +1395,9 @@ oricardAddBtn.addEventListener("click", async () => {
   }
 
   // 進行中であることはボタンのラベルで示す(モーダル内に別途メッセージは出さない)。
+  const editing = oricardEditingCard;
   const addBtnLabel = oricardAddBtn.textContent;
-  oricardAddBtn.textContent = "追加中...";
+  oricardAddBtn.textContent = editing ? "更新中..." : "追加中...";
   oricardStatus.textContent = "";
   oricardStatus.className = "status-message";
   oricardAddBtn.disabled = true;
@@ -1368,8 +1405,8 @@ oricardAddBtn.addEventListener("click", async () => {
     const blob = await new Promise((resolve, reject) => {
       canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("画像の生成に失敗しました"))), "image/png");
     });
-    const card = await Api.addCard({
-      name: formatCardName(computeNextCardNumber(latestCards)),
+    // オリカメーカーの入力内容 → このアプリのカード項目への対応(新規/更新で共通)。
+    const fields = {
       cardName: state.name || "",
       type: state.type,
       cost: state.req,
@@ -1383,9 +1420,19 @@ oricardAddBtn.addEventListener("click", async () => {
       // [[トークン]]は他の.dvpoolと同じ表記([登場時]等)に変換して保存する。
       // オリカメーカー側の入力欄は[[ ]]のままで、変換はここ(登録時)だけ。
       effect: oricardEffectToText(state.effect),
-      poolId,
-      imageBlob: blob,
-    });
+    };
+    let card;
+    if (editing) {
+      await Api.replaceCardImage(editing.id, blob);
+      card = await Api.updateCard(editing.id, fields);
+    } else {
+      card = await Api.addCard({
+        name: formatCardName(computeNextCardNumber(latestCards)),
+        ...fields,
+        poolId,
+        imageBlob: blob,
+      });
+    }
     // 作成時の設定を控えておく(後でスタイルを変えたときに描き直せるように)。
     // 失敗しても登録自体は成功しているので、握りつぶして先へ進む。
     try {
@@ -1404,7 +1451,7 @@ oricardAddBtn.addEventListener("click", async () => {
     await renderCards();
     // 登録結果はモーダル内ではなく画面右下のトーストで知らせる(モーダルは閉じる)。
     closeOricardModal();
-    showToast(`「${displayName(card)}」を登録しました。`);
+    showToast(`「${displayName(card)}」を${editing ? "更新" : "登録"}しました。`);
   } catch (err) {
     oricardStatus.textContent = err.message;
     oricardStatus.className = "status-message error";
@@ -1637,7 +1684,7 @@ function applyStyleToExisting() {
 }
 // このフラグがオンのときだけ、保存ダイアログに赤字の注意書きを出す。
 function styleSaveWarning() {
-  return applyStyleToExisting() ? "保存するを押した場合、既存のオリカ全てに変更が適用されます" : undefined;
+  return applyStyleToExisting() ? "「保存する」を押した場合、既存のオリカ全てに変更が適用されます" : undefined;
 }
 
 cardStyleApplyExisting.addEventListener("change", async () => {

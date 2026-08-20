@@ -141,7 +141,7 @@
 
         <label class="filter-checkbox card-style-apply-toggle">
           <input type="checkbox" id="card-style-apply-existing" checked />
-          カードスタイルが変更されたとき、既存のオリカにも適用する
+          カードスタイルが変更されたとき、既存のオリカにも変更を適用する
         </label>
       </aside>
     </div>
@@ -241,6 +241,7 @@
         </div>
         <div class="modal-actions" id="modal-actions-normal">
           <button type="button" class="btn danger" id="modal-delete-btn" hidden>削除する</button>
+          <button type="button" class="btn" id="modal-oricard-edit-btn" hidden>オリカメーカーで編集</button>
           <button type="button" class="btn primary" id="modal-save-btn">保存する</button>
         </div>
       </div>
@@ -280,7 +281,7 @@
     <div class="modal-overlay" id="oricard-modal" hidden>
       <div class="modal-card oricard-modal-card">
         <div class="modal-header">
-          <h2>オリカを追加</h2>
+          <h2 id="oricard-modal-title">オリカを追加</h2>
           <button type="button" class="icon-btn" id="close-oricard-modal-btn">✕</button>
         </div>
         <div class="oricard-frame-wrap">
