@@ -54,11 +54,14 @@
         <div class="field">
           <label>ファイル形式</label>
           <label class="filter-checkbox">
-            <input type="radio" name="print-format" value="pdf" checked /> PDF(可逆圧縮・全ページ1ファイル)
+            <input type="radio" name="print-format" value="png" checked /> PNG(可逆圧縮)
           </label>
           <label class="filter-checkbox">
-            <input type="radio" name="print-format" value="tiff" /> TIFF(無圧縮・1ページ1ファイル)
+            <input type="radio" name="print-format" value="tiff" /> TIFF(無圧縮)
           </label>
+          <p class="crop-hint" style="margin-top:6px">
+            どちらも画質は同じで、1ページにつき1ファイル書き出します。
+          </p>
         </div>
 
         <label class="filter-checkbox" id="print-quality-wrap" hidden>
@@ -74,7 +77,7 @@
           </p>
           <p class="print-estimate-warn" id="print-format-warn" hidden>
             TIFFはネットプリントサービスで受け付けられないことがほとんどです。
-            コンビニで印刷する予定ならPDFを選んでください。
+            コンビニで印刷する予定ならPNGを選んでください。
           </p>
         </div>
 
@@ -103,7 +106,7 @@
         <div class="field">
           <label>調整するファイル形式</label>
           <label class="filter-checkbox">
-            <input type="radio" name="cal-format" value="pdf" checked /> PDF
+            <input type="radio" name="cal-format" value="png" checked /> PNG
           </label>
           <label class="filter-checkbox">
             <input type="radio" name="cal-format" value="tiff" /> TIFF

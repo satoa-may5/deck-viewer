@@ -639,8 +639,8 @@ const NOMINAL_CAL_SIZE_MM = 100;
 // 横線・縦線を角でくっつけず離して見せるための隙間(px)。線自体の長さには影響しない。
 const CAL_LINE_GAP = 60;
 
-// ずれ方はファイル形式ごとに変わる(TIFFは解像度タグをドライバがどう解釈するか任せ、
-// PDFはページの実寸を持つ)ため、補正値は形式ごとに分けて持つ。
+// ずれ方はファイル形式ごとに変わる(解像度タグ(TIFF)・pHYs(PNG)をドライバや
+// 印刷サービスがどう解釈するかが違う)ため、補正値は形式ごとに分けて持つ。
 // 画質(DPI)を変えても紙の上の寸法は同じなので、そちらでは分けない。
 // 旧形式({scaleX,scaleY}が直に入っている)はTIFFの値として読み替える。
 function readCalibrationStore() {
@@ -657,7 +657,7 @@ function readCalibrationStore() {
   }
 }
 
-function getCalibration(format = "tiff") {
+function getCalibration(format = "png") {
   const entry = readCalibrationStore()[format];
   if (entry && typeof entry.scaleX === "number" && typeof entry.scaleY === "number") return entry;
   return { scaleX: 1, scaleY: 1 };
@@ -679,7 +679,7 @@ function getCorrectedCardSize(geo, format) {
 
 function selectedCalFormat() {
   const el = document.querySelector('input[name="cal-format"]:checked');
-  return el ? el.value : "pdf";
+  return el ? el.value : "png";
 }
 
 async function printCalibrationSheet() {
@@ -744,164 +744,84 @@ async function printCalibrationSheet() {
   );
 
   const format = selectedCalFormat();
-  if (format === "pdf") {
-    // 調整シートもPDFで出す(TIFFとはずれ方が違うため、同じ形式で測る必要がある)
-    const rgba = pctx.getImageData(0, 0, geo.pageW, geo.pageH).data;
-    const bytes = await deflateBytes(toPredictedRgbRows(rgba, geo.pageW, geo.pageH));
-    const image = { width: geo.pageW, height: geo.pageH, bytes };
-    const pageWpt = PAGE_W_MM * PT_PER_MM;
-    const pageHpt = PAGE_H_MM * PT_PER_MM;
-    const blob = buildPdf(
-      [[{ imageId: "cal", w: pageWpt, h: pageHpt, x: 0, y: 0 }]],
-      { cal: image },
-      pageWpt,
-      pageHpt
-    );
-    downloadBlob(blob, "print-calibration.pdf");
+  if (format === "png") {
+    // 調整シートも印刷するのと同じ形式で出す(TIFFとはずれ方が違うため)
+    const blob = await canvasToPng(pageCanvas, geo.dpi);
+    downloadBlob(blob, "print-calibration.png");
     return;
   }
-  const imageData2 = pctx.getImageData(0, 0, geo.pageW, geo.pageH);
-  const blob = encodeTiff(geo.pageW, geo.pageH, imageData2.data, geo.dpi);
+  const imageData = pctx.getImageData(0, 0, geo.pageW, geo.pageH);
+  const blob = encodeTiff(geo.pageW, geo.pageH, imageData.data, geo.dpi);
   downloadBlob(blob, "print-calibration.tif");
 }
 
+// ---- PNG ----
+//
+// canvas.toBlob()がそのままPNGを作ってくれるので、圧縮は自前で書かない。
+// ただし解像度(pHYs)チャンクだけは付けてくれないので、TIFFの解像度タグと
+// 同じように「この画像は何DPIか」を後から差し込む。これがあると、対応する
+// ビューア/ドライバでは「実際のサイズ」で印刷したときに紙の上で正しい
+// 大きさになる。
+function canvasToPng(canvas, dpi) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
+        reject(new Error("PNGの書き出しに失敗しました"));
+        return;
+      }
+      try {
+        resolve(withPngDpi(new Uint8Array(await blob.arrayBuffer()), dpi));
+      } catch (err) {
+        resolve(blob); // pHYsを足せなくても画像自体は使えるので、そのまま返す
+      }
+    }, "image/png");
+  });
+}
+
+// PNGは8バイトのシグネチャの後ろにチャンクが並ぶだけの構造なので、
+// 先頭のIHDRチャンクの直後にpHYsチャンクを挿し込む。
+function withPngDpi(bytes, dpi) {
+  const perMetre = Math.round(dpi / 0.0254);
+  const chunk = new Uint8Array(21); // 長さ4 + 型4 + データ9 + CRC4
+  const view = new DataView(chunk.buffer);
+  view.setUint32(0, 9);
+  chunk.set([0x70, 0x48, 0x59, 0x73], 4); // "pHYs"
+  view.setUint32(8, perMetre); // X方向
+  view.setUint32(12, perMetre); // Y方向
+  chunk[16] = 1; // 単位: メートル
+  view.setUint32(17, crc32(chunk.subarray(4, 17)));
+
+  // IHDRは必ず先頭のチャンク。長さフィールド4 + 型4 + データ + CRC4。
+  const ihdrLen = new DataView(bytes.buffer, bytes.byteOffset).getUint32(8);
+  const insertAt = 8 + 4 + 4 + ihdrLen + 4;
+  const out = new Uint8Array(bytes.length + chunk.length);
+  out.set(bytes.subarray(0, insertAt), 0);
+  out.set(chunk, insertAt);
+  out.set(bytes.subarray(insertAt), insertAt + chunk.length);
+  return new Blob([out], { type: "image/png" });
+}
+
+const CRC_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    table[n] = c >>> 0;
+  }
+  return table;
+})();
+
+function crc32(bytes) {
+  let c = 0xffffffff;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+// ---- TIFF ----
+//
 // Browsers can only canvas.toBlob() to PNG/JPEG/WebP, never TIFF, so this
 // hand-writes a minimal uncompressed 8-bit RGB TIFF (single strip, no
 // compression) directly from a canvas's ImageData.
-// ---- PDF ----
-//
-// PDFはページに「実寸」を持たせられる(A4 = 595.28x841.89pt)ので、印刷側で
-// 「実際のサイズ/100%」を選べば紙の上で正確な大きさになる。TIFFの解像度タグと
-// 違ってドライバに解釈を委ねる部分が少ない。
-//
-// 画像は可逆(FlateDecode)で埋め込む。PNGと同じ行フィルタ(Up)を掛けてから
-// deflateすると、生のRGBをそのまま圧縮するよりかなり小さくなる。
-const PT_PER_MM = 72 / 25.4;
-
-async function deflateBytes(bytes) {
-  const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream("deflate"));
-  return new Uint8Array(await new Response(stream).arrayBuffer());
-}
-
-// RGBAのImageDataを白背景に合成し、PNGのUpフィルタを掛けた行データにする
-// (PDFの /Predictor 15 がこの形式をそのまま解釈できる)。
-function toPredictedRgbRows(rgba, width, height) {
-  const rowLen = width * 3;
-  const out = new Uint8Array((rowLen + 1) * height);
-  const cur = new Uint8Array(rowLen);
-  const prev = new Uint8Array(rowLen);
-  let o = 0;
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const s = (y * width + x) * 4;
-      const a = rgba[s + 3] / 255;
-      // 紙は白なので、透明部分は白に落とす
-      cur[x * 3] = Math.round(rgba[s] * a + 255 * (1 - a));
-      cur[x * 3 + 1] = Math.round(rgba[s + 1] * a + 255 * (1 - a));
-      cur[x * 3 + 2] = Math.round(rgba[s + 2] * a + 255 * (1 - a));
-    }
-    out[o++] = 2; // PNG filter type: Up
-    for (let i = 0; i < rowLen; i++) out[o++] = (cur[i] - prev[i]) & 0xff;
-    prev.set(cur);
-  }
-  return out;
-}
-
-// カード画像1枚を、PDFに埋め込める形(Flate圧縮済みRGB)に変換する。
-async function encodeCardForPdf(img, wPx, hPx) {
-  const c = document.createElement("canvas");
-  c.width = wPx;
-  c.height = hPx;
-  const cx = c.getContext("2d");
-  cx.fillStyle = "#ffffff";
-  cx.fillRect(0, 0, wPx, hPx);
-  drawImageCover(cx, img, 0, 0, wPx, hPx);
-  const data = cx.getImageData(0, 0, wPx, hPx).data;
-  return { width: wPx, height: hPx, bytes: await deflateBytes(toPredictedRgbRows(data, wPx, hPx)) };
-}
-
-// 最小限のPDFライター。ページごとにコンテンツストリームを持ち、カード画像は
-// XObjectとして「ユニークな絵1つにつき1回だけ」埋め込んで、同じカードが複数枚
-// あっても参照するだけにする(枚数が増えてもファイルはほとんど太らない)。
-function buildPdf(pages, images, pageWpt, pageHpt) {
-  const enc = new TextEncoder();
-  const chunks = [];
-  const offsets = [0];
-  let length = 0;
-  const push = (data) => {
-    const bytes = typeof data === "string" ? enc.encode(data) : data;
-    chunks.push(bytes);
-    length += bytes.length;
-  };
-  const startObj = () => offsets.push(length);
-
-  push("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
-
-  const imageIds = Object.keys(images);
-  // 1: Catalog, 2: Pages, 3..: 各ページ(Page/Contents) → 画像
-  const pageObjBase = 3;
-  const imageObjBase = pageObjBase + pages.length * 2;
-  const objNumOfImage = {};
-  imageIds.forEach((id, i) => {
-    objNumOfImage[id] = imageObjBase + i;
-  });
-
-  startObj();
-  push("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
-
-  startObj();
-  const kids = pages.map((_, i) => `${pageObjBase + i * 2} 0 R`).join(" ");
-  push(`2 0 obj\n<< /Type /Pages /Count ${pages.length} /Kids [${kids}] >>\nendobj\n`);
-
-  pages.forEach((placements, i) => {
-    const pageNum = pageObjBase + i * 2;
-    const contentNum = pageNum + 1;
-    const used = [...new Set(placements.map((p) => p.imageId))];
-    const xobjects = used.map((id) => `/Im${objNumOfImage[id]} ${objNumOfImage[id]} 0 R`).join(" ");
-    startObj();
-    push(
-      `${pageNum} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWpt.toFixed(2)} ${pageHpt.toFixed(2)}]` +
-        ` /Resources << /XObject << ${xobjects} >> >> /Contents ${contentNum} 0 R >>\nendobj\n`
-    );
-
-    // PDFの原点は左下。cm行列で「幅・高さ・位置」を指定してから画像を描く。
-    const content = placements
-      .map(
-        (p) =>
-          `q ${p.w.toFixed(2)} 0 0 ${p.h.toFixed(2)} ${p.x.toFixed(2)} ${p.y.toFixed(2)} cm ` +
-          `/Im${objNumOfImage[p.imageId]} Do Q`
-      )
-      .join("\n");
-    const contentBytes = enc.encode(content);
-    startObj();
-    push(`${contentNum} 0 obj\n<< /Length ${contentBytes.length} >>\nstream\n`);
-    push(contentBytes);
-    push("\nendstream\nendobj\n");
-  });
-
-  imageIds.forEach((id) => {
-    const im = images[id];
-    startObj();
-    push(
-      `${objNumOfImage[id]} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${im.width} /Height ${im.height}` +
-        ` /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode` +
-        ` /DecodeParms << /Predictor 15 /Colors 3 /BitsPerComponent 8 /Columns ${im.width} >>` +
-        ` /Length ${im.bytes.length} >>\nstream\n`
-    );
-    push(im.bytes);
-    push("\nendstream\nendobj\n");
-  });
-
-  const xrefStart = length;
-  const total = offsets.length;
-  let xref = `xref\n0 ${total}\n0000000000 65535 f \n`;
-  for (let i = 1; i < total; i++) xref += `${String(offsets[i]).padStart(10, "0")} 00000 n \n`;
-  push(xref);
-  push(`trailer\n<< /Size ${total} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF\n`);
-
-  return new Blob(chunks, { type: "application/pdf" });
-}
-
 function encodeTiff(width, height, rgbaData, dpi) {
   const rgbByteCount = width * height * 3;
   const headerSize = 8;
@@ -1012,14 +932,12 @@ function deckHasHighResCards() {
   });
 }
 
-// 出来上がるファイルの概算サイズ(バイト)。TIFFは無圧縮なので正確に出せる。
-// PDFはユニークなカードだけを可逆圧縮して埋め込む。
-function estimateOutputBytes(format, geo, uniqueIds, pageCount) {
+// 出来上がる1ファイルの概算サイズ(バイト)。TIFFは無圧縮なので正確に出せる。
+function estimateOutputBytes(format, geo, cardsOnPage) {
   if (format === "tiff") return geo.pageW * geo.pageH * 3 + 1024;
-  // PDFは同じカードを1回だけ可逆圧縮して埋め込む。実測(350 DPI・カード5種)では
-  // 生のRGB(幅x高さx3)の約45%に収まったので、その比率で見積もる。
-  const perCard = geo.cardW * geo.cardH * 3 * 0.45;
-  return uniqueIds.length * perCard + pageCount * 4 * 1024;
+  // PNGは可逆圧縮。カードの絵は実測で生のRGB(幅x高さx3)の約45%に収まった。
+  // 余白は真っ白でほぼ潰れるので、カードの面積だけで見積もる。
+  return cardsOnPage * geo.cardW * geo.cardH * 3 * 0.45 + 8 * 1024;
 }
 
 const printOptionsModal = document.getElementById("print-options-modal");
@@ -1033,7 +951,7 @@ const NETPRINT_LIMIT_BYTES = 10 * 1024 * 1024;
 
 function selectedPrintFormat() {
   const el = document.querySelector('input[name="print-format"]:checked');
-  return el ? el.value : "pdf";
+  return el ? el.value : "png";
 }
 
 function currentPrintProfile() {
@@ -1050,13 +968,12 @@ function refreshPrintEstimate() {
   const format = selectedPrintFormat();
   const profile = currentPrintProfile();
   const geo = printGeometry(profile.dpi);
-  const uniqueIds = [...new Set(fullList)];
-  const perFile = estimateOutputBytes(format, geo, uniqueIds, pageCount);
+  // 一番大きくなるページ(＝カードで埋まっているページ)を基準に出す
+  const maxCardsOnPage = Math.min(fullList.length, PRINT_PER_PAGE);
+  const perFile = estimateOutputBytes(format, geo, maxCardsOnPage);
 
   printEstimateText.textContent =
-    format === "pdf"
-      ? profile.label + " / 全" + pageCount + "ページで1ファイル ・ 推定 " + formatBytes(perFile)
-      : profile.label + " / " + pageCount + "ファイル(1ページにつき1つ) ・ 1ファイルあたり推定 " + formatBytes(perFile);
+    profile.label + " / " + pageCount + "ファイル(1ページにつき1つ) ・ 1ファイルあたり推定 " + formatBytes(perFile);
 
   printEstimateWarn.hidden = perFile <= NETPRINT_LIMIT_BYTES;
   printFormatWarn.hidden = format !== "tiff";
@@ -1077,59 +994,23 @@ async function runPrint() {
     pages.push(fullList.slice(i, i + PRINT_PER_PAGE));
   }
   const { w: cardW, h: cardH } = getCorrectedCardSize(geo, format);
+  const ext = format === "tiff" ? ".tif" : ".png";
 
-  if (format === "tiff") {
-    for (let p = 0; p < pages.length; p++) {
-      printOptionsStatus.textContent = "書き出し中... (" + (p + 1) + "/" + pages.length + ")";
-      const pageCanvas = renderPrintPage(pages[p], cardW, cardH, geo);
+  for (let p = 0; p < pages.length; p++) {
+    printOptionsStatus.textContent = "書き出し中... (" + (p + 1) + "/" + pages.length + ")";
+    const pageCanvas = renderPrintPage(pages[p], cardW, cardH, geo);
+    let blob;
+    if (format === "tiff") {
       const pctx = pageCanvas.getContext("2d");
       const imageData = pctx.getImageData(0, 0, geo.pageW, geo.pageH);
-      const blob = encodeTiff(geo.pageW, geo.pageH, imageData.data, geo.dpi);
-      downloadBlob(blob, deck.name + "-" + String(p + 1).padStart(2, "0") + ".tif");
-      // Small pause between triggered downloads so the browser doesn't treat
-      // them as a rapid-fire multi-download popup and block the later ones.
-      await new Promise((resolve) => setTimeout(resolve, 400));
+      blob = encodeTiff(geo.pageW, geo.pageH, imageData.data, geo.dpi);
+    } else {
+      blob = await canvasToPng(pageCanvas, geo.dpi);
     }
-  } else {
-    // 同じカードは1回だけ埋め込み、ページ側からは参照するだけにする
-    const uniqueIds = [...new Set(fullList)].filter((id) => imageCache[id] && imageCache[id].naturalWidth);
-    const images = {};
-    for (let i = 0; i < uniqueIds.length; i++) {
-      printOptionsStatus.textContent = "画像を圧縮中... (" + (i + 1) + "/" + uniqueIds.length + ")";
-      images[uniqueIds[i]] = await encodeCardForPdf(imageCache[uniqueIds[i]], Math.round(cardW), Math.round(cardH));
-      await new Promise((resolve) => setTimeout(resolve, 0)); // UIを固めない
-    }
-
-    const pageWpt = PAGE_W_MM * PT_PER_MM;
-    const pageHpt = PAGE_H_MM * PT_PER_MM;
-    // 補正込みのカード寸法を、ピクセルから紙の上の大きさ(pt)に直す
-    const cardWpt = (cardW / geo.dpi) * 72;
-    const cardHpt = (cardH / geo.dpi) * 72;
-    const gridW = PRINT_COLS * cardWpt;
-    const gridH = PRINT_ROWS * cardHpt;
-    const startX = (pageWpt - gridW) / 2;
-    const startYTop = (pageHpt - gridH) / 2;
-
-    const placements = pages.map((ids) =>
-      ids
-        .filter((id) => images[id])
-        .map((id, i) => {
-          const row = Math.floor(i / PRINT_COLS);
-          const col = i % PRINT_COLS;
-          return {
-            imageId: id,
-            w: cardWpt,
-            h: cardHpt,
-            x: startX + col * cardWpt,
-            // PDFの原点は左下なので、上からの位置を反転する
-            y: pageHpt - startYTop - (row + 1) * cardHpt,
-          };
-        })
-    );
-
-    printOptionsStatus.textContent = "PDFを組み立て中...";
-    const blob = buildPdf(placements, images, pageWpt, pageHpt);
-    downloadBlob(blob, deck.name + ".pdf");
+    downloadBlob(blob, deck.name + "-" + String(p + 1).padStart(2, "0") + ext);
+    // Small pause between triggered downloads so the browser doesn t treat
+    // them as a rapid-fire multi-download popup and block the later ones.
+    await new Promise((resolve) => setTimeout(resolve, 400));
   }
 
   printOptionsStatus.textContent = "";
@@ -1207,7 +1088,7 @@ function formatCmMm(mm) {
 function refreshCalibrationDisplay() {
   const format = selectedCalFormat();
   const { scaleX, scaleY } = getCalibration(format);
-  const label = format === "pdf" ? "PDF" : "TIFF";
+  const label = format === "png" ? "PNG" : "TIFF";
   if (scaleX === 1 && scaleY === 1) {
     setCalibrationStatus(label + "は現在、補正はかかっていません(等倍)。", "");
   } else {
