@@ -53,21 +53,30 @@
       <div class="modal-body-vertical">
         <div class="field">
           <label>ファイル形式</label>
-          <label class="filter-checkbox">
-            <input type="radio" name="print-format" value="png" checked /> PNG(可逆圧縮)
+          <label class="radio-option">
+            <input type="radio" name="print-format" value="tiff" checked />
+            <span>TIFF(無圧縮)</span>
           </label>
-          <label class="filter-checkbox">
-            <input type="radio" name="print-format" value="tiff" /> TIFF(無圧縮)
+          <label class="radio-option">
+            <input type="radio" name="print-format" value="png" />
+            <span>PNG(可逆圧縮)</span>
           </label>
           <p class="crop-hint" style="margin-top:6px">
             どちらも画質は同じで、1ページにつき1ファイル書き出します。
           </p>
         </div>
 
-        <label class="filter-checkbox" id="print-quality-wrap" hidden>
-          <input type="checkbox" id="print-quality-high" />
-          高画質で印刷する(デッキ内のオリカを原寸のまま焼き込みます)
-        </label>
+        <div class="field" id="print-quality-wrap" hidden>
+          <label>カードの大きさ</label>
+          <label class="radio-option">
+            <input type="radio" name="print-quality" value="high" checked />
+            <span>高画質(1200×1676px) ― デッキ内のオリカを原寸のまま焼き込みます</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="print-quality" value="normal" />
+            <span>通常サイズ(600×838px) ― ファイルは小さくなります</span>
+          </label>
+        </div>
 
         <div class="print-estimate">
           <span id="print-estimate-text"></span>
@@ -105,11 +114,13 @@
         </p>
         <div class="field">
           <label>調整するファイル形式</label>
-          <label class="filter-checkbox">
-            <input type="radio" name="cal-format" value="png" checked /> PNG
+          <label class="radio-option">
+            <input type="radio" name="cal-format" value="tiff" checked />
+            <span>TIFF</span>
           </label>
-          <label class="filter-checkbox">
-            <input type="radio" name="cal-format" value="tiff" /> TIFF
+          <label class="radio-option">
+            <input type="radio" name="cal-format" value="png" />
+            <span>PNG</span>
           </label>
           <p class="crop-hint" style="margin-top:6px">
             ずれ方はファイル形式ごとに変わるため、補正値も形式ごとに分けて保存します

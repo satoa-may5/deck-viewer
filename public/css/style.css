@@ -3216,3 +3216,48 @@ button {
   font-weight: 600;
   line-height: 1.5;
 }
+
+/* ラジオボタンの選択肢。`.filter-checkbox`はチェックボックス前提の指定しか
+   持っておらず、ラジオだと文字とマークの高さが揃わない上、クリックしたときに
+   ブラウザ既定のフォーカス枠(黒い長方形)が出てしまうため、専用に用意する。 */
+/* `.field label` が display:block・色・下マージンを持っているので、
+   .field の中でも負けないよう詳細度を上げて打ち消す。 */
+.radio-option,
+.field .radio-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text);
+  margin-bottom: 0;
+  transition: background 0.15s ease;
+}
+
+.radio-option:hover {
+  background: var(--surface-2);
+}
+
+.radio-option input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: 0 0 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  /* マウス操作で枠が出ないようにし、キーボード操作のときだけ下で出し直す */
+  outline: none;
+}
+
+/* キーボードでたどり着いたときだけリングを出す(マウスクリックでは出ない) */
+.radio-option:focus-within:has(input:focus-visible) {
+  background: var(--surface-2);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.radio-option span {
+  line-height: 1.3;
+}

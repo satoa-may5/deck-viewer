@@ -539,30 +539,37 @@ const PAGE_H_MM = 297;
 const CARD_W_MM = 63;
 const CARD_H_MM = 88;
 
-// 通常は350 DPI(日本の商業印刷の入稿標準)。これ以上にしても通常の視距離では
-// 差が分からない。ただしオリカメーカーは2倍解像度(1200x1674px)で書き出すので、
-// 350 DPI だと 868x1213px に縮小されてしまう。その情報を落としたくない場合の
-// ための「高画質」が484 DPI(= 1200px幅 が原寸で収まる解像度)。
-// 元画像が600px幅しかないカードだけのデッキでは、高画質にしても引き伸ばしに
-// なるだけなので選択肢を出さない。
+// 台紙(A4)のピクセル数は「カードが何ピクセルで刷られてほしいか」から逆算する。
+// 元画像より大きく引き伸ばしても情報は増えず、ファイルサイズだけが膨らむため、
+// カード1枚の幅を元画像と同じにして、そこから mm あたりのピクセル数を決める。
+//
+//   通常: カード 600x838px  → 台紙 2000x2829px (約242 DPI)
+//   高画質: カード 1200x1676px → 台紙 4000x5657px (約484 DPI)
+//
+// 高画質はオリカメーカーの2倍書き出し(1200px幅)を原寸のまま焼き込むためのもので、
+// デッキが600px幅のカードだけなら引き伸ばしにしかならないので選択肢を出さない。
 const PRINT_PROFILES = {
-  normal: { dpi: 350, label: "通常(350 DPI)" },
-  high: { dpi: 484, label: "高画質(484 DPI)" },
+  normal: { cardW: 600, label: "通常サイズ" },
+  high: { cardW: 1200, label: "高画質" },
 };
 // この幅を超える画像を「2倍解像度で作られたオリカ」とみなす(600px と 1200px の中間)
 const HIGH_RES_THRESHOLD_W = 900;
 
-const mmToPx = (mm, dpi) => Math.round((mm / 25.4) * dpi);
-
-function printGeometry(dpi) {
+// カードの高さは幅から 63:88 で決める(元画像が 600x837 のように1px低いことが
+// あるが、紙の上で正しい大きさになる方を優先し、理論値に合わせて配置する。
+// 838 と 837 の差は 88mm 換算で 0.115mm しかない)。
+function printGeometry(cardWPx) {
+  const pxPerMm = cardWPx / CARD_W_MM;
   return {
-    dpi,
-    pageW: mmToPx(PAGE_W_MM, dpi),
-    pageH: mmToPx(PAGE_H_MM, dpi),
-    cardW: mmToPx(CARD_W_MM, dpi),
-    cardH: mmToPx(CARD_H_MM, dpi),
+    pxPerMm,
+    dpi: Math.round(pxPerMm * 25.4),
+    cardW: cardWPx,
+    cardH: Math.round(CARD_H_MM * pxPerMm),
+    pageW: Math.round(PAGE_W_MM * pxPerMm),
+    pageH: Math.round(PAGE_H_MM * pxPerMm),
   };
 }
+
 const PRINT_COLS = 3;
 const PRINT_ROWS = 3;
 const PRINT_PER_PAGE = PRINT_COLS * PRINT_ROWS;
@@ -657,7 +664,7 @@ function readCalibrationStore() {
   }
 }
 
-function getCalibration(format = "png") {
+function getCalibration(format = "tiff") {
   const entry = readCalibrationStore()[format];
   if (entry && typeof entry.scaleX === "number" && typeof entry.scaleY === "number") return entry;
   return { scaleX: 1, scaleY: 1 };
@@ -679,11 +686,11 @@ function getCorrectedCardSize(geo, format) {
 
 function selectedCalFormat() {
   const el = document.querySelector('input[name="cal-format"]:checked');
-  return el ? el.value : "png";
+  return el ? el.value : "tiff";
 }
 
 async function printCalibrationSheet() {
-  const geo = printGeometry(PRINT_PROFILES.normal.dpi);
+  const geo = printGeometry(PRINT_PROFILES.normal.cardW);
   const calSize = Math.round((NOMINAL_CAL_SIZE_MM * geo.dpi) / 25.4);
 
   const pageCanvas = document.createElement("canvas");
@@ -945,17 +952,18 @@ const printEstimateText = document.getElementById("print-estimate-text");
 const printEstimateWarn = document.getElementById("print-estimate-warn");
 const printFormatWarn = document.getElementById("print-format-warn");
 const printQualityWrap = document.getElementById("print-quality-wrap");
-const printQualityHigh = document.getElementById("print-quality-high");
 const printOptionsStatus = document.getElementById("print-options-status");
 const NETPRINT_LIMIT_BYTES = 10 * 1024 * 1024;
 
 function selectedPrintFormat() {
   const el = document.querySelector('input[name="print-format"]:checked');
-  return el ? el.value : "png";
+  return el ? el.value : "tiff";
 }
 
 function currentPrintProfile() {
-  return printQualityHigh.checked && !printQualityWrap.hidden ? PRINT_PROFILES.high : PRINT_PROFILES.normal;
+  if (printQualityWrap.hidden) return PRINT_PROFILES.normal; // 2倍のオリカが無いときは選択肢自体を出さない
+  const el = document.querySelector('input[name="print-quality"]:checked');
+  return el && el.value === "normal" ? PRINT_PROFILES.normal : PRINT_PROFILES.high;
 }
 
 function formatBytes(n) {
@@ -967,13 +975,15 @@ function refreshPrintEstimate() {
   const pageCount = Math.max(1, Math.ceil(fullList.length / PRINT_PER_PAGE));
   const format = selectedPrintFormat();
   const profile = currentPrintProfile();
-  const geo = printGeometry(profile.dpi);
+  const geo = printGeometry(profile.cardW);
   // 一番大きくなるページ(＝カードで埋まっているページ)を基準に出す
   const maxCardsOnPage = Math.min(fullList.length, PRINT_PER_PAGE);
   const perFile = estimateOutputBytes(format, geo, maxCardsOnPage);
 
   printEstimateText.textContent =
-    profile.label + " / " + pageCount + "ファイル(1ページにつき1つ) ・ 1ファイルあたり推定 " + formatBytes(perFile);
+    profile.label +
+    "(カード " + geo.cardW + "×" + geo.cardH + "px / 台紙 " + geo.pageW + "×" + geo.pageH + "px) ・ " +
+    pageCount + "ファイル(1ページにつき1つ) ・ 1ファイルあたり推定 " + formatBytes(perFile);
 
   printEstimateWarn.hidden = perFile <= NETPRINT_LIMIT_BYTES;
   printFormatWarn.hidden = format !== "tiff";
@@ -982,7 +992,7 @@ function refreshPrintEstimate() {
 async function runPrint() {
   const format = selectedPrintFormat();
   const profile = currentPrintProfile();
-  const geo = printGeometry(profile.dpi);
+  const geo = printGeometry(profile.cardW);
 
   const fullList = buildPrintList();
   printOptionsStatus.className = "status-message";
@@ -1030,7 +1040,11 @@ async function openPrintOptions() {
   await ensureImagesLoaded(fullList);
   const hasHighRes = deckHasHighResCards();
   printQualityWrap.hidden = !hasHighRes;
-  if (!hasHighRes) printQualityHigh.checked = false;
+  if (hasHighRes) {
+    // 2倍のオリカが入っているなら、その解像度を捨てない「高画質」を既定にする
+    const high = document.querySelector('input[name="print-quality"][value="high"]');
+    if (high) high.checked = true;
+  }
   printOptionsStatus.textContent = "";
   refreshPrintEstimate();
   printOptionsModal.hidden = false;
@@ -1042,7 +1056,9 @@ function closePrintOptions() {
 
 document.getElementById("print-options-close-btn").addEventListener("click", closePrintOptions);
 document.getElementById("print-options-cancel-btn").addEventListener("click", closePrintOptions);
-printQualityHigh.addEventListener("change", refreshPrintEstimate);
+document.querySelectorAll('input[name="print-quality"]').forEach((el) => {
+  el.addEventListener("change", refreshPrintEstimate);
+});
 document.querySelectorAll('input[name="print-format"]').forEach((el) => {
   el.addEventListener("change", refreshPrintEstimate);
 });
