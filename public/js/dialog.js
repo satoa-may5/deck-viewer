@@ -18,7 +18,7 @@
 // showChoice(message, buttons, opts) — 選択肢が3つ以上ある場合の確認ダイアログ。
 // buttons は [{ label, value, variant }] の配列(variant: "primary" | "danger" | 省略)。
 // Escape/枠外クリックは最初のボタン(＝最も無害な選択肢)の value を返す。
-function showChoice(message, buttons, { wide = false } = {}) {
+function showChoice(message, buttons, { wide = false, warning } = {}) {
   return new Promise((resolve) => {
     const overlay = document.createElement("div");
     overlay.className = "modal-overlay confirm-overlay";
@@ -29,6 +29,14 @@ function showChoice(message, buttons, { wide = false } = {}) {
     const messageEl = document.createElement("p");
     messageEl.className = "confirm-message";
     messageEl.textContent = message;
+
+    // 押した結果が広範囲に及ぶ場合の注意書き(赤字)
+    let warningEl = null;
+    if (warning) {
+      warningEl = document.createElement("p");
+      warningEl.className = "confirm-warning";
+      warningEl.textContent = warning;
+    }
 
     const actions = document.createElement("div");
     actions.className = "nav-links confirm-actions";
@@ -55,10 +63,12 @@ function showChoice(message, buttons, { wide = false } = {}) {
     });
 
     card.appendChild(messageEl);
+    if (warningEl) card.appendChild(warningEl);
     card.appendChild(actions);
     overlay.appendChild(card);
     document.body.appendChild(overlay);
 
+    // 枠外クリック/Escapeは先頭のボタン(＝キャンセル)扱いにする。
     overlay.addEventListener("click", (e) => {
       if (e.target === overlay) finish(buttons[0].value);
     });

@@ -643,6 +643,14 @@ button {
   justify-content: flex-end;
 }
 
+.confirm-warning {
+  margin: -8px 0 18px;
+  color: var(--danger);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  font-weight: 600;
+}
+
 .confirm-checkbox {
   margin: -8px 0 20px;
 }
@@ -3076,6 +3084,15 @@ button {
   background-size: cover;
   background-position: center;
   flex: 0 0 auto;
+}
+
+.card-style-apply-toggle {
+  align-items: flex-start;
+  gap: 7px;
+  padding: 0 2px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--muted);
 }
 
 .card-style-label {

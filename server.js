@@ -259,6 +259,10 @@ app.patch("/api/pools/:id", (req, res) => {
       pool.oricardStyle = req.body.oricardStyle;
     }
   }
+  // カードスタイルを変えたとき、登録済みのオリカも描き直すかどうか(既定はtrue)。
+  if (req.body.oricardApplyToExisting !== undefined) {
+    pool.oricardApplyToExisting = Boolean(req.body.oricardApplyToExisting);
+  }
   writePools(pools);
   res.json(pool);
 });

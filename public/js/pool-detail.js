@@ -1347,12 +1347,14 @@ oricardAddBtn.addEventListener("click", async () => {
       styleChoice = await showChoice(
         "このカードスタイルを保存しますか？",
         [
+          // 先頭＝枠外クリック/Escapeで選ばれる選択肢。カードの追加自体をやめる。
+          { label: "キャンセル", value: "cancel" },
           { label: "保存しない", value: "no" },
-          { label: "保存する", value: "save" },
-          { label: "保存して既存のオリカも作り直す", value: "apply", variant: "primary" },
+          { label: "保存する", value: "save", variant: "primary" },
         ],
-        { wide: true }
+        { wide: true, warning: styleSaveWarning() }
       );
+      if (styleChoice === "cancel") return; // カードも追加しない
     }
   }
 
@@ -1391,11 +1393,12 @@ oricardAddBtn.addEventListener("click", async () => {
     } catch (err) {
       console.warn("作成時の設定を保存できませんでした", err);
     }
-    if (styleChoice !== "no") {
+    if (styleChoice === "save") {
       // 上書き確認は既に「保存しますか？」で取ってあるので、ここでは出さない。
+      // 既存のオリカも描き直すかどうかはカードプールの設定に従う。
       await saveOricardStyleToPool(oricardFrame, {
         confirmOverwrite: false,
-        applyToAll: styleChoice === "apply",
+        applyToAll: applyStyleToExisting(),
       });
     }
     await renderCards();
@@ -1624,10 +1627,32 @@ const cardStyleUnavailable = document.getElementById("card-style-unavailable");
 const cardStyleStatus = document.getElementById("card-style-status");
 const cardStyleSaveBtn = document.getElementById("card-style-save-btn");
 const cardStyleClearBtn = document.getElementById("card-style-clear-btn");
+const cardStyleApplyExisting = document.getElementById("card-style-apply-existing");
 let cardStyleOpenToken = 0;
+
+// スタイルを保存したとき、登録済みのオリカも描き直すかどうか(カードプールごとの設定)。
+// 既定はオン(未設定のプールも含む)。
+function applyStyleToExisting() {
+  return !currentPool || currentPool.oricardApplyToExisting !== false;
+}
+// このフラグがオンのときだけ、保存ダイアログに赤字の注意書きを出す。
+function styleSaveWarning() {
+  return applyStyleToExisting() ? "保存するを押した場合、既存のオリカ全てに変更が適用されます" : undefined;
+}
+
+cardStyleApplyExisting.addEventListener("change", async () => {
+  const value = cardStyleApplyExisting.checked;
+  try {
+    currentPool = await Api.updatePool(poolId, { oricardApplyToExisting: value });
+  } catch (err) {
+    cardStyleApplyExisting.checked = !value; // 保存できなければ表示を戻す
+    showToast(err.message, { type: "error" });
+  }
+});
 
 function renderCardStyleSummary() {
   const style = currentPool && currentPool.oricardStyle;
+  cardStyleApplyExisting.checked = applyStyleToExisting();
   if (!style) {
     cardStylePreview.style.backgroundImage = "";
     cardStyleState.textContent = "未設定";
@@ -1638,6 +1663,7 @@ function renderCardStyleSummary() {
   const src = style.previewImage || (style.bgIllust && style.bgIllust.data);
   cardStylePreview.style.backgroundImage = src ? `url("${src}")` : "";
   cardStyleState.textContent = "設定済み";
+  cardStyleApplyExisting.checked = applyStyleToExisting();
 }
 
 async function openCardStyleModal() {
@@ -1678,6 +1704,10 @@ async function openCardStyleModal() {
       if (currentPool && currentPool.oricardStyle && typeof win.applyOricardStyle === "function") {
         win.applyOricardStyle(currentPool.oricardStyle);
       }
+      // ここまでを「まだ編集していない」基準として控える(Xで閉じるときの判定用)。
+      if (typeof win.getOricardStyle === "function") {
+        cardStyleBaseline = oricardStyleSignature(win.getOricardStyle());
+      }
     };
     applyWhenReady();
   };
@@ -1691,10 +1721,33 @@ function closeCardStyleModal() {
   cardStyleModal.hidden = true;
   cardStyleFrame.src = "about:blank";
   document.body.style.overflow = "";
+  cardStyleBaseline = null;
+}
+
+// 開いた直後(保存済みスタイルを読み込み終えた時点)のスタイルを控えておき、
+// Xで閉じるときはそこからの差分があるときだけ確認する。
+let cardStyleBaseline = null;
+
+function cardStyleHasEdits() {
+  const win = cardStyleFrame.contentWindow;
+  if (!win || typeof win.getOricardStyle !== "function") return false;
+  if (cardStyleBaseline === null) return false; // まだ読み込み中
+  return oricardStyleSignature(win.getOricardStyle()) !== cardStyleBaseline;
+}
+
+async function attemptCloseCardStyleModal() {
+  if (cardStyleHasEdits()) {
+    const ok = await showConfirm("編集内容が消えますが、閉じてよろしいですか？", {
+      confirmText: "閉じる",
+      cancelText: "キャンセル",
+    });
+    if (!ok) return;
+  }
+  closeCardStyleModal();
 }
 
 cardStyleSummary.addEventListener("click", openCardStyleModal);
-document.getElementById("close-card-style-modal-btn").addEventListener("click", closeCardStyleModal);
+document.getElementById("close-card-style-modal-btn").addEventListener("click", attemptCloseCardStyleModal);
 
 cardStyleSaveBtn.addEventListener("click", async () => {
   // 進行中はボタンのラベルで示す(モーダル内に別途メッセージは出さない)。
@@ -1711,15 +1764,17 @@ cardStyleSaveBtn.addEventListener("click", async () => {
       "このスタイルを保存しますか？",
       [
         { label: "キャンセル", value: "cancel" },
-        { label: "保存する", value: "save" },
-        { label: "保存して既存のオリカも作り直す", value: "apply", variant: "primary" },
+        { label: "保存する", value: "save", variant: "primary" },
       ],
-      { wide: true }
+      { wide: true, warning: styleSaveWarning() }
     );
     if (choice === "cancel") return;
     // 先に保存する。closeCardStyleModal()はiframeをabout:blankにしてしまうので、
     // スタイルを読み終える前に閉じてはいけない。完了の知らせはトーストで出る。
-    await saveOricardStyleToPool(cardStyleFrame, { confirmOverwrite: false, applyToAll: choice === "apply" });
+    await saveOricardStyleToPool(cardStyleFrame, {
+      confirmOverwrite: false,
+      applyToAll: applyStyleToExisting(),
+    });
     closeCardStyleModal();
   } catch (err) {
     cardStyleStatus.textContent = err.message;
