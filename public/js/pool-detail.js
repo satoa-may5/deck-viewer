@@ -1338,6 +1338,21 @@ oricardAddBtn.addEventListener("click", async () => {
   const colorEntry = COLORS.find((c) => c.k === state.color);
   const bpSuffix = { plus: "+", minus: "-", plusminus: "±" }[state.bpMod] || "";
 
+  // カードスタイル(イラスト3種+枠の色/明度)がこのプールの保存済みスタイルと
+  // 違っていたら、ついでに保存するか聞く。答えが何であれカードの追加自体は行う。
+  let alsoSaveStyle = false;
+  if (typeof win.getOricardStyle === "function") {
+    const current = oricardStyleSignature(win.getOricardStyle());
+    const saved = oricardStyleSignature(currentPool && currentPool.oricardStyle);
+    if (current !== saved) {
+      alsoSaveStyle = await showConfirm("このカードスタイルを保存しますか？", {
+        confirmText: "保存する",
+        cancelText: "保存しない",
+        danger: false,
+      });
+    }
+  }
+
   oricardStatus.textContent = "追加中...";
   oricardStatus.className = "status-message";
   oricardAddBtn.disabled = true;
@@ -1363,10 +1378,14 @@ oricardAddBtn.addEventListener("click", async () => {
       poolId,
       imageBlob: blob,
     });
-    oricardStatus.textContent = `「${displayName(card)}」を登録しました。`;
-    oricardStatus.className = "status-message success";
+    if (alsoSaveStyle) {
+      // 上書き確認は既に「保存しますか？」で取ってあるので、ここでは出さない。
+      await saveOricardStyleToPool(oricardFrame, { confirmOverwrite: false });
+    }
     await renderCards();
-    setTimeout(closeOricardModal, 700);
+    // 登録結果はモーダル内ではなく画面右下のトーストで知らせる(モーダルは閉じる)。
+    closeOricardModal();
+    showToast(`「${displayName(card)}」を登録しました。`);
   } catch (err) {
     oricardStatus.textContent = err.message;
     oricardStatus.className = "status-message error";
@@ -1441,6 +1460,21 @@ function oricardEffectToText(effect) {
 // カードプールに保存し、次回オリカメーカーを開いたときに自動適用されるようにする。
 // oricard側の「カードプールにこのスタイルを保存」ボタン(window.onSaveStyleClick)
 // から呼ばれる。戻り値の文字列がそのままoricard側のステータス表示に使われる。
+// スタイルが「変わったか」を比べるための正規化。オリカメーカーが返す形と
+// カードプールに保存されている形は同じキーなので、両方これに通して文字列比較する。
+// enabled や previewImage は見た目そのものではないので比較対象に入れない。
+// 未設定(null)は「イラスト無し・枠は既定色」と同じ扱いにする。
+function oricardStyleSignature(style) {
+  const slot = (s) => (s && s.data ? { data: s.data, zoom: s.zoom, panx: s.panx, pany: s.pany } : null);
+  return JSON.stringify({
+    name: slot(style && style.nameIllust),
+    bg: slot(style && style.bgIllust),
+    textarea: slot(style && style.textareaIllust),
+    color: (style && style.nameFrameColor) || "#ffffff",
+    brightness: style && style.nameFrameBrightness !== undefined ? style.nameFrameBrightness : 100,
+  });
+}
+
 async function saveOricardStyleToPool(frame = oricardFrame, { confirmOverwrite = true } = {}) {
   const win = frame.contentWindow;
   if (!win || typeof win.getOricardStyle !== "function") {

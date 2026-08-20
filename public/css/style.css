@@ -494,7 +494,8 @@ button {
   /* Pushed further left than the dock tab (also bottom-right-ish, at the far
      right edge) so the two floating controls don't crowd each other. */
   right: 84px;
-  bottom: 24px;
+  /* 右下にはトースト通知(.toast-container)が出るので、それより上に逃がしている */
+  bottom: 96px;
   width: 56px;
   height: 56px;
   border: none;
@@ -562,6 +563,58 @@ button {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 800;
+}
+
+/* ---- Toast notifications (see js/dialog.js showToast) ---- */
+
+.toast-container {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 300; /* .modal-overlay(200)より前面。モーダルを閉じた後も見えるように */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  max-width: 320px;
+  padding: 11px 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  cursor: pointer;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  animation: toast-in 0.18s ease;
+}
+
+.toast.success {
+  border-left-color: #2f9e44;
+}
+
+.toast.error {
+  border-left-color: var(--danger, #e03131);
+}
+
+.toast.leaving {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }
 
 /* ---- Confirm dialog (see js/dialog.js) ---- */

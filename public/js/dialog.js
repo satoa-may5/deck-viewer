@@ -91,6 +91,36 @@ function showConfirm(
   });
 }
 
+// showToast(message, opts) — 画面右下に数秒だけ出る通知。
+// モーダル内に出すと閉じた瞬間に見えなくなる類の「〜しました」を、画面側で伝える用。
+function showToast(message, { type = "success", duration = 3200 } = {}) {
+  let container = document.querySelector(".toast-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.className = "toast-container";
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  const remove = () => {
+    toast.classList.add("leaving");
+    // フェードアウトの分だけ待ってから消す(transitionendは無視されうるので時間で)
+    setTimeout(() => {
+      toast.remove();
+      if (!container.childElementCount) container.remove();
+    }, 200);
+  };
+  const timer = setTimeout(remove, duration);
+  toast.addEventListener("click", () => {
+    clearTimeout(timer);
+    remove();
+  });
+  return toast;
+}
+
 const _modalRegistry = [];
 
 function bindModalDismissal(overlay, { onCancel, onConfirm } = {}) {
