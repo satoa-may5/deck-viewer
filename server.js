@@ -183,8 +183,12 @@ app.get("/api/latest-release", async (req, res) => {
 
 // ---- Card pools ----
 
+// 画像を差し替えたときだけURLが変わるよう、更新時刻をクエリに付ける
+// (付けないとファイル名が同じなのでブラウザが古い画像を出し続ける)。
 function cardImageUrl(card) {
-  return card ? `/images/${card.id}.${card.imageExt}` : null;
+  if (!card) return null;
+  const base = `/images/${card.id}.${card.imageExt}`;
+  return card.imageUpdatedAt ? `${base}?v=${card.imageUpdatedAt}` : base;
 }
 
 app.get("/api/pools", (req, res) => {
@@ -784,6 +788,10 @@ app.post("/api/cards/:id/image", upload.single("image"), (req, res) => {
   if (fs.existsSync(oldFile)) fs.unlinkSync(oldFile);
   fs.writeFileSync(path.join(IMAGES_DIR, `${card.id}.${ext}`), req.file.buffer);
   card.imageExt = ext;
+  // 画像URL(/images/<id>.<ext>)はファイル名が変わらないので、差し替えても
+  // ブラウザがキャッシュした古い画像を表示し続けてしまう。更新時刻を持たせて
+  // URLのクエリに付け、変わったときだけキャッシュを外す。
+  card.imageUpdatedAt = Date.now();
   writeCards(cards);
   res.json(card);
 });

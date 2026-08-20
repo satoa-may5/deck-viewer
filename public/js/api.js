@@ -251,7 +251,11 @@ const Api = {
     return data;
   },
 
+  // 画像を差し替えてもファイル名は変わらないので、そのままだとブラウザが
+  // キャッシュした古い画像を表示し続ける。差し替え時刻をクエリに付けて、
+  // 変わったときだけキャッシュが外れるようにする(server.js側と同じ規則)。
   cardImageUrl(card) {
-    return `/images/${card.id}.${card.imageExt}`;
+    const base = `/images/${card.id}.${card.imageExt}`;
+    return card.imageUpdatedAt ? `${base}?v=${card.imageUpdatedAt}` : base;
   },
 };
