@@ -273,6 +273,11 @@ v1.1.0のビルド作業で「同じファイル名`deck-viewer-<version>.exe`�
 - **`pool-exports/*.dvpool`**: 追加・更新したら必ず
   `node tools/build-pool-export-index.js`で`index.json`を作り直してから一緒に
   commit/pushする。忘れると新しい`.dvpool`がインポート画面に出てこない。
+  **push直後に一覧へ出てこなくても正常**。キャッシュが2段あり、
+  raw.githubusercontent.com のCDNが`max-age=300`(5分)、`listGithubPools()`側が
+  60秒なので、反映まで最大6分ほどかかる。2026-08-21に実際にこれで「出てこない」と
+  なり、`.dvpool`を消して入れ直すという回り道をした(消し直すと待ち時間が増えるだけ
+  なので、まず数分待つこと)。
 
 ## デッキの画像出力・印刷(`deck-view.html`、2026-08-21時点)
 

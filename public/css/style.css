@@ -173,17 +173,6 @@ button {
   filter: brightness(1.08);
 }
 
-.deck-meta {
-  display: inline-flex;
-  margin-top: 4px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: var(--accent-tint);
-  color: var(--muted);
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
 .nav-links {
   display: flex;
   gap: 8px;
@@ -1267,55 +1256,8 @@ button {
   transform: scale(0.99);
 }
 
-.ghost-row-active {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: none;
-  background: none;
-  padding: 0;
-  margin-bottom: 12px;
-}
 
-.ghost-row-active .rename-input {
-  flex: 1;
-}
-
-/* ---- Reorder buttons ---- */
-
-.reorder-btns {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.reorder-btns button {
-  width: 26px;
-  height: 20px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface-2);
-  color: var(--muted);
-  font-size: 0.6rem;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
-}
-
-.reorder-btns button:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-tint);
-}
-
-.reorder-btns button:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
+/* ---- Deck / pool rows ---- */
 
 .deck-row {
   display: flex;
@@ -1473,16 +1415,7 @@ button {
   background: var(--danger-tint);
 }
 
-/* ---- Form (add-card / pools) ---- */
-
-.form-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-  max-width: 480px;
-  box-shadow: var(--shadow-md);
-}
+/* ---- Form (モーダル内の入力欄) ---- */
 
 .field {
   margin-bottom: 16px;
@@ -1683,26 +1616,6 @@ button {
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-
-.filter-box {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  background: var(--surface);
-}
-
-.filter-box-title {
-  padding: 6px 12px;
-  background: var(--surface-2);
-  border-bottom: 1px solid var(--border);
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--muted);
-}
-
-.filter-box-body {
-  padding: 10px 12px;
 }
 
 /* 絞り込み条件全体を囲む「枠」。中に折りたたみ一覧+パラレル除外等のボタンを
@@ -3005,7 +2918,7 @@ button {
   padding: 14px;
 }
 
-/* ---- オリカを追加(このマシン専用、public/oricard/があるときだけ動く) ---- */
+/* ---- オリカを追加(public/oricard/ のメーカーをiframeで開く) ---- */
 
 .oricard-modal-card {
   max-width: 1180px;
