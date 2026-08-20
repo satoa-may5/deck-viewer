@@ -253,6 +253,14 @@
     </div>
     <button type="button" class="ghost" id="saveStyleBtn">カードプールにこのスタイルを保存</button>
     <div id="styleSaveStatus" class="hint"></div>
+    <!-- 単体で開いたとき用の保存/読み込み。deck-viewerにiframeとして
+         埋め込まれている場合は、同じ操作を親のモーダル側のボタンが担うので隠す。 -->
+    <div class="btns" id="standaloneIO" hidden>
+      <button class="act" id="download">PNG で保存</button>
+      <button class="ghost" id="saveJson">JSON保存</button>
+      <button class="ghost" id="loadJson">JSON読込</button>
+      <input type="file" id="jsonFile" accept="application/json,.json" style="display:none">
+    </div>
     <div class="note"></div>
   </div>
 </div>
@@ -881,7 +889,7 @@ function buildSpButtons(){
   /* テンプレート文: ボタンの中身は[[トークン]]を画像に置き換えた見た目にし、
      押すと元の[[ ]]付きの文字列をそのまま挿入する。 */
   const tmplTitle = document.createElement('div');
-  tmplTitle.textContent = 'テンプレート文';
+  tmplTitle.textContent = 'テンプレート';
   tmplTitle.style.width = '100%';
   tmplTitle.style.margin = '8px 0 4px';
   tmplTitle.style.fontSize = '12px';
@@ -954,10 +962,11 @@ const illustTextarea=makeIllustration('textarea');
 $('nameFrameColor').oninput=e=>{state.nameFrameColor=e.target.value;render();};
 $('nameFrameBrightness').oninput=e=>{state.nameFrameBrightness=+e.target.value;render();};
 
-/* 保存/読み込み：以前はここに専用のUI(PNG保存/JSON保存/JSON読込/リセット)が
-   あったが、deck-viewer側の「このカードを追加する」と同じ行に置きたいという
-   要望を受けてUI自体は削除し、window直下のフックだけを公開する形にした
-   (deck-viewer側のボタンがこれらを呼ぶ)。リセット機能はUIごと廃止した。 */
+/* 保存/読み込み：deck-viewerにiframeとして埋め込まれている場合は、
+   「このカードを追加する」と同じ行に置いた親側のボタンがこれらのフックを呼ぶ。
+   単体で開いた場合は親がいないので、プレビュー下の #standaloneIO を出して
+   同じ処理を自前のボタンから使えるようにする(1つのファイルで両方に対応する)。 */
+const EMBEDDED = window.parent !== window;
 window.oricardDownloadPng=function(){
   const a=document.createElement('a');
   a.download=(state.name||'card').replace(/[\\/:*?"<>|]/g,'_')+'.png';
@@ -975,6 +984,20 @@ window.oricardSaveJson=function(){
 window.oricardLoadJsonText=function(text){
   applyState(JSON.parse(text));
 };
+if(!EMBEDDED){
+  /* 単体表示: 自前の保存/読み込みを出し、カードプール前提の機能は隠す */
+  $('standaloneIO').hidden=false;
+  $('saveStyleBtn').style.display='none';
+  $('download').onclick=()=>window.oricardDownloadPng();
+  $('saveJson').onclick=()=>window.oricardSaveJson();
+  $('loadJson').onclick=()=>$('jsonFile').click();
+  $('jsonFile').onchange=e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=ev=>{ try{ window.oricardLoadJsonText(ev.target.result); }catch(err){ alert('読込失敗:'+err.message); } };
+    r.readAsText(f); e.target.value='';
+  };
+}
 function applyState(o){
   /* 旧形式(単一イラスト imgData/zoom/panx/pany)のJSONを新形式(illust.card)へ移行 */
   if(o && o.imgData !== undefined && !o.illust){
