@@ -591,10 +591,12 @@ button {
   font-size: 0.88rem;
   line-height: 1.5;
   cursor: pointer;
+  /* 入場アニメーション(@keyframes)は付けない。アニメーションが進行しない環境だと
+     開始フレームのopacity:0で固まって「通知が出ない」ように見えるため、
+     最初から完全に不透明な状態で置き、消えるときだけtransitionでフェードさせる。 */
   opacity: 1;
   transform: translateY(0);
   transition: opacity 0.18s ease, transform 0.18s ease;
-  animation: toast-in 0.18s ease;
 }
 
 .toast.success {
@@ -610,17 +612,24 @@ button {
   transform: translateY(6px);
 }
 
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
 /* ---- Confirm dialog (see js/dialog.js) ---- */
 
 .confirm-card {
   max-width: 420px;
+}
+
+/* 選択肢が3つある確認ダイアログ用。ボタンが折り返して2行にならないよう
+   横幅を広く取り、ラベル自体の途中改行も禁止する。 */
+.confirm-card.wide {
+  max-width: 620px;
+}
+
+.confirm-card.wide .confirm-actions {
+  flex-wrap: nowrap;
+}
+
+.confirm-card.wide .confirm-actions .btn {
+  white-space: nowrap;
 }
 
 .confirm-message {
@@ -2952,65 +2961,6 @@ button {
   .export-action-group {
     margin-left: 0;
   }
-}
-
-/* ---- Toast notifications (card-info-jobs.js) ---- */
-
-#toast-container {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  pointer-events: none;
-}
-
-.toast {
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  max-width: min(420px, calc(100vw - 32px));
-  width: max-content;
-  padding: 12px 16px;
-  background: var(--text);
-  color: var(--surface);
-  border-radius: var(--radius-md, 12px);
-  box-shadow: var(--shadow-md);
-  font-size: 0.85rem;
-  line-height: 1.5;
-  opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 0.2s var(--ease, ease), transform 0.2s var(--ease, ease);
-}
-
-.toast-action-btn {
-  flex-shrink: 0;
-  padding: 5px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: var(--radius-md, 12px);
-  background: transparent;
-  color: inherit;
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.toast-action-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.toast.show {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.toast.toast-error {
-  background: var(--danger);
-  color: #fff;
 }
 
 /* ---- "未編集" badge (複数枚追加で登録されたまま未編集のカード) ---- */

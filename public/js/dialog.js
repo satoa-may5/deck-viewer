@@ -15,6 +15,58 @@
 // so a nested popup (e.g. the crop popup opened on top of the add-card modal)
 // doesn't also close the one underneath it.
 
+// showChoice(message, buttons, opts) — 選択肢が3つ以上ある場合の確認ダイアログ。
+// buttons は [{ label, value, variant }] の配列(variant: "primary" | "danger" | 省略)。
+// Escape/枠外クリックは最初のボタン(＝最も無害な選択肢)の value を返す。
+function showChoice(message, buttons, { wide = false } = {}) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay confirm-overlay";
+
+    const card = document.createElement("div");
+    card.className = `modal-card confirm-card${wide ? " wide" : ""}`;
+
+    const messageEl = document.createElement("p");
+    messageEl.className = "confirm-message";
+    messageEl.textContent = message;
+
+    const actions = document.createElement("div");
+    actions.className = "nav-links confirm-actions";
+
+    function finish(result) {
+      document.removeEventListener("keydown", onKeydown, true);
+      overlay.remove();
+      resolve(result);
+    }
+    function onKeydown(e) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        finish(buttons[0].value);
+      }
+    }
+
+    buttons.forEach((b) => {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = "btn" + (b.variant ? ` ${b.variant}` : "");
+      el.textContent = b.label;
+      el.addEventListener("click", () => finish(b.value));
+      actions.appendChild(el);
+    });
+
+    card.appendChild(messageEl);
+    card.appendChild(actions);
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) finish(buttons[0].value);
+    });
+    document.addEventListener("keydown", onKeydown, true);
+    actions.lastElementChild.focus();
+  });
+}
+
 function showConfirm(
   message,
   { confirmText = "削除する", cancelText = "キャンセル", danger = true, checkboxLabel, checkboxDefault = false } = {}

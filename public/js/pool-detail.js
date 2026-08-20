@@ -1340,20 +1340,28 @@ oricardAddBtn.addEventListener("click", async () => {
 
   // カードスタイル(イラスト3種+枠の色/明度)がこのプールの保存済みスタイルと
   // 違っていたら、ついでに保存するか聞く。答えが何であれカードの追加自体は行う。
-  let alsoSaveStyle = false;
+  // "apply" は保存した上で、以降このプールでオリカを開いたとき自動適用する。
+  let styleChoice = "no";
   if (typeof win.getOricardStyle === "function") {
     const current = oricardStyleSignature(win.getOricardStyle());
     const saved = oricardStyleSignature(currentPool && currentPool.oricardStyle);
     if (current !== saved) {
-      alsoSaveStyle = await showConfirm("このカードスタイルを保存しますか？", {
-        confirmText: "保存する",
-        cancelText: "保存しない",
-        danger: false,
-      });
+      styleChoice = await showChoice(
+        "このカードスタイルを保存しますか？",
+        [
+          { label: "保存しない", value: "no" },
+          { label: "保存する", value: "save" },
+          { label: "保存して全てのオリカに適用する", value: "apply", variant: "primary" },
+        ],
+        { wide: true }
+      );
     }
   }
 
-  oricardStatus.textContent = "追加中...";
+  // 進行中であることはボタンのラベルで示す(モーダル内に別途メッセージは出さない)。
+  const addBtnLabel = oricardAddBtn.textContent;
+  oricardAddBtn.textContent = "追加中...";
+  oricardStatus.textContent = "";
   oricardStatus.className = "status-message";
   oricardAddBtn.disabled = true;
   try {
@@ -1378,9 +1386,12 @@ oricardAddBtn.addEventListener("click", async () => {
       poolId,
       imageBlob: blob,
     });
-    if (alsoSaveStyle) {
+    if (styleChoice !== "no") {
       // 上書き確認は既に「保存しますか？」で取ってあるので、ここでは出さない。
-      await saveOricardStyleToPool(oricardFrame, { confirmOverwrite: false });
+      await saveOricardStyleToPool(oricardFrame, {
+        confirmOverwrite: false,
+        applyToAll: styleChoice === "apply",
+      });
     }
     await renderCards();
     // 登録結果はモーダル内ではなく画面右下のトーストで知らせる(モーダルは閉じる)。
@@ -1391,6 +1402,7 @@ oricardAddBtn.addEventListener("click", async () => {
     oricardStatus.className = "status-message error";
   } finally {
     oricardAddBtn.disabled = false;
+    oricardAddBtn.textContent = addBtnLabel;
   }
 });
 
@@ -1475,13 +1487,16 @@ function oricardStyleSignature(style) {
   });
 }
 
-async function saveOricardStyleToPool(frame = oricardFrame, { confirmOverwrite = true } = {}) {
+async function saveOricardStyleToPool(frame = oricardFrame, { confirmOverwrite = true, applyToAll } = {}) {
   const win = frame.contentWindow;
   if (!win || typeof win.getOricardStyle !== "function") {
     throw new Error("読み込みが完了していません");
   }
   let applyGoingForward = true;
-  if (confirmOverwrite && currentPool.oricardStyle) {
+  if (applyToAll !== undefined) {
+    // 呼び出し元が既に「全てのオリカに適用するか」を確定させている場合はそれに従う。
+    applyGoingForward = applyToAll;
+  } else if (confirmOverwrite && currentPool.oricardStyle) {
     const result = await showConfirm("現在保存されているスタイルは消えますが、よろしいですか？", {
       confirmText: "保存する",
       cancelText: "キャンセル",
