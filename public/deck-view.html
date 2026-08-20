@@ -44,6 +44,49 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="print-options-modal" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>このデッキを印刷</h2>
+        <button type="button" class="icon-btn" id="print-options-close-btn">✕</button>
+      </div>
+      <div class="modal-body-vertical">
+        <div class="field">
+          <label>ファイル形式</label>
+          <label class="filter-checkbox">
+            <input type="radio" name="print-format" value="pdf" checked /> PDF(可逆圧縮・全ページ1ファイル)
+          </label>
+          <label class="filter-checkbox">
+            <input type="radio" name="print-format" value="tiff" /> TIFF(無圧縮・1ページ1ファイル)
+          </label>
+        </div>
+
+        <label class="filter-checkbox" id="print-quality-wrap" hidden>
+          <input type="checkbox" id="print-quality-high" />
+          高画質で印刷する(デッキ内のオリカを原寸のまま焼き込みます)
+        </label>
+
+        <div class="print-estimate">
+          <span id="print-estimate-text"></span>
+          <p class="print-estimate-warn" id="print-estimate-warn" hidden>
+            1ファイルが10MBを超えています。コンビニエンスストアのネットプリントサービスを
+            利用できない可能性があります。
+          </p>
+          <p class="print-estimate-warn" id="print-format-warn" hidden>
+            TIFFはネットプリントサービスで受け付けられないことがほとんどです。
+            コンビニで印刷する予定ならPDFを選んでください。
+          </p>
+        </div>
+
+        <div class="nav-links">
+          <button type="button" class="btn" id="print-options-cancel-btn">キャンセル</button>
+          <button type="button" class="btn primary" id="print-options-run-btn">印刷用ファイルを作る</button>
+        </div>
+        <div id="print-options-status" class="status-message"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="calibration-modal" hidden>
     <div class="modal-card">
       <div class="modal-header">
@@ -57,6 +100,19 @@
           その長さを定規で実測して入力・保存すると、以降の印刷でカードが正確に63mm×88mmになる
           よう自動調整します。
         </p>
+        <div class="field">
+          <label>調整するファイル形式</label>
+          <label class="filter-checkbox">
+            <input type="radio" name="cal-format" value="pdf" checked /> PDF
+          </label>
+          <label class="filter-checkbox">
+            <input type="radio" name="cal-format" value="tiff" /> TIFF
+          </label>
+          <p class="crop-hint" style="margin-top:6px">
+            ずれ方はファイル形式ごとに変わるため、補正値も形式ごとに分けて保存します
+            (画質の設定では変わらないので、そちらは分けていません)。
+          </p>
+        </div>
         <button type="button" class="btn" id="print-calibration-sheet-btn">調整用シートをダウンロード</button>
         <div class="field-row">
           <div class="field">

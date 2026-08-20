@@ -533,17 +533,36 @@ async function persistOrder() {
 
 // ---- Print (multi-page TIFF sheets for physically cutting out proxies) ----
 
-// 350 DPI(日本の商業印刷の入稿標準)で A4 = 210x297mm ≒ 2894x4093px、
-// 63x88mm のカードは 868x1213px。以前は 250 DPI だったが、オリカメーカーが
-// 2倍解像度(1200x1674px ≒ 484 DPI相当)で書き出すようになり、250 DPI では
-// せっかくの情報を捨ててしまうため引き上げた。
-// これ以上(400 DPI超)にしても通常の視距離では差が分からない一方、TIFFは
-// 無圧縮なのでファイルサイズだけが増える(1ページあたり約35MB)。
-const PRINT_PAGE_W = 2894;
-const PRINT_PAGE_H = 4093;
-const PRINT_DPI = 350;
-const PRINT_CARD_W = 868;
-const PRINT_CARD_H = 1213;
+// 用紙・カードの実寸(mm)。ピクセル数はDPIから計算する。
+const PAGE_W_MM = 210; // A4
+const PAGE_H_MM = 297;
+const CARD_W_MM = 63;
+const CARD_H_MM = 88;
+
+// 通常は350 DPI(日本の商業印刷の入稿標準)。これ以上にしても通常の視距離では
+// 差が分からない。ただしオリカメーカーは2倍解像度(1200x1674px)で書き出すので、
+// 350 DPI だと 868x1213px に縮小されてしまう。その情報を落としたくない場合の
+// ための「高画質」が484 DPI(= 1200px幅 が原寸で収まる解像度)。
+// 元画像が600px幅しかないカードだけのデッキでは、高画質にしても引き伸ばしに
+// なるだけなので選択肢を出さない。
+const PRINT_PROFILES = {
+  normal: { dpi: 350, label: "通常(350 DPI)" },
+  high: { dpi: 484, label: "高画質(484 DPI)" },
+};
+// この幅を超える画像を「2倍解像度で作られたオリカ」とみなす(600px と 1200px の中間)
+const HIGH_RES_THRESHOLD_W = 900;
+
+const mmToPx = (mm, dpi) => Math.round((mm / 25.4) * dpi);
+
+function printGeometry(dpi) {
+  return {
+    dpi,
+    pageW: mmToPx(PAGE_W_MM, dpi),
+    pageH: mmToPx(PAGE_H_MM, dpi),
+    cardW: mmToPx(CARD_W_MM, dpi),
+    cardH: mmToPx(CARD_H_MM, dpi),
+  };
+}
 const PRINT_COLS = 3;
 const PRINT_ROWS = 3;
 const PRINT_PER_PAGE = PRINT_COLS * PRINT_ROWS;
@@ -579,18 +598,18 @@ async function ensureImagesLoaded(cardIds) {
   );
 }
 
-function renderPrintPage(pageCardIds, cardW, cardH) {
+function renderPrintPage(pageCardIds, cardW, cardH, geo) {
   const pageCanvas = document.createElement("canvas");
-  pageCanvas.width = PRINT_PAGE_W;
-  pageCanvas.height = PRINT_PAGE_H;
+  pageCanvas.width = geo.pageW;
+  pageCanvas.height = geo.pageH;
   const pctx = pageCanvas.getContext("2d");
   pctx.fillStyle = "#ffffff";
-  pctx.fillRect(0, 0, PRINT_PAGE_W, PRINT_PAGE_H);
+  pctx.fillRect(0, 0, geo.pageW, geo.pageH);
 
   const gridW = PRINT_COLS * cardW;
   const gridH = PRINT_ROWS * cardH;
-  const startX = (PRINT_PAGE_W - gridW) / 2;
-  const startY = (PRINT_PAGE_H - gridH) / 2;
+  const startX = (geo.pageW - gridW) / 2;
+  const startY = (geo.pageH - gridH) / 2;
 
   pageCardIds.forEach((cardId, i) => {
     const card = cardById[cardId];
@@ -620,35 +639,59 @@ const NOMINAL_CAL_SIZE_MM = 100;
 // 横線・縦線を角でくっつけず離して見せるための隙間(px)。線自体の長さには影響しない。
 const CAL_LINE_GAP = 60;
 
-function getCalibration() {
+// ずれ方はファイル形式ごとに変わる(TIFFは解像度タグをドライバがどう解釈するか任せ、
+// PDFはページの実寸を持つ)ため、補正値は形式ごとに分けて持つ。
+// 画質(DPI)を変えても紙の上の寸法は同じなので、そちらでは分けない。
+// 旧形式({scaleX,scaleY}が直に入っている)はTIFFの値として読み替える。
+function readCalibrationStore() {
   try {
     const raw = localStorage.getItem(CALIBRATION_KEY);
-    if (!raw) return { scaleX: 1, scaleY: 1 };
+    if (!raw) return {};
     const parsed = JSON.parse(raw);
-    if (typeof parsed.scaleX === "number" && typeof parsed.scaleY === "number") return parsed;
+    if (typeof parsed.scaleX === "number" && typeof parsed.scaleY === "number") {
+      return { tiff: { scaleX: parsed.scaleX, scaleY: parsed.scaleY } };
+    }
+    return parsed && typeof parsed === "object" ? parsed : {};
   } catch (err) {
-    // ignore malformed value, fall through to default
+    return {}; // ignore malformed value, fall through to default
   }
+}
+
+function getCalibration(format = "tiff") {
+  const entry = readCalibrationStore()[format];
+  if (entry && typeof entry.scaleX === "number" && typeof entry.scaleY === "number") return entry;
   return { scaleX: 1, scaleY: 1 };
 }
 
-function getCorrectedCardSize() {
-  const { scaleX, scaleY } = getCalibration();
+function saveCalibration(format, scaleX, scaleY) {
+  const store = readCalibrationStore();
+  store[format] = { scaleX, scaleY };
+  localStorage.setItem(CALIBRATION_KEY, JSON.stringify(store));
+}
+
+function getCorrectedCardSize(geo, format) {
+  const { scaleX, scaleY } = getCalibration(format);
   return {
-    w: PRINT_CARD_W / scaleX,
-    h: PRINT_CARD_H / scaleY,
+    w: geo.cardW / scaleX,
+    h: geo.cardH / scaleY,
   };
 }
 
-function printCalibrationSheet() {
-  const calSize = Math.round((NOMINAL_CAL_SIZE_MM * PRINT_DPI) / 25.4);
+function selectedCalFormat() {
+  const el = document.querySelector('input[name="cal-format"]:checked');
+  return el ? el.value : "pdf";
+}
+
+async function printCalibrationSheet() {
+  const geo = printGeometry(PRINT_PROFILES.normal.dpi);
+  const calSize = Math.round((NOMINAL_CAL_SIZE_MM * geo.dpi) / 25.4);
 
   const pageCanvas = document.createElement("canvas");
-  pageCanvas.width = PRINT_PAGE_W;
-  pageCanvas.height = PRINT_PAGE_H;
+  pageCanvas.width = geo.pageW;
+  pageCanvas.height = geo.pageH;
   const pctx = pageCanvas.getContext("2d");
   pctx.fillStyle = "#ffffff";
-  pctx.fillRect(0, 0, PRINT_PAGE_W, PRINT_PAGE_H);
+  pctx.fillRect(0, 0, geo.pageW, geo.pageH);
 
   // Two independent line segments (not a joined rectangle corner): a
   // horizontal one along the top and a vertical one along the left, each
@@ -657,8 +700,8 @@ function printCalibrationSheet() {
   // so the printed line length still reflects the true 100mm nominal size.
   const totalW = calSize + CAL_LINE_GAP;
   const totalH = calSize + CAL_LINE_GAP;
-  const x0 = (PRINT_PAGE_W - totalW) / 2;
-  const y0 = (PRINT_PAGE_H - totalH) / 2;
+  const x0 = (geo.pageW - totalW) / 2;
+  const y0 = (geo.pageH - totalH) / 2;
 
   const hLineY = y0;
   const hLineX1 = x0 + CAL_LINE_GAP;
@@ -696,18 +739,169 @@ function printCalibrationSheet() {
   pctx.font = "28px sans-serif";
   pctx.fillText(
     "上の横線・左の縦線それぞれの長さを定規で測り、「印刷サイズを調整」画面に入力してください",
-    PRINT_PAGE_W / 2,
+    geo.pageW / 2,
     y0 + totalH + 30
   );
 
-  const imageData = pctx.getImageData(0, 0, PRINT_PAGE_W, PRINT_PAGE_H);
-  const blob = encodeTiff(PRINT_PAGE_W, PRINT_PAGE_H, imageData.data, PRINT_DPI);
+  const format = selectedCalFormat();
+  if (format === "pdf") {
+    // 調整シートもPDFで出す(TIFFとはずれ方が違うため、同じ形式で測る必要がある)
+    const rgba = pctx.getImageData(0, 0, geo.pageW, geo.pageH).data;
+    const bytes = await deflateBytes(toPredictedRgbRows(rgba, geo.pageW, geo.pageH));
+    const image = { width: geo.pageW, height: geo.pageH, bytes };
+    const pageWpt = PAGE_W_MM * PT_PER_MM;
+    const pageHpt = PAGE_H_MM * PT_PER_MM;
+    const blob = buildPdf(
+      [[{ imageId: "cal", w: pageWpt, h: pageHpt, x: 0, y: 0 }]],
+      { cal: image },
+      pageWpt,
+      pageHpt
+    );
+    downloadBlob(blob, "print-calibration.pdf");
+    return;
+  }
+  const imageData2 = pctx.getImageData(0, 0, geo.pageW, geo.pageH);
+  const blob = encodeTiff(geo.pageW, geo.pageH, imageData2.data, geo.dpi);
   downloadBlob(blob, "print-calibration.tif");
 }
 
 // Browsers can only canvas.toBlob() to PNG/JPEG/WebP, never TIFF, so this
 // hand-writes a minimal uncompressed 8-bit RGB TIFF (single strip, no
 // compression) directly from a canvas's ImageData.
+// ---- PDF ----
+//
+// PDFはページに「実寸」を持たせられる(A4 = 595.28x841.89pt)ので、印刷側で
+// 「実際のサイズ/100%」を選べば紙の上で正確な大きさになる。TIFFの解像度タグと
+// 違ってドライバに解釈を委ねる部分が少ない。
+//
+// 画像は可逆(FlateDecode)で埋め込む。PNGと同じ行フィルタ(Up)を掛けてから
+// deflateすると、生のRGBをそのまま圧縮するよりかなり小さくなる。
+const PT_PER_MM = 72 / 25.4;
+
+async function deflateBytes(bytes) {
+  const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream("deflate"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+// RGBAのImageDataを白背景に合成し、PNGのUpフィルタを掛けた行データにする
+// (PDFの /Predictor 15 がこの形式をそのまま解釈できる)。
+function toPredictedRgbRows(rgba, width, height) {
+  const rowLen = width * 3;
+  const out = new Uint8Array((rowLen + 1) * height);
+  const cur = new Uint8Array(rowLen);
+  const prev = new Uint8Array(rowLen);
+  let o = 0;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const s = (y * width + x) * 4;
+      const a = rgba[s + 3] / 255;
+      // 紙は白なので、透明部分は白に落とす
+      cur[x * 3] = Math.round(rgba[s] * a + 255 * (1 - a));
+      cur[x * 3 + 1] = Math.round(rgba[s + 1] * a + 255 * (1 - a));
+      cur[x * 3 + 2] = Math.round(rgba[s + 2] * a + 255 * (1 - a));
+    }
+    out[o++] = 2; // PNG filter type: Up
+    for (let i = 0; i < rowLen; i++) out[o++] = (cur[i] - prev[i]) & 0xff;
+    prev.set(cur);
+  }
+  return out;
+}
+
+// カード画像1枚を、PDFに埋め込める形(Flate圧縮済みRGB)に変換する。
+async function encodeCardForPdf(img, wPx, hPx) {
+  const c = document.createElement("canvas");
+  c.width = wPx;
+  c.height = hPx;
+  const cx = c.getContext("2d");
+  cx.fillStyle = "#ffffff";
+  cx.fillRect(0, 0, wPx, hPx);
+  drawImageCover(cx, img, 0, 0, wPx, hPx);
+  const data = cx.getImageData(0, 0, wPx, hPx).data;
+  return { width: wPx, height: hPx, bytes: await deflateBytes(toPredictedRgbRows(data, wPx, hPx)) };
+}
+
+// 最小限のPDFライター。ページごとにコンテンツストリームを持ち、カード画像は
+// XObjectとして「ユニークな絵1つにつき1回だけ」埋め込んで、同じカードが複数枚
+// あっても参照するだけにする(枚数が増えてもファイルはほとんど太らない)。
+function buildPdf(pages, images, pageWpt, pageHpt) {
+  const enc = new TextEncoder();
+  const chunks = [];
+  const offsets = [0];
+  let length = 0;
+  const push = (data) => {
+    const bytes = typeof data === "string" ? enc.encode(data) : data;
+    chunks.push(bytes);
+    length += bytes.length;
+  };
+  const startObj = () => offsets.push(length);
+
+  push("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
+
+  const imageIds = Object.keys(images);
+  // 1: Catalog, 2: Pages, 3..: 各ページ(Page/Contents) → 画像
+  const pageObjBase = 3;
+  const imageObjBase = pageObjBase + pages.length * 2;
+  const objNumOfImage = {};
+  imageIds.forEach((id, i) => {
+    objNumOfImage[id] = imageObjBase + i;
+  });
+
+  startObj();
+  push("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+
+  startObj();
+  const kids = pages.map((_, i) => `${pageObjBase + i * 2} 0 R`).join(" ");
+  push(`2 0 obj\n<< /Type /Pages /Count ${pages.length} /Kids [${kids}] >>\nendobj\n`);
+
+  pages.forEach((placements, i) => {
+    const pageNum = pageObjBase + i * 2;
+    const contentNum = pageNum + 1;
+    const used = [...new Set(placements.map((p) => p.imageId))];
+    const xobjects = used.map((id) => `/Im${objNumOfImage[id]} ${objNumOfImage[id]} 0 R`).join(" ");
+    startObj();
+    push(
+      `${pageNum} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWpt.toFixed(2)} ${pageHpt.toFixed(2)}]` +
+        ` /Resources << /XObject << ${xobjects} >> >> /Contents ${contentNum} 0 R >>\nendobj\n`
+    );
+
+    // PDFの原点は左下。cm行列で「幅・高さ・位置」を指定してから画像を描く。
+    const content = placements
+      .map(
+        (p) =>
+          `q ${p.w.toFixed(2)} 0 0 ${p.h.toFixed(2)} ${p.x.toFixed(2)} ${p.y.toFixed(2)} cm ` +
+          `/Im${objNumOfImage[p.imageId]} Do Q`
+      )
+      .join("\n");
+    const contentBytes = enc.encode(content);
+    startObj();
+    push(`${contentNum} 0 obj\n<< /Length ${contentBytes.length} >>\nstream\n`);
+    push(contentBytes);
+    push("\nendstream\nendobj\n");
+  });
+
+  imageIds.forEach((id) => {
+    const im = images[id];
+    startObj();
+    push(
+      `${objNumOfImage[id]} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${im.width} /Height ${im.height}` +
+        ` /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode` +
+        ` /DecodeParms << /Predictor 15 /Colors 3 /BitsPerComponent 8 /Columns ${im.width} >>` +
+        ` /Length ${im.bytes.length} >>\nstream\n`
+    );
+    push(im.bytes);
+    push("\nendstream\nendobj\n");
+  });
+
+  const xrefStart = length;
+  const total = offsets.length;
+  let xref = `xref\n0 ${total}\n0000000000 65535 f \n`;
+  for (let i = 1; i < total; i++) xref += `${String(offsets[i]).padStart(10, "0")} 00000 n \n`;
+  push(xref);
+  push(`trailer\n<< /Size ${total} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF\n`);
+
+  return new Blob(chunks, { type: "application/pdf" });
+}
+
 function encodeTiff(width, height, rgbaData, dpi) {
   const rgbByteCount = width * height * 3;
   const headerSize = 8;
@@ -794,8 +988,8 @@ function downloadBlob(blob, filename) {
 // uncorrected 620x866 fallback.
 const SKIP_CALIBRATION_WARNING_KEY = "deck-viewer-skip-calibration-warning";
 
-async function maybeWarnAboutMissingCalibration() {
-  const { scaleX, scaleY } = getCalibration();
+async function maybeWarnAboutMissingCalibration(format) {
+  const { scaleX, scaleY } = getCalibration(format);
   if (scaleX !== 1 || scaleY !== 1) return true;
   if (localStorage.getItem(SKIP_CALIBRATION_WARNING_KEY) === "true") return true;
 
@@ -809,50 +1003,185 @@ async function maybeWarnAboutMissingCalibration() {
   return confirmed;
 }
 
-async function printDeck() {
-  const printBtn = document.getElementById("print-btn");
-  const printStatus = document.getElementById("print-status");
-  if (!deck) return;
+// デッキ内に2倍解像度(オリカ)の画像が含まれているか。全部600px幅なら
+// 高画質にしても引き伸ばすだけなので、その選択肢自体を出さない。
+function deckHasHighResCards() {
+  return cardOrder.some((id) => {
+    const img = imageCache[id];
+    return img && img.naturalWidth >= HIGH_RES_THRESHOLD_W;
+  });
+}
+
+// 出来上がるファイルの概算サイズ(バイト)。TIFFは無圧縮なので正確に出せる。
+// PDFはユニークなカードだけを可逆圧縮して埋め込む。
+function estimateOutputBytes(format, geo, uniqueIds, pageCount) {
+  if (format === "tiff") return geo.pageW * geo.pageH * 3 + 1024;
+  // PDFは同じカードを1回だけ可逆圧縮して埋め込む。実測(350 DPI・カード5種)では
+  // 生のRGB(幅x高さx3)の約45%に収まったので、その比率で見積もる。
+  const perCard = geo.cardW * geo.cardH * 3 * 0.45;
+  return uniqueIds.length * perCard + pageCount * 4 * 1024;
+}
+
+const printOptionsModal = document.getElementById("print-options-modal");
+const printEstimateText = document.getElementById("print-estimate-text");
+const printEstimateWarn = document.getElementById("print-estimate-warn");
+const printFormatWarn = document.getElementById("print-format-warn");
+const printQualityWrap = document.getElementById("print-quality-wrap");
+const printQualityHigh = document.getElementById("print-quality-high");
+const printOptionsStatus = document.getElementById("print-options-status");
+const NETPRINT_LIMIT_BYTES = 10 * 1024 * 1024;
+
+function selectedPrintFormat() {
+  const el = document.querySelector('input[name="print-format"]:checked');
+  return el ? el.value : "pdf";
+}
+
+function currentPrintProfile() {
+  return printQualityHigh.checked && !printQualityWrap.hidden ? PRINT_PROFILES.high : PRINT_PROFILES.normal;
+}
+
+function formatBytes(n) {
+  return n >= 1024 * 1024 ? (n / 1024 / 1024).toFixed(1) + " MB" : Math.round(n / 1024) + " KB";
+}
+
+function refreshPrintEstimate() {
+  const fullList = buildPrintList();
+  const pageCount = Math.max(1, Math.ceil(fullList.length / PRINT_PER_PAGE));
+  const format = selectedPrintFormat();
+  const profile = currentPrintProfile();
+  const geo = printGeometry(profile.dpi);
+  const uniqueIds = [...new Set(fullList)];
+  const perFile = estimateOutputBytes(format, geo, uniqueIds, pageCount);
+
+  printEstimateText.textContent =
+    format === "pdf"
+      ? profile.label + " / 全" + pageCount + "ページで1ファイル ・ 推定 " + formatBytes(perFile)
+      : profile.label + " / " + pageCount + "ファイル(1ページにつき1つ) ・ 1ファイルあたり推定 " + formatBytes(perFile);
+
+  printEstimateWarn.hidden = perFile <= NETPRINT_LIMIT_BYTES;
+  printFormatWarn.hidden = format !== "tiff";
+}
+
+async function runPrint() {
+  const format = selectedPrintFormat();
+  const profile = currentPrintProfile();
+  const geo = printGeometry(profile.dpi);
 
   const fullList = buildPrintList();
-  if (fullList.length === 0) {
-    printStatus.textContent = "デッキにカードがありません";
-    printStatus.className = "status-message error";
-    return;
-  }
-
-  if (!(await maybeWarnAboutMissingCalibration())) return;
-
-  printBtn.disabled = true;
-  printStatus.className = "status-message";
-  printStatus.textContent = "画像を準備中...";
+  printOptionsStatus.className = "status-message";
+  printOptionsStatus.textContent = "画像を準備中...";
   await ensureImagesLoaded(fullList);
 
   const pages = [];
   for (let i = 0; i < fullList.length; i += PRINT_PER_PAGE) {
     pages.push(fullList.slice(i, i + PRINT_PER_PAGE));
   }
+  const { w: cardW, h: cardH } = getCorrectedCardSize(geo, format);
 
-  const { w: cardW, h: cardH } = getCorrectedCardSize();
+  if (format === "tiff") {
+    for (let p = 0; p < pages.length; p++) {
+      printOptionsStatus.textContent = "書き出し中... (" + (p + 1) + "/" + pages.length + ")";
+      const pageCanvas = renderPrintPage(pages[p], cardW, cardH, geo);
+      const pctx = pageCanvas.getContext("2d");
+      const imageData = pctx.getImageData(0, 0, geo.pageW, geo.pageH);
+      const blob = encodeTiff(geo.pageW, geo.pageH, imageData.data, geo.dpi);
+      downloadBlob(blob, deck.name + "-" + String(p + 1).padStart(2, "0") + ".tif");
+      // Small pause between triggered downloads so the browser doesn't treat
+      // them as a rapid-fire multi-download popup and block the later ones.
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    }
+  } else {
+    // 同じカードは1回だけ埋め込み、ページ側からは参照するだけにする
+    const uniqueIds = [...new Set(fullList)].filter((id) => imageCache[id] && imageCache[id].naturalWidth);
+    const images = {};
+    for (let i = 0; i < uniqueIds.length; i++) {
+      printOptionsStatus.textContent = "画像を圧縮中... (" + (i + 1) + "/" + uniqueIds.length + ")";
+      images[uniqueIds[i]] = await encodeCardForPdf(imageCache[uniqueIds[i]], Math.round(cardW), Math.round(cardH));
+      await new Promise((resolve) => setTimeout(resolve, 0)); // UIを固めない
+    }
 
-  for (let p = 0; p < pages.length; p++) {
-    const pageCanvas = renderPrintPage(pages[p], cardW, cardH);
-    const pctx = pageCanvas.getContext("2d");
-    const imageData = pctx.getImageData(0, 0, PRINT_PAGE_W, PRINT_PAGE_H);
-    const blob = encodeTiff(PRINT_PAGE_W, PRINT_PAGE_H, imageData.data, PRINT_DPI);
-    const pageNum = String(p + 1).padStart(2, "0");
-    downloadBlob(blob, `${deck.name}-${pageNum}.tif`);
-    // Small pause between triggered downloads so the browser doesn't treat
-    // them as a rapid-fire multi-download popup and block the later ones.
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    const pageWpt = PAGE_W_MM * PT_PER_MM;
+    const pageHpt = PAGE_H_MM * PT_PER_MM;
+    // 補正込みのカード寸法を、ピクセルから紙の上の大きさ(pt)に直す
+    const cardWpt = (cardW / geo.dpi) * 72;
+    const cardHpt = (cardH / geo.dpi) * 72;
+    const gridW = PRINT_COLS * cardWpt;
+    const gridH = PRINT_ROWS * cardHpt;
+    const startX = (pageWpt - gridW) / 2;
+    const startYTop = (pageHpt - gridH) / 2;
+
+    const placements = pages.map((ids) =>
+      ids
+        .filter((id) => images[id])
+        .map((id, i) => {
+          const row = Math.floor(i / PRINT_COLS);
+          const col = i % PRINT_COLS;
+          return {
+            imageId: id,
+            w: cardWpt,
+            h: cardHpt,
+            x: startX + col * cardWpt,
+            // PDFの原点は左下なので、上からの位置を反転する
+            y: pageHpt - startYTop - (row + 1) * cardHpt,
+          };
+        })
+    );
+
+    printOptionsStatus.textContent = "PDFを組み立て中...";
+    const blob = buildPdf(placements, images, pageWpt, pageHpt);
+    downloadBlob(blob, deck.name + ".pdf");
   }
 
-  printStatus.className = "status-message";
-  printStatus.textContent = "";
-  printBtn.disabled = false;
+  printOptionsStatus.textContent = "";
 }
 
-document.getElementById("print-btn").addEventListener("click", printDeck);
+async function openPrintOptions() {
+  if (!deck) return;
+  const fullList = buildPrintList();
+  const printStatus = document.getElementById("print-status");
+  if (fullList.length === 0) {
+    printStatus.textContent = "デッキにカードがありません";
+    printStatus.className = "status-message error";
+    return;
+  }
+  printStatus.textContent = "";
+  // 高画質を出すかどうかの判定に実サイズが要るので、先に画像を読み込む
+  await ensureImagesLoaded(fullList);
+  const hasHighRes = deckHasHighResCards();
+  printQualityWrap.hidden = !hasHighRes;
+  if (!hasHighRes) printQualityHigh.checked = false;
+  printOptionsStatus.textContent = "";
+  refreshPrintEstimate();
+  printOptionsModal.hidden = false;
+}
+
+function closePrintOptions() {
+  printOptionsModal.hidden = true;
+}
+
+document.getElementById("print-options-close-btn").addEventListener("click", closePrintOptions);
+document.getElementById("print-options-cancel-btn").addEventListener("click", closePrintOptions);
+printQualityHigh.addEventListener("change", refreshPrintEstimate);
+document.querySelectorAll('input[name="print-format"]').forEach((el) => {
+  el.addEventListener("change", refreshPrintEstimate);
+});
+
+document.getElementById("print-options-run-btn").addEventListener("click", async () => {
+  const runBtn = document.getElementById("print-options-run-btn");
+  if (!(await maybeWarnAboutMissingCalibration(selectedPrintFormat()))) return;
+  runBtn.disabled = true;
+  try {
+    await runPrint();
+    closePrintOptions();
+  } catch (err) {
+    printOptionsStatus.textContent = err.message;
+    printOptionsStatus.className = "status-message error";
+  } finally {
+    runBtn.disabled = false;
+  }
+});
+
+document.getElementById("print-btn").addEventListener("click", openPrintOptions);
 
 // ---- Calibration modal ----
 
@@ -876,14 +1205,16 @@ function formatCmMm(mm) {
 }
 
 function refreshCalibrationDisplay() {
-  const { scaleX, scaleY } = getCalibration();
+  const format = selectedCalFormat();
+  const { scaleX, scaleY } = getCalibration(format);
+  const label = format === "pdf" ? "PDF" : "TIFF";
   if (scaleX === 1 && scaleY === 1) {
-    setCalibrationStatus("現在、補正はかかっていません(等倍)。", "");
+    setCalibrationStatus(label + "は現在、補正はかかっていません(等倍)。", "");
   } else {
     const measuredW = scaleX * NOMINAL_CAL_SIZE_MM;
     const measuredH = scaleY * NOMINAL_CAL_SIZE_MM;
     setCalibrationStatus(
-      `現在の補正: 横${(scaleX * 100).toFixed(1)}%(${formatCmMm(measuredW)}) / ` +
+      `${label}の現在の補正: 横${(scaleX * 100).toFixed(1)}%(${formatCmMm(measuredW)}) / ` +
         `縦${(scaleY * 100).toFixed(1)}%(${formatCmMm(measuredH)})`,
       "success"
     );
@@ -914,15 +1245,19 @@ document.getElementById("calibration-save-btn").addEventListener("click", () => 
     setCalibrationStatus("実測した横幅・縦幅を入力してください", "error");
     return;
   }
-  const scaleX = measuredW / NOMINAL_CAL_SIZE_MM;
-  const scaleY = measuredH / NOMINAL_CAL_SIZE_MM;
-  localStorage.setItem(CALIBRATION_KEY, JSON.stringify({ scaleX, scaleY }));
+  saveCalibration(selectedCalFormat(), measuredW / NOMINAL_CAL_SIZE_MM, measuredH / NOMINAL_CAL_SIZE_MM);
   refreshCalibrationDisplay();
 });
 
 document.getElementById("calibration-reset-btn").addEventListener("click", () => {
-  localStorage.removeItem(CALIBRATION_KEY);
+  const store = readCalibrationStore();
+  delete store[selectedCalFormat()];
+  localStorage.setItem(CALIBRATION_KEY, JSON.stringify(store));
   refreshCalibrationDisplay();
+});
+
+document.querySelectorAll('input[name="cal-format"]').forEach((el) => {
+  el.addEventListener("change", refreshCalibrationDisplay);
 });
 
 // ---- Controls ----

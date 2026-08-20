@@ -3202,3 +3202,17 @@ button {
   font-size: 1.2rem;
   border: 1px dashed var(--border);
 }
+
+/* 印刷オプションの推定サイズ表示 */
+.print-estimate {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.print-estimate-warn {
+  margin: 6px 0 0;
+  color: #d64545;
+  font-weight: 600;
+  line-height: 1.5;
+}
