@@ -3,7 +3,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=block" rel="stylesheet">
 <style>
-  :root{--bg:#0f1216;--panel:#171b21;--panel2:#1d222a;--line:#2a313b;--stripe:#2b3852;--stripe-edge:#4ea1ff;--txt:#e8edf3;--sub:#9aa6b4;--accent:#4ea1ff;--accent2:#2b6fd1;}
+  :root{--bg:#0f1216;--panel:#171b21;--panel2:#1d222a;--line:#2a313b;--stripe:#252a33;--txt:#e8edf3;--sub:#9aa6b4;--accent:#4ea1ff;--accent2:#2b6fd1;}
   *{box-sizing:border-box} html,body{margin:0;height:100%}
   html{scrollbar-gutter:stable} /* タブによって縦スクロールの有無が変わっても、
     スクロールバー分の幅を常に確保しておき、プレビュー列の位置がタブ切り替えで
@@ -25,7 +25,7 @@
   .subg:first-child{border-top:0}
   /* 縞は .stripe クラスで付ける(restripeSubgroups が見えている行だけに振る)。
      nth-of-type だと hidden のセクションまで数えて縞が崩れる。 */
-  .subg.stripe{background:var(--stripe);box-shadow:inset 3px 0 0 var(--stripe-edge)}
+  .subg.stripe{background:var(--stripe)}
   .subghead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px}
   .gt2{font-size:12px;color:var(--txt);font-weight:600;margin:0}
   /* ホバーで説明を出す小さなアイコンボタン */
