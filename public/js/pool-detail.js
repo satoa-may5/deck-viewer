@@ -1359,7 +1359,7 @@ oricardAddBtn.addEventListener("click", async () => {
       generatedEnergy: `${state.gen}${state.addEnergy ? "+" : ""}`,
       // [[トークン]]は他の.dvpoolと同じ表記([登場時]等)に変換して保存する。
       // オリカメーカー側の入力欄は[[ ]]のままで、変換はここ(登録時)だけ。
-      effect: oricardEffectToText(state.effect, colorEntry ? colorEntry.jp : ""),
+      effect: oricardEffectToText(state.effect),
       poolId,
       imageBlob: blob,
     });
@@ -1425,14 +1425,16 @@ const ORICARD_EFFECT_TOKEN_TEXT = {
   "character-2-energy": "2",
 };
 
-// [[energy]] は「そのカードの色のエナジー玉」なので、色名に置き換える
-// (実データでは [赤×2] のように 色×数 の形で使われている)。
-function oricardEffectToText(effect, colorJp) {
-  return String(effect || "").replace(/\[\[([^\]]+)\]\]/g, (whole, token) => {
-    if (token === "energy") return colorJp || whole;
-    const text = ORICARD_EFFECT_TOKEN_TEXT[token];
-    return text !== undefined ? text : whole; // 未知のトークンはそのまま残す
-  });
+// [[energy]] はエナジー玉1個 = 数字の1。連続して置くと個数を表すので、
+// 連なっている分をまとめて個数の数字にする([[energy]][[energy]] -> 2)。
+const ORICARD_ENERGY_TOKEN = "[[energy]]";
+function oricardEffectToText(effect) {
+  return String(effect || "")
+    .replace(/(?:\[\[energy\]\])+/g, (run) => String(run.length / ORICARD_ENERGY_TOKEN.length))
+    .replace(/\[\[([^\]]+)\]\]/g, (whole, token) => {
+      const text = ORICARD_EFFECT_TOKEN_TEXT[token];
+      return text !== undefined ? text : whole; // 未知のトークンはそのまま残す
+    });
 }
 
 // カード名イラスト・枠の色/明度・背景イラスト・テキストエリアイラストをこの
