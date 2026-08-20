@@ -1082,6 +1082,21 @@ document.getElementById("print-btn").addEventListener("click", openPrintOptions)
 
 // ---- Calibration modal ----
 
+// 実際に印刷して定規で測った結果が分かっている組み合わせ。同じ環境で刷るなら
+// 調整用シートを印刷し直さなくても、ここから一発で補正をかけられる。
+// 新しく実測したものが出てきたらここに足す(measuredW/H は調整用シートの
+// 100mmの線を実測した値[mm])。
+const CALIBRATION_PRESETS = [
+  {
+    id: "seven-netprint",
+    label: "セブン-イレブン ネットプリント",
+    format: "png",
+    measuredW: 100.5,
+    measuredH: 100,
+    note: "PNGを実測: 横100.5mm / 縦100mm",
+  },
+];
+
 const calibrationModal = document.getElementById("calibration-modal");
 const calMeasuredWInput = document.getElementById("cal-measured-w");
 const calMeasuredHInput = document.getElementById("cal-measured-h");
@@ -1120,7 +1135,40 @@ function refreshCalibrationDisplay() {
   calMeasuredHInput.value = "";
 }
 
+function renderCalibrationPresets() {
+  const wrap = document.getElementById("calibration-presets");
+  wrap.innerHTML = "";
+  for (const preset of CALIBRATION_PRESETS) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn calibration-preset-btn";
+    const name = document.createElement("span");
+    name.className = "calibration-preset-name";
+    name.textContent = preset.label + "(" + (preset.format === "png" ? "PNG" : "TIFF") + ")";
+    const note = document.createElement("span");
+    note.className = "calibration-preset-note";
+    note.textContent = preset.note;
+    btn.append(name, note);
+    btn.addEventListener("click", () => {
+      // 補正はその形式の枠に入るので、ラジオも合わせて切り替える
+      const radio = document.querySelector(
+        'input[name="cal-format"][value="' + preset.format + '"]'
+      );
+      if (radio) radio.checked = true;
+      saveCalibration(
+        preset.format,
+        preset.measuredW / NOMINAL_CAL_SIZE_MM,
+        preset.measuredH / NOMINAL_CAL_SIZE_MM
+      );
+      refreshCalibrationDisplay();
+      showToast(preset.label + "の補正を適用しました", { type: "success" });
+    });
+    wrap.appendChild(btn);
+  }
+}
+
 function openCalibrationModal() {
+  renderCalibrationPresets();
   refreshCalibrationDisplay();
   calibrationModal.hidden = false;
 }
