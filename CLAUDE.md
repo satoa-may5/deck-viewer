@@ -151,18 +151,27 @@ pool/card/deck いずれも`uniqueId(prefix, takenIds)`で採番する(プロセ
 
 `UAPR_<作品>-P-<番号>`という採番のカード(例: `UAPR_KMR-P-001`、`_p1`付きも含む)は
 **パラレルではない**。削除済みの自動取得機能が「セット名がUAPRなら無条件でパラレル」と
-判定していた名残で、配布中の`.dvpool`のmanifestには軒並み`parallel:true`が
-焼き付いている(38プール・81枚)。
+判定していた名残で、配布中の`.dvpool`のmanifestに`parallel:true`が焼き付いていた。
 
-zipを全部書き換えると**gitが1.3GB膨らむ**ので、そうはせず取り込む側で打ち消している:
+**2026-09-03に`.dvpool`のmanifestを直接書き換えて解消済み**(37プール・80枚。
+manifest.jsonだけを差し替え、画像・thumbnail・poolName・releaseには触っていない)。
+一時的に取り込み側で打ち消す`resolveParallel()`と起動時補正の
+`fixPromoParallelFlags()`を入れていたが、**データ側を直したので両方削除した**。
+今後この手の判定をアプリ側に足さないこと。データが正しいのが前提。
 
-- `resolveParallel()`(`server.js`)がカードプール/デッキの取り込み時に強制で`false`にする
-- 既に取り込み済みのデータは`fixPromoParallelFlags()`が起動時に一度だけ直す
-  (該当が無ければファイルには触らない)
+生成元である`unionarena_card_extractor.ipynb`(Colab)の`is_parallel()`も同じ判定に
+直してある。**両方を同じ正規表現に揃えてあるので、片方だけ変えないこと**。
 
-`UAPR_AND-1-046_p1`のような**通常番号+`_p1`はパラレルのまま**(89枚)。
-なお通常番号で`_p1`も付かないUAPR(314枚)も`parallel:true`のままだが、これは
-今回の指示の範囲外なので手を付けていない。
+`UAPR_AND-1-046_p1`のような通常番号+`_p1`はパラレルのまま(89枚)。通常番号で
+`_p1`も付かないUAPR(314枚)も`parallel:true`のままだが、これは指示の範囲外なので
+手を付けていない。
+
+**`.dvpool`を書き換えるとgitの履歴がその分そのまま増える**(今回は約1.3GB)。
+2026-09-03時点で`.git`は約4GB、うち現行の`.dvpool` 56個で約1.8GB。GitHubの
+推奨は1GB未満・5GB未満を強く推奨なので、次に容量が問題になったら
+「`.dvpool`をReleaseのアセットに移す」(アセットはリポジトリ容量に計上されない)を
+検討する。**Git LFSは不可**: raw.githubusercontent.comがポインタファイルを返すため、
+カードプールのインポート機能が壊れる。
 
 
 ### カードプール / デッキ

@@ -15,7 +15,7 @@
     "name": "ARK.dvpool",
     "poolName": "[UA-ARK] アークナイツ",
     "release": "2024-11-29",
-    "size": 56001079
+    "size": 56001080
   },
   {
     "name": "BCV.dvpool",
@@ -51,7 +51,7 @@
     "name": "CGH.dvpool",
     "poolName": "[UA-CGH] コードギアス 反逆のルルーシュ",
     "release": "2023-03-24",
-    "size": 35962730
+    "size": 35962736
   },
   {
     "name": "CSM.dvpool",
@@ -63,7 +63,7 @@
     "name": "DST.dvpool",
     "poolName": "[UA-DST] Dr.STONE",
     "release": "2023-12-22",
-    "size": 31907339
+    "size": 31907340
   },
   {
     "name": "EVA.dvpool",
@@ -93,7 +93,7 @@
     "name": "GNT.dvpool",
     "poolName": "[UA-GNT] 銀魂",
     "release": "2023-07-28",
-    "size": 29503563
+    "size": 29503564
   },
   {
     "name": "HIQ.dvpool",
@@ -105,7 +105,7 @@
     "name": "HTR.dvpool",
     "poolName": "[UA-HTR] HUNTER×HUNTER",
     "release": "2023-03-24",
-    "size": 46127293
+    "size": 46127296
   },
   {
     "name": "IMC.dvpool",
@@ -117,7 +117,7 @@
     "name": "IMS.dvpool",
     "poolName": "[UA-IMS] アイドルマスター シャイニーカラーズ",
     "release": "2023-04-28",
-    "size": 78974857
+    "size": 78974862
   },
   {
     "name": "IYS.dvpool",
@@ -141,19 +141,19 @@
     "name": "KGR.dvpool",
     "poolName": "[UA-KGR] カグラバチ",
     "release": "2025-12-19",
-    "size": 28699467
+    "size": 28699464
   },
   {
     "name": "KIN.dvpool",
     "poolName": "[UA-KIN] キン肉マン",
     "release": "2025-05-16",
-    "size": 20712952
+    "size": 20712949
   },
   {
     "name": "KJ8.dvpool",
     "poolName": "[UA-KJ8] 怪獣８号",
     "release": "2024-10-25",
-    "size": 21501761
+    "size": 21501758
   },
   {
     "name": "KJN.dvpool",
@@ -165,13 +165,13 @@
     "name": "KMR.dvpool",
     "poolName": "[UA-KMR] 仮面ライダー",
     "release": "2024-10-25",
-    "size": 64096288
+    "size": 64096321
   },
   {
     "name": "KMY.dvpool",
     "poolName": "[UA-KMY] 鬼滅の刃",
     "release": "2023-04-28",
-    "size": 47792227
+    "size": 47792226
   },
   {
     "name": "MCR.dvpool",
@@ -189,7 +189,7 @@
     "name": "MHA.dvpool",
     "poolName": "[UA-MHA] 僕のヒーローアカデミア",
     "release": "2023-06-30",
-    "size": 45150146
+    "size": 45150154
   },
   {
     "name": "MMM.dvpool",
@@ -201,7 +201,7 @@
     "name": "MSS.dvpool",
     "poolName": "[UA-MSS] 魔都精兵のスレイブ",
     "release": "2026-02-27",
-    "size": 25161959
+    "size": 25161956
   },
   {
     "name": "MST.dvpool",
@@ -213,19 +213,19 @@
     "name": "NGR.dvpool",
     "poolName": "[UA-NGR] 2.5次元の誘惑",
     "release": "2025-01-17",
-    "size": 18775176
+    "size": 18775181
   },
   {
     "name": "NIK.dvpool",
     "poolName": "[UA-NIK] 勝利の女神：NIKKE",
     "release": "2024-03-22",
-    "size": 56546456
+    "size": 56546453
   },
   {
     "name": "OPM.dvpool",
     "poolName": "[UA-OPM] ワンパンマン",
     "release": "2025-02-28",
-    "size": 33903191
+    "size": 33903189
   },
   {
     "name": "REZ.dvpool",
@@ -243,19 +243,19 @@
     "name": "RNK.dvpool",
     "poolName": "[UA-RNK] るろうに剣心 －明治剣客浪漫譚－",
     "release": "2025-07-25",
-    "size": 33279929
+    "size": 33279930
   },
   {
     "name": "SAO.dvpool",
     "poolName": "[UA-SAO] ソードアート・オンライン",
     "release": "2024-01-26",
-    "size": 48391291
+    "size": 48391292
   },
   {
     "name": "SHY.dvpool",
     "poolName": "[UA-SHY] SHY",
     "release": "2024-07-12",
-    "size": 19936422
+    "size": 19936428
   },
   {
     "name": "SLG.dvpool",
@@ -267,7 +267,7 @@
     "name": "SMD.dvpool",
     "poolName": "[UA-SMD] SAKAMOTO DAYS",
     "release": "2025-08-29",
-    "size": 17965962
+    "size": 17965960
   },
   {
     "name": "SNF.dvpool",
@@ -279,7 +279,7 @@
     "name": "SYN.dvpool",
     "poolName": "[UA-SYN] SYNDUALITY Noir",
     "release": "2024-02-23",
-    "size": 24401899
+    "size": 24401895
   },
   {
     "name": "TKG.dvpool",
@@ -297,19 +297,19 @@
     "name": "TLR.dvpool",
     "poolName": "[UA-TLR] To LOVEる-とらぶる-",
     "release": "2025-11-14",
-    "size": 26370018
+    "size": 26370019
   },
   {
     "name": "TOA.dvpool",
     "poolName": "[UA-TOA] Tales of ARISE",
     "release": "2023-05-26",
-    "size": 33205392
+    "size": 33205391
   },
   {
     "name": "TRK.dvpool",
     "poolName": "[UA-TRK] トリコ",
     "release": "2024-02-23",
-    "size": 28923747
+    "size": 28923750
   },
   {
     "name": "TSK.dvpool",
@@ -333,6 +333,6 @@
     "name": "YYH.dvpool",
     "poolName": "[UA-YYH] 幽☆遊☆白書",
     "release": "2024-04-26",
-    "size": 32787896
+    "size": 32787893
   }
 ]

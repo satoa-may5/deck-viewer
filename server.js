@@ -363,18 +363,6 @@ function readManifest(folder) {
 // manifests used `name` for both roles at once, but once a manifest can also
 // carry a genuine display name (rarity/ap/bp/attribute/generatedEnergy/effect
 // packs), those two things need to be kept separate.
-// プロモ(UAPR)のうち、`UAPR_<作品>-P-<番号>`という採番のものはパラレルではない。
-// 削除済みの自動取得機能が「セット名がUAPRなら無条件でパラレル」と判定していた名残で、
-// 配布中の.dvpoolのmanifestには軒並み parallel:true が焼き付いている。zipを全部
-// 書き換えると数百MB単位でgitが膨らむため、取り込む側で打ち消す。
-// _p1 のような接尾辞が付いていてもこの採番ならパラレル扱いしない(ユーザー判断)。
-const PROMO_NON_PARALLEL = /^UAPR_.*-P-\d/;
-
-function resolveParallel(imageName, value) {
-  if (PROMO_NON_PARALLEL.test(defaultNameFromImage(imageName || ""))) return false;
-  return Boolean(value);
-}
-
 function resolveManifestCards(folder, manifest) {
   if (Array.isArray(manifest.cards)) {
     return manifest.cards
@@ -385,7 +373,7 @@ function resolveManifestCards(folder, manifest) {
         cardName: (item.name && String(item.name).trim()) || "",
         cost: item.cost ?? null,
         color: (item.color && String(item.color).trim()) || "",
-        parallel: resolveParallel(item.image, item.parallel),
+        parallel: Boolean(item.parallel),
         type: normalizeCardType(item.type),
         trigger: normalizeTrigger(item.trigger),
         rarity: (item.rarity && String(item.rarity).trim()) || "",
@@ -1096,7 +1084,7 @@ app.post("/api/decks/import-zip", uploadZip.single("file"), (req, res) => {
         cardName: (item.name && String(item.name).trim()) || "",
         cost: item.cost ?? null,
         color: (item.color && String(item.color).trim()) || "",
-        parallel: resolveParallel(imageName, item.parallel),
+        parallel: Boolean(item.parallel),
         type: normalizeCardType(item.type),
         trigger: normalizeTrigger(item.trigger),
         rarity: (item.rarity && String(item.rarity).trim()) || "",
@@ -1179,19 +1167,6 @@ function openBrowser(url, callback) {
 }
 
 const PORT = process.env.PORT || 3000;
-// 起動時の一度きりの補正。取り込み側(resolveParallel)を直す前に取り込んだプールには
-// 誤った parallel:true がそのまま残っているので、ここで拾って直す。該当が無ければ
-// ファイルには一切触らない。
-function fixPromoParallelFlags() {
-  const cards = readCards();
-  const fixed = cards.filter((c) => c.parallel && PROMO_NON_PARALLEL.test(c.name || ""));
-  if (fixed.length === 0) return;
-  for (const card of fixed) card.parallel = false;
-  writeCards(cards);
-  console.log(`プロモ${fixed.length}枚のパラレル指定を解除しました`);
-}
-fixPromoParallelFlags();
-
 const server = app.listen(PORT, "0.0.0.0", () => {
   const url = `http://localhost:${PORT}`;
   console.log(`deck-viewer server running: ${url}`);
