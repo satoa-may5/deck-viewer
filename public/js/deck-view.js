@@ -1175,6 +1175,8 @@ const printSelectActions = document.getElementById("print-select-actions");
 // 「全て選択 / 全て解除 / 選択を終了」の3つだけにする(CSSの .select-mode)。
 function refreshPrintSelectUI() {
   printSelectBtn.textContent = printSelectMode ? "選択を終了" : "印刷するカードを選択";
+  // 選択中は「選択を終了」を強調して、モードに入っていることが分かるようにする
+  printSelectBtn.classList.toggle("primary", printSelectMode);
   printSelectActions.hidden = !printSelectMode;
   document.querySelector(".export-controls").classList.toggle("select-mode", printSelectMode);
 }
