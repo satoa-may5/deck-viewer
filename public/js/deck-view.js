@@ -1171,25 +1171,12 @@ document.getElementById("print-options-run-btn").addEventListener("click", async
 const printSelectBtn = document.getElementById("print-select-btn");
 const printSelectActions = document.getElementById("print-select-actions");
 
+// 選択中は下のバーから他のUIを全部消して、右詰めで
+// 「全て選択 / 全て解除 / 選択を終了」の3つだけにする(CSSの .select-mode)。
 function refreshPrintSelectUI() {
-  const printStatus = document.getElementById("print-status");
   printSelectBtn.textContent = printSelectMode ? "選択を終了" : "印刷するカードを選択";
-  printSelectBtn.classList.toggle("active", printSelectMode);
   printSelectActions.hidden = !printSelectMode;
-  if (!printSelectMode) {
-    if (printStatus.dataset.owner === "select") {
-      printStatus.textContent = "";
-      delete printStatus.dataset.owner;
-    }
-    return;
-  }
-  const on = cardOrder.filter(isPrintable).length;
-  printStatus.dataset.owner = "select";
-  printStatus.className = "status-message";
-  printStatus.textContent =
-    on === 0
-      ? "印刷するカードが1枚も選ばれていません"
-      : `カードをクリックすると印刷する/しないを切り替えられます（${on}/${cardOrder.length}種類）`;
+  document.querySelector(".export-controls").classList.toggle("select-mode", printSelectMode);
 }
 
 function setPrintSelectMode(on) {

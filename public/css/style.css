@@ -3209,14 +3209,21 @@ button {
   line-height: 1.5;
 }
 
-/* 印刷するカードの選択モード */
+/* 印刷するカードの選択モード。バーの中身を「全て選択/全て解除/選択を終了」だけに
+   絞って右詰めにする(他のUIは選択中に触るものではないので隠す)。 */
 .print-select-actions {
   display: inline-flex;
   gap: 8px;
 }
 
-#print-select-btn.active {
-  background: var(--accent-grad);
-  border-color: transparent;
-  color: #fff;
+.export-controls.select-mode {
+  justify-content: flex-end;
+}
+
+.export-controls.select-mode > *:not(.export-action-group) {
+  display: none;
+}
+
+.export-controls.select-mode .export-action-group > *:not(#print-select-btn):not(#print-select-actions) {
+  display: none;
 }

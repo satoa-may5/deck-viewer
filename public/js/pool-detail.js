@@ -225,8 +225,27 @@ function presentRarities(cards) {
   return [...known, ...unknown];
 }
 
+// カード番号の「_」より前が商品名（例: EX07BT_BLC-2-004 → EX07BT）。
+// オリカは CARD-001 のような採番で「_」を持たないので、商品名は付かない。
+function productCode(card) {
+  const name = (card && card.name) || "";
+  const i = name.indexOf("_");
+  return i > 0 ? name.slice(0, i) : "";
+}
+
+// プールに実在する商品名だけを、名前順で返す。
+function presentProducts(cards) {
+  const present = new Set();
+  for (const card of cards) {
+    const code = productCode(card);
+    if (code) present.add(code);
+  }
+  return [...present].sort((a, b) => a.localeCompare(b, "ja"));
+}
+
 const filterState = {
   types: new Set(),
+  products: new Set(),
   colors: new Set(),
   triggers: new Set(),
   rarities: new Set(),
@@ -265,6 +284,7 @@ const filterTypeGroup = document.getElementById("filter-type-group");
 const filterColorGroup = document.getElementById("filter-color-group");
 const filterTriggerGroup = document.getElementById("filter-trigger-group");
 const filterRarityGroup = document.getElementById("filter-rarity-group");
+const filterProductGroup = document.getElementById("filter-product-group");
 const filterApGroup = document.getElementById("filter-ap-group");
 const filterAttributeGroup = document.getElementById("filter-attribute-group");
 const filterGeneratedEnergyGroup = document.getElementById("filter-generated-energy-group");
@@ -545,6 +565,20 @@ function updateFilterUI() {
   }
   shrinkPillTextToFit(filterRarityGroup);
 
+  // 商品名。オリカには付かないので、実在する商品名が無ければ項目ごと隠す。
+  const products = presentProducts(latestCards);
+  filterProductAccordion.hidden = products.length === 0;
+  filterProductGroup.innerHTML = "";
+  for (const code of products) {
+    filterProductGroup.appendChild(
+      createFilterPill(code, filterState.products.has(code), () => {
+        toggleInSet(filterState.products, code);
+        renderCards();
+      })
+    );
+  }
+  shrinkPillTextToFit(filterProductGroup);
+
   // 消費APは1/2/3固定、プールに存在しない値はボタンをdisabledにする。
   const presentAps = new Set(latestCards.map((c) => c.ap).filter((v) => v !== null && v !== undefined));
   filterApGroup.innerHTML = "";
@@ -618,6 +652,7 @@ filterClearBtn.addEventListener("click", () => {
   filterState.colors.clear();
   filterState.triggers.clear();
   filterState.rarities.clear();
+  filterState.products.clear();
   filterState.aps.clear();
   filterState.attributes.clear();
   filterState.generatedEnergies.clear();
@@ -656,6 +691,7 @@ function cardMatchesFilters(card) {
   // treat that the same as "" (no trigger) rather than as a non-match.
   if (filterState.triggers.size > 0 && !filterState.triggers.has(card.trigger || "")) return false;
   if (filterState.rarities.size > 0 && !filterState.rarities.has(baseRarity(card.rarity))) return false;
+  if (filterState.products.size > 0 && !filterState.products.has(productCode(card))) return false;
   if (filterState.aps.size > 0 && !filterState.aps.has(card.ap ?? null)) return false;
   if (filterState.generatedEnergies.size > 0 && !filterState.generatedEnergies.has(card.generatedEnergy || "")) {
     return false;
@@ -688,12 +724,16 @@ function shrinkPillTextToFit(container) {
 }
 
 const filterRarityAccordion = document.getElementById("filter-rarity-accordion");
+const filterProductAccordion = document.getElementById("filter-product-accordion");
 const filterAttributeAccordion = document.getElementById("filter-attribute-accordion");
 filterRarityAccordion.addEventListener("toggle", () => {
   if (filterRarityAccordion.open) shrinkPillTextToFit(filterRarityGroup);
 });
 filterAttributeAccordion.addEventListener("toggle", () => {
   if (filterAttributeAccordion.open) shrinkPillTextToFit(filterAttributeGroup);
+});
+filterProductAccordion.addEventListener("toggle", () => {
+  if (filterProductAccordion.open) shrinkPillTextToFit(filterProductGroup);
 });
 
 // 折りたたみ一覧を「全部閉じた状態でちょうど収まる高さ」に固定し、それ以上は
