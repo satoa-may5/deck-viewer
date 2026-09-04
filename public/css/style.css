@@ -3208,3 +3208,15 @@ button {
   color: var(--muted);
   line-height: 1.5;
 }
+
+/* 印刷するカードの選択モード */
+.print-select-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+#print-select-btn.active {
+  background: var(--accent-grad);
+  border-color: transparent;
+  color: #fff;
+}

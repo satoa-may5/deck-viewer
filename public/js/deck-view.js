@@ -52,6 +52,15 @@ function saveExportSettings() {
 
 loadExportSettings();
 
+// 印刷対象の選択。既定は「全部印刷する」なので、外したものだけを覚えておく
+// （新しく増えたカードが勝手に対象外にならないように、含める側ではなく除く側を持つ）。
+let printSelectMode = false;
+const printExcluded = new Set();
+
+function isPrintable(cardId) {
+  return !printExcluded.has(cardId);
+}
+
 let targetRects = []; // authoritative layout (hit-testing, hand-off to display positions)
 let displayPos = {}; // cardId -> {x, y} — current on-screen position, eased toward targetRects
 let labelHeightForLayout = 0;
@@ -349,6 +358,71 @@ function renderFrame() {
   }
 }
 
+// プリンターのアイコン。小さく描くので画像は使わず矩形3つで組む。
+function drawPrinterGlyph(cx, cy, size, color) {
+  ctx.fillStyle = color;
+  // 上から出ている紙
+  ctx.fillRect(cx - size * 0.26, cy - size * 0.5, size * 0.52, size * 0.2);
+  // 本体
+  ctx.fillRect(cx - size * 0.5, cy - size * 0.24, size, size * 0.42);
+  // 下から出てくる紙（本体を白抜きしてから描く）
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(cx - size * 0.3, cy + size * 0.1, size * 0.6, size * 0.3);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(1, size * 0.09);
+  ctx.strokeRect(cx - size * 0.3, cy + size * 0.1, size * 0.6, size * 0.3);
+}
+
+// 選択モード中だけ、カードの右下に「印刷されるか」を出す。
+// 対象外のカードは白く薄くして、一目で分かるようにする。
+function drawPrintBadge(cardId, x, y, w, h, alpha, radius) {
+  const on = isPrintable(cardId);
+
+  if (!on) {
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.62;
+    roundedRectPath(ctx, x, y, w, h, radius);
+    ctx.clip();
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(x, y, w, h);
+    ctx.restore();
+  }
+
+  const r = Math.max(11, w * 0.15);
+  const cx = x + w - r - 4;
+  const cy = y + h - r - 4;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.shadowColor = "rgba(20, 21, 26, 0.35)";
+  ctx.shadowBlur = 6;
+  ctx.shadowOffsetY = 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = on ? ACCENT_1 : "#ffffff";
+  ctx.fill();
+  ctx.shadowColor = "transparent";
+  if (!on) {
+    ctx.lineWidth = Math.max(1.5, r * 0.12);
+    ctx.strokeStyle = MUTED_COLOR;
+    ctx.stroke();
+  }
+
+  drawPrinterGlyph(cx, cy, r * 1.05, on ? "#ffffff" : MUTED_COLOR);
+
+  if (!on) {
+    // 「印刷しない」の斜線
+    ctx.beginPath();
+    ctx.lineWidth = Math.max(2, r * 0.16);
+    ctx.strokeStyle = "#d64545";
+    ctx.lineCap = "round";
+    ctx.moveTo(cx - r * 0.62, cy + r * 0.62);
+    ctx.lineTo(cx + r * 0.62, cy - r * 0.62);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function drawCardTile(cardId, x, y, w, h, alpha, labelHeight) {
   const card = cardById[cardId];
   const radius = Math.min(10, w * 0.06);
@@ -397,6 +471,8 @@ function drawCardTile(cardId, x, y, w, h, alpha, labelHeight) {
   ctx.font = `bold ${Math.round(badgeR * 1.1)}px ${FONT_STACK}`;
   ctx.fillText(String(count), bx, by + 1);
   ctx.restore();
+
+  if (printSelectMode) drawPrintBadge(cardId, x, y, w, h, alpha, radius);
 
   if (labelHeight > 0) {
     const fontSize = Math.max(10, labelHeight * 0.6);
@@ -508,6 +584,15 @@ canvas.addEventListener("pointerup", async (e) => {
   dragState = null;
   canvas.style.cursor = "grab";
 
+  if (!wasDragging && printSelectMode) {
+    // 選択モード中は、ドラッグにならなかったクリックを対象の切り替えに使う
+    if (printExcluded.has(droppedCardId)) printExcluded.delete(droppedCardId);
+    else printExcluded.add(droppedCardId);
+    refreshPrintSelectUI();
+    renderFrame();
+    return;
+  }
+
   if (wasDragging) {
     // Let the dropped card ease from where it was released into its final
     // slot too, instead of snapping there instantly.
@@ -580,6 +665,7 @@ const PRINT_PER_PAGE = PRINT_COLS * PRINT_ROWS;
 function buildPrintList() {
   const list = [];
   for (const cardId of cardOrder) {
+    if (!isPrintable(cardId)) continue; // 選択から外したカードは刷らない
     const count = cardCounts[cardId] || 0;
     for (let i = 0; i < count; i++) list.push(cardId);
   }
@@ -1031,8 +1117,12 @@ async function openPrintOptions() {
   const fullList = buildPrintList();
   const printStatus = document.getElementById("print-status");
   if (fullList.length === 0) {
-    printStatus.textContent = "デッキにカードがありません";
+    printStatus.textContent =
+      cardOrder.length > 0
+        ? "印刷するカードが選ばれていません"
+        : "デッキにカードがありません";
     printStatus.className = "status-message error";
+    delete printStatus.dataset.owner;
     return;
   }
   printStatus.textContent = "";
@@ -1076,6 +1166,50 @@ document.getElementById("print-options-run-btn").addEventListener("click", async
   } finally {
     runBtn.disabled = false;
   }
+});
+
+const printSelectBtn = document.getElementById("print-select-btn");
+const printSelectActions = document.getElementById("print-select-actions");
+
+function refreshPrintSelectUI() {
+  const printStatus = document.getElementById("print-status");
+  printSelectBtn.textContent = printSelectMode ? "選択を終了" : "印刷するカードを選択";
+  printSelectBtn.classList.toggle("active", printSelectMode);
+  printSelectActions.hidden = !printSelectMode;
+  if (!printSelectMode) {
+    if (printStatus.dataset.owner === "select") {
+      printStatus.textContent = "";
+      delete printStatus.dataset.owner;
+    }
+    return;
+  }
+  const on = cardOrder.filter(isPrintable).length;
+  printStatus.dataset.owner = "select";
+  printStatus.className = "status-message";
+  printStatus.textContent =
+    on === 0
+      ? "印刷するカードが1枚も選ばれていません"
+      : `カードをクリックすると印刷する/しないを切り替えられます（${on}/${cardOrder.length}種類）`;
+}
+
+function setPrintSelectMode(on) {
+  printSelectMode = on;
+  refreshPrintSelectUI();
+  renderFrame();
+}
+
+printSelectBtn.addEventListener("click", () => setPrintSelectMode(!printSelectMode));
+
+document.getElementById("print-select-all-btn").addEventListener("click", () => {
+  printExcluded.clear();
+  refreshPrintSelectUI();
+  renderFrame();
+});
+
+document.getElementById("print-select-none-btn").addEventListener("click", () => {
+  for (const cardId of cardOrder) printExcluded.add(cardId);
+  refreshPrintSelectUI();
+  renderFrame();
 });
 
 document.getElementById("print-btn").addEventListener("click", openPrintOptions);
@@ -1258,6 +1392,12 @@ showManaCheckbox.addEventListener("change", (e) => {
 });
 
 document.getElementById("download-btn").addEventListener("click", () => {
+  // 印刷マークは画面上の目印でしかないので、書き出す画像には写さない
+  const restoreSelectMode = printSelectMode;
+  if (restoreSelectMode) {
+    printSelectMode = false;
+    renderFrame();
+  }
   canvas.toBlob((blob) => {
     if (!blob) return;
     const url = URL.createObjectURL(blob);
@@ -1267,6 +1407,11 @@ document.getElementById("download-btn").addEventListener("click", () => {
     a.click();
     URL.revokeObjectURL(url);
   }, "image/png");
+  // toBlob はこの時点のカンバスを写し取るので、すぐ戻して問題ない
+  if (restoreSelectMode) {
+    printSelectMode = true;
+    renderFrame();
+  }
 });
 
 document.getElementById("back-to-edit-btn").addEventListener("click", () => {
