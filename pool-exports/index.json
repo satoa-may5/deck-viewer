@@ -27,13 +27,13 @@
     "name": "BLC.dvpool",
     "poolName": "[UA-BLC] BLEACH 千年血戦篇",
     "release": "2023-09-29",
-    "size": 75026948
+    "size": 75026932
   },
   {
     "name": "BLK.dvpool",
     "poolName": "[UA-BLK] ブルーロック",
     "release": "2023-09-29",
-    "size": 32604534
+    "size": 32604581
   },
   {
     "name": "BTR.dvpool",
@@ -51,7 +51,7 @@
     "name": "CGH.dvpool",
     "poolName": "[UA-CGH] コードギアス 反逆のルルーシュ",
     "release": "2023-03-24",
-    "size": 35962728
+    "size": 35962712
   },
   {
     "name": "CSM.dvpool",
@@ -99,13 +99,13 @@
     "name": "HIQ.dvpool",
     "poolName": "[UA-HIQ] ハイキュー‼",
     "release": "2024-03-22",
-    "size": 26871486
+    "size": 26871507
   },
   {
     "name": "HTR.dvpool",
     "poolName": "[UA-HTR] HUNTER×HUNTER",
     "release": "2023-03-24",
-    "size": 46127300
+    "size": 46127297
   },
   {
     "name": "IMC.dvpool",
@@ -117,7 +117,7 @@
     "name": "IMS.dvpool",
     "poolName": "[UA-IMS] アイドルマスター シャイニーカラーズ",
     "release": "2023-04-28",
-    "size": 78974862
+    "size": 78974865
   },
   {
     "name": "IYS.dvpool",
@@ -165,13 +165,13 @@
     "name": "KMR.dvpool",
     "poolName": "[UA-KMR] 仮面ライダー",
     "release": "2024-10-25",
-    "size": 64096327
+    "size": 64096326
   },
   {
     "name": "KMY.dvpool",
     "poolName": "[UA-KMY] 鬼滅の刃",
     "release": "2023-04-28",
-    "size": 47792223
+    "size": 47792224
   },
   {
     "name": "MCR.dvpool",
@@ -207,7 +207,7 @@
     "name": "MST.dvpool",
     "poolName": "[UA-MST] 無職転生 ～異世界行ったら本気だす～",
     "release": "2026-06-19",
-    "size": 21380616
+    "size": 21380615
   },
   {
     "name": "NGR.dvpool",
@@ -231,7 +231,7 @@
     "name": "REZ.dvpool",
     "poolName": "[UA-REZ] Re:ゼロから始める異世界生活",
     "release": "2025-06-27",
-    "size": 26321850
+    "size": 26321843
   },
   {
     "name": "RLY.dvpool",
@@ -315,7 +315,7 @@
     "name": "TSK.dvpool",
     "poolName": "[UA-TSK] 転生したらスライムだった件",
     "release": "2023-05-26",
-    "size": 50454565
+    "size": 50454563
   },
   {
     "name": "TTG.dvpool",
