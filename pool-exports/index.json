@@ -15,7 +15,7 @@
     "name": "ARK.dvpool",
     "poolName": "[UA-ARK] アークナイツ",
     "release": "2024-11-29",
-    "size": 56001080
+    "size": 56001082
   },
   {
     "name": "BCV.dvpool",
@@ -27,7 +27,7 @@
     "name": "BLC.dvpool",
     "poolName": "[UA-BLC] BLEACH 千年血戦篇",
     "release": "2023-09-29",
-    "size": 75026875
+    "size": 75026926
   },
   {
     "name": "BLK.dvpool",
@@ -105,7 +105,7 @@
     "name": "HTR.dvpool",
     "poolName": "[UA-HTR] HUNTER×HUNTER",
     "release": "2023-03-24",
-    "size": 46127296
+    "size": 46127302
   },
   {
     "name": "IMC.dvpool",
@@ -129,7 +129,7 @@
     "name": "JJK.dvpool",
     "poolName": "[UA-JJK] 呪術廻戦",
     "release": "2023-03-24",
-    "size": 43848243
+    "size": 43848244
   },
   {
     "name": "KGD.dvpool",
@@ -165,7 +165,7 @@
     "name": "KMR.dvpool",
     "poolName": "[UA-KMR] 仮面ライダー",
     "release": "2024-10-25",
-    "size": 64096321
+    "size": 64096327
   },
   {
     "name": "KMY.dvpool",
@@ -231,7 +231,7 @@
     "name": "REZ.dvpool",
     "poolName": "[UA-REZ] Re:ゼロから始める異世界生活",
     "release": "2025-06-27",
-    "size": 26321853
+    "size": 26321850
   },
   {
     "name": "RLY.dvpool",
@@ -267,7 +267,7 @@
     "name": "SMD.dvpool",
     "poolName": "[UA-SMD] SAKAMOTO DAYS",
     "release": "2025-08-29",
-    "size": 17965960
+    "size": 17965967
   },
   {
     "name": "SNF.dvpool",
@@ -285,7 +285,7 @@
     "name": "TKG.dvpool",
     "poolName": "[UA-TKG] 東京喰種トーキョーグール",
     "release": "2025-12-19",
-    "size": 40528399
+    "size": 40528401
   },
   {
     "name": "TKN.dvpool",
@@ -315,7 +315,7 @@
     "name": "TSK.dvpool",
     "poolName": "[UA-TSK] 転生したらスライムだった件",
     "release": "2023-05-26",
-    "size": 50454560
+    "size": 50454565
   },
   {
     "name": "TTG.dvpool",
