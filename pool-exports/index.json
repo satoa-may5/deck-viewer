@@ -276,6 +276,12 @@
     "size": 20368322
   },
   {
+    "name": "STG.dvpool",
+    "poolName": "[UA-STG] シュタインズ・ゲート",
+    "release": "2026-10-16",
+    "size": 16426611
+  },
+  {
     "name": "SYN.dvpool",
     "poolName": "[UA-SYN] SYNDUALITY Noir",
     "release": "2024-02-23",
