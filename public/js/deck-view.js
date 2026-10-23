@@ -183,14 +183,47 @@ function roundedRectPath(context, x, y, w, h, r) {
   context.closePath();
 }
 
+// "軽減2エナ"(盤面が空なら手札で必要エナジー-2になる必要エナジー2のカード)の判定。
+// builder.jsのisCostReducerCard()と同じ条件に保つこと(統計グラフと画像出力で
+// マナカーブの見え方を揃えるため)。
+function isCostReducerCard(card) {
+  return card.cost === 2 && typeof card.effect === "string" && card.effect.includes("必要エナジーを2減らす");
+}
+
+// CSSの.stats-mana-bar-hatched(repeating-linear-gradient 45deg、3px線/7px周期)と
+// 同じ見た目の斜線を、現在のclip範囲内に描く。
+function fillHatch(context, x, y, w, h) {
+  const step = 7 * Math.SQRT2; // 周期7pxを斜め45度の線同士の水平間隔に直したもの
+  context.save();
+  context.beginPath();
+  context.rect(x, y, w, h);
+  context.clip();
+  context.strokeStyle = "rgba(255, 255, 255, 0.55)";
+  context.lineWidth = 3;
+  context.beginPath();
+  for (let sx = x - h; sx < x + w + h; sx += step) {
+    context.moveTo(sx, y + h);
+    context.lineTo(sx + h, y);
+  }
+  context.stroke();
+  context.restore();
+}
+
 function drawManaCurve(context, x, y, w, h) {
   const buckets = new Array(9).fill(0); // costs 0..7, 8 = "8+"
+  let reducedCount = 0;
   for (const cardId of cardOrder) {
     const card = cardById[cardId];
     if (!card || card.cost === null || card.cost === undefined) continue;
-    buckets[Math.min(card.cost, 8)] += cardCounts[cardId] || 0;
+    const n = cardCounts[cardId] || 0;
+    buckets[Math.min(card.cost, 8)] += n;
+    if (isCostReducerCard(card)) reducedCount += n;
   }
-  const max = Math.max(1, ...buckets);
+  // builder.jsのrenderDeckStats()と同じ表現: 必要エナジー0の棒は軽減2エナの枚数分
+  // だけ上に斜線で積み増す(スケールもそれ込み)。必要エナジー2の棒は元々軽減2エナを
+  // 含んだ数なので高さは変えず、上側のその枚数分を斜線にする。
+  const totals = buckets.map((count, i) => (i === 0 ? count + reducedCount : count));
+  const max = Math.max(1, ...totals);
   const countLabelSize = Math.max(9, h * 0.14);
   const axisLabelSize = Math.max(9, h * 0.14);
   const barAreaH = h - countLabelSize - axisLabelSize - 6;
@@ -205,19 +238,32 @@ function drawManaCurve(context, x, y, w, h) {
   context.textBaseline = "top";
 
   buckets.forEach((count, i) => {
-    const barH = Math.max((count / max) * barAreaH, count > 0 ? 2 : 0);
+    const total = totals[i];
+    const barH = Math.max((total / max) * barAreaH, total > 0 ? 2 : 0);
     const bx = x + i * (barW + barGap);
     const by = y + countLabelSize + 2 + (barAreaH - barH);
     const cx = bx + barW / 2;
 
+    let label = count > 0 ? String(count) : "";
+    if (reducedCount > 0 && i === 0) label = `${count} +${reducedCount}`;
+    else if (reducedCount > 0 && i === 2) label = `${count} -${reducedCount}`;
     context.fillStyle = TEXT_COLOR;
     context.font = `bold ${countLabelSize}px ${FONT_STACK}`;
-    context.fillText(count > 0 ? String(count) : "", cx, y);
+    context.fillText(label, cx, y);
 
     if (barH > 0) {
       context.fillStyle = barGrad;
       roundedRectPath(context, bx, by, barW, barH, Math.min(3, barW / 2));
       context.fill();
+      const hatchCount = reducedCount > 0 && (i === 0 || i === 2) ? Math.min(reducedCount, total) : 0;
+      if (hatchCount > 0) {
+        // 角丸の内側に収めるため、棒の形でclipしてから上側だけ斜線を重ねる。
+        context.save();
+        roundedRectPath(context, bx, by, barW, barH, Math.min(3, barW / 2));
+        context.clip();
+        fillHatch(context, bx, by, barW, barH * (hatchCount / total));
+        context.restore();
+      }
     }
 
     context.fillStyle = MUTED_COLOR;
